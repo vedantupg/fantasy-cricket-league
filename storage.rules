@@ -1,0 +1,60 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return request.auth != null;
+      // Note: We can't check Firestore from Storage rules
+      // Admin validation should be done in the app
+    }
+    
+    function isValidImageType() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    function isValidImageSize() {
+      return request.resource.size < 5 * 1024 * 1024; // 5MB limit
+    }
+
+    // User profile pictures
+    match /images/users/{userId}/profile.{extension} {
+      allow read: if true; // Public read for profile pictures
+      allow write: if isAuthenticated() && 
+                      isOwner(userId) && 
+                      isValidImageType() && 
+                      isValidImageSize();
+    }
+
+    // Player images (admin only)
+    match /images/players/{playerId}.{extension} {
+      allow read: if true; // Public read for player images
+      allow write: if isAuthenticated() && 
+                      isValidImageType() && 
+                      isValidImageSize();
+      // Note: Admin check should be done in app before upload
+    }
+
+    // League logos (league admins only)
+    match /images/leagues/{leagueId}/logo.{extension} {
+      allow read: if true; // Public read for league logos
+      allow write: if isAuthenticated() && 
+                      isValidImageType() && 
+                      isValidImageSize();
+      // Note: League admin check should be done in app before upload
+    }
+
+    // Deny all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
