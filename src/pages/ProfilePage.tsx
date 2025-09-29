@@ -8,13 +8,16 @@ import {
   Avatar,
   Button,
   TextField,
-  Divider,
   Chip,
-  LinearProgress
+  LinearProgress,
+  IconButton,
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { ArrowBack, Edit, Save, Cancel } from '@mui/icons-material';
+import { ArrowBack, Edit, Save, Cancel, PhotoCamera } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import { imageService } from '../services/storage';
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -24,13 +27,63 @@ const ProfilePage: React.FC = () => {
     displayName: userData?.displayName || '',
     email: userData?.email || ''
   });
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [profileImageUrl, setProfileImageUrl] = useState(userData?.profilePicUrl || '');
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate image using imageService
+    const validation = imageService.validateImage(file);
+    if (!validation.isValid) {
+      setError(validation.error || 'Invalid image file');
+      return;
+    }
+
+    setError('');
+    setProfileImage(file);
+
+    // Create preview URL
+    const reader = new FileReader();
+    reader.onload = () => {
+      setProfileImageUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSave = async () => {
+    if (!editData.displayName.trim()) {
+      setError('Please enter a display name');
+      return;
+    }
+
+    setUploading(true);
+    setError('');
+
     try {
-      await updateUserProfile({ displayName: editData.displayName });
+      let finalProfilePicUrl = profileImageUrl;
+
+      // Upload new profile image if selected
+      if (profileImage && userData?.uid) {
+        finalProfilePicUrl = await imageService.uploadUserProfile(userData.uid, profileImage);
+      }
+
+      // Update user profile
+      await updateUserProfile({
+        displayName: editData.displayName,
+        profilePicUrl: finalProfilePicUrl
+      });
+
       setIsEditing(false);
+      setProfileImage(null);
     } catch (error) {
       console.error('Failed to update profile:', error);
+      setError('Failed to save profile. Please try again.');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -39,6 +92,9 @@ const ProfilePage: React.FC = () => {
       displayName: userData?.displayName || '',
       email: userData?.email || ''
     });
+    setProfileImage(null);
+    setProfileImageUrl(userData?.profilePicUrl || '');
+    setError('');
     setIsEditing(false);
   };
 
@@ -89,27 +145,63 @@ const ProfilePage: React.FC = () => {
           <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 calc(33.33% - 21px)' } }}>
             <Card>
               <CardContent sx={{ textAlign: 'center' }}>
-                <Avatar 
-                  sx={{ 
-                    width: 100, 
-                    height: 100, 
-                    mx: 'auto', 
-                    mb: 2,
-                    bgcolor: 'primary.main',
-                    fontSize: '2rem'
-                  }}
-                >
-                  {userData?.displayName?.charAt(0) || 'U'}
-                </Avatar>
+                <Box sx={{ position: 'relative', display: 'inline-block' }}>
+                  <Avatar
+                    src={profileImageUrl || userData?.profilePicUrl}
+                    sx={{
+                      width: 100,
+                      height: 100,
+                      mx: 'auto',
+                      mb: 2,
+                      bgcolor: 'primary.main',
+                      fontSize: '2rem'
+                    }}
+                  >
+                    {userData?.displayName?.charAt(0) || 'U'}
+                  </Avatar>
+                  {isEditing && (
+                    <IconButton
+                      color="primary"
+                      aria-label="upload picture"
+                      component="label"
+                      sx={{
+                        position: 'absolute',
+                        bottom: 8,
+                        right: -8,
+                        bgcolor: 'background.paper',
+                        border: '2px solid',
+                        borderColor: 'primary.main',
+                        '&:hover': {
+                          bgcolor: 'primary.main',
+                          color: 'white',
+                        }
+                      }}
+                    >
+                      <input
+                        hidden
+                        accept="image/*"
+                        type="file"
+                        onChange={handleImageChange}
+                      />
+                      <PhotoCamera />
+                    </IconButton>
+                  )}
+                </Box>
                 
                 {isEditing ? (
                   <Box>
+                    {error && (
+                      <Alert severity="error" sx={{ mb: 2 }}>
+                        {error}
+                      </Alert>
+                    )}
                     <TextField
                       fullWidth
                       label="Display Name"
                       value={editData.displayName}
                       onChange={(e) => setEditData({ ...editData, displayName: e.target.value })}
                       margin="normal"
+                      required
                     />
                     <TextField
                       fullWidth
@@ -119,19 +211,26 @@ const ProfilePage: React.FC = () => {
                       margin="normal"
                       helperText="Email cannot be changed"
                     />
+                    {profileImage && (
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        New profile picture selected (max 5MB)
+                      </Typography>
+                    )}
                     <Box sx={{ mt: 2 }}>
                       <Button
                         variant="contained"
-                        startIcon={<Save />}
+                        startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : <Save />}
                         onClick={handleSave}
                         sx={{ mr: 1 }}
+                        disabled={uploading}
                       >
-                        Save
+                        {uploading ? 'Saving...' : 'Save'}
                       </Button>
                       <Button
                         variant="outlined"
                         startIcon={<Cancel />}
                         onClick={handleCancel}
+                        disabled={uploading}
                       >
                         Cancel
                       </Button>
