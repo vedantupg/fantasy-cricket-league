@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -32,6 +32,11 @@ const ProfilePage: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
+  // Sync profileImageUrl with userData when it changes
+  useEffect(() => {
+    setProfileImageUrl(userData?.profilePicUrl || '');
+  }, [userData?.profilePicUrl]);
+
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -64,21 +69,31 @@ const ProfilePage: React.FC = () => {
     setError('');
 
     try {
+      console.log('Starting profile save...', { profileImage, userId: userData?.uid });
       let finalProfilePicUrl = profileImageUrl;
 
       // Upload new profile image if selected
       if (profileImage && userData?.uid) {
+        console.log('Uploading new profile image...');
         finalProfilePicUrl = await imageService.uploadUserProfile(userData.uid, profileImage);
+        console.log('Image uploaded successfully:', finalProfilePicUrl);
       }
 
       // Update user profile
+      console.log('Updating user profile...', {
+        displayName: editData.displayName,
+        profilePicUrl: finalProfilePicUrl
+      });
       await updateUserProfile({
         displayName: editData.displayName,
         profilePicUrl: finalProfilePicUrl
       });
 
+      // Update local state to reflect changes
+      setProfileImageUrl(finalProfilePicUrl);
       setIsEditing(false);
       setProfileImage(null);
+      console.log('Profile update completed successfully');
     } catch (error) {
       console.error('Failed to update profile:', error);
       setError('Failed to save profile. Please try again.');
