@@ -75,7 +75,14 @@ const ProfilePage: React.FC = () => {
       // Upload new profile image if selected
       if (profileImage && userData?.uid) {
         console.log('Uploading new profile image...');
-        finalProfilePicUrl = await imageService.uploadUserProfile(userData.uid, profileImage);
+
+        // Add timeout to prevent hanging
+        const uploadPromise = imageService.uploadUserProfile(userData.uid, profileImage);
+        const timeoutPromise = new Promise<string>((_, reject) =>
+          setTimeout(() => reject(new Error('Upload timeout after 30 seconds')), 30000)
+        );
+
+        finalProfilePicUrl = await Promise.race([uploadPromise, timeoutPromise]) as string;
         console.log('Image uploaded successfully:', finalProfilePicUrl);
       }
 
@@ -94,15 +101,29 @@ const ProfilePage: React.FC = () => {
       setIsEditing(false);
       setProfileImage(null);
       console.log('Profile update completed successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update profile:', error);
-      setError('Failed to save profile. Please try again.');
+
+      // More specific error messages
+      let errorMessage = 'Failed to save profile. Please try again.';
+      if (error.message?.includes('timeout')) {
+        errorMessage = 'Upload timed out. Please check your connection and try again.';
+      } else if (error.code === 'storage/unauthorized') {
+        errorMessage = 'You do not have permission to upload images.';
+      } else if (error.code === 'storage/quota-exceeded') {
+        errorMessage = 'Storage quota exceeded. Please try again later.';
+      } else if (error.code === 'storage/invalid-format') {
+        errorMessage = 'Invalid image format. Please upload a valid image file.';
+      }
+
+      setError(errorMessage);
     } finally {
       setUploading(false);
     }
   };
 
   const handleCancel = () => {
+    // Reset states regardless of upload status
     setEditData({
       displayName: userData?.displayName || '',
       email: userData?.email || ''
@@ -110,6 +131,7 @@ const ProfilePage: React.FC = () => {
     setProfileImage(null);
     setProfileImageUrl(userData?.profilePicUrl || '');
     setError('');
+    setUploading(false); // Reset uploading state
     setIsEditing(false);
   };
 
@@ -245,7 +267,6 @@ const ProfilePage: React.FC = () => {
                         variant="outlined"
                         startIcon={<Cancel />}
                         onClick={handleCancel}
-                        disabled={uploading}
                       >
                         Cancel
                       </Button>
