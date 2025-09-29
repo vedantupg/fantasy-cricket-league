@@ -17,6 +17,7 @@ import SquadSelectionPage from './pages/SquadSelectionPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import ViewTeamsPage from './pages/ViewTeamsPage';
 import ProfilePage from './pages/ProfilePage';
+import ProfileSetupPage from './pages/ProfileSetupPage';
 import AdminPage from './pages/AdminPage';
 
 // Create Material-UI theme
@@ -87,7 +88,14 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            
+
+            {/* Profile Setup Route */}
+            <Route path="/profile-setup" element={
+              <ProtectedRoute>
+                <ProfileSetupPage />
+              </ProtectedRoute>
+            } />
+
             {/* Protected Routes */}
             <Route path="/dashboard" element={
               <ProtectedRoute>

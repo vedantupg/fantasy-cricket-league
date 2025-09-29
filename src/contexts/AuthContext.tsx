@@ -20,6 +20,7 @@ interface UserData {
   isAdmin: boolean;
   leagues: string[];
   createdAt: Date;
+  profileSetupCompleted?: boolean;
 }
 
 interface AuthContextType {
@@ -84,6 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAdmin: false,
       leagues: [],
       createdAt: new Date(),
+      profileSetupCompleted: false,
     };
 
     await setDoc(doc(db, 'users', result.user.uid), newUserData);
@@ -104,6 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAdmin: false,
         leagues: [],
         createdAt: new Date(),
+        profileSetupCompleted: false,
       };
       await setDoc(doc(db, 'users', result.user.uid), newUserData);
     }

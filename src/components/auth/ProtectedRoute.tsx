@@ -25,6 +25,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminOnly = f
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Check if user needs to complete profile setup (only for first-time users)
+  if (userData && userData.profileSetupCompleted === false && location.pathname !== '/profile-setup') {
+    return <Navigate to="/profile-setup" replace />;
+  }
+
   if (adminOnly && userData && !userData.isAdmin) {
     // Redirect non-admin users to dashboard
     return <Navigate to="/dashboard" replace />;
