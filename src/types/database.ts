@@ -21,13 +21,15 @@ export interface League {
   // League Settings
   format: 'T20' | 'ODI' | 'Test';
   maxParticipants: number;
-  
+  powerplayEnabled: boolean; // NEW: Powerplay feature toggle
+
   // Squad Selection Settings
   squadSize: number; // default 11
   squadDeadline: Date;
-  
+
   // Transfer Settings
   maxTransfers: number;
+  transferTypes?: TransferTypeConfig; // NEW: Granular transfer types (optional for backward compatibility)
   transfersUsed: { [userId: string]: number };
   transferDeadline: Date;
   transferWindow: {
@@ -62,10 +64,38 @@ export interface SquadRules {
   minBowlers: number;
   minAllrounders: number;
   minWicketkeepers: number;
-  
+
   // Budget rules
   hasBudget: boolean;
   totalBudget?: number;
+}
+
+export interface TransferTypeConfig {
+  // Bench transfers - can be used anytime during active matches
+  benchTransfers: {
+    enabled: boolean;
+    maxAllowed: number;
+    description: string;
+    benchSlots: number; // Number of bench player slots available
+  };
+
+  // Mid-season transfers - major changes during breaks
+  midSeasonTransfers: {
+    enabled: boolean;
+    maxAllowed: number;
+    description: string;
+    windowDurationHours: number; // How long the transfer window stays open (24, 36, or 48 hours)
+    windowStartDate: Date; // When the transfer window opens
+    deadlines?: Date[]; // specific windows when these can be used
+  };
+
+  // Flexible transfers - can be saved and used strategically
+  flexibleTransfers: {
+    enabled: boolean;
+    maxAllowed: number;
+    description: string;
+    canCarryForward: boolean; // if unused transfers can be saved
+  };
 }
 
 export interface LeagueSquad {

@@ -18,6 +18,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowBack, Edit, Save, Cancel, PhotoCamera } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { imageService } from '../services/storage';
+import { storage } from '../services/firebase';
+import { ref } from 'firebase/storage';
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -75,15 +77,38 @@ const ProfilePage: React.FC = () => {
       // Upload new profile image if selected
       if (profileImage && userData?.uid) {
         console.log('Uploading new profile image...');
+        console.log('File details:', {
+          name: profileImage.name,
+          size: profileImage.size,
+          type: profileImage.type
+        });
+        console.log('User details:', {
+          uid: userData.uid,
+          email: userData.email
+        });
 
-        // Add timeout to prevent hanging
-        const uploadPromise = imageService.uploadUserProfile(userData.uid, profileImage);
-        const timeoutPromise = new Promise<string>((_, reject) =>
-          setTimeout(() => reject(new Error('Upload timeout after 30 seconds')), 30000)
-        );
+        try {
+          // Test Firebase Storage connection first
+          console.log('Testing storage connection...');
+          const storageRef = ref(storage, 'test-connection');
+          console.log('Storage ref created successfully');
 
-        finalProfilePicUrl = await Promise.race([uploadPromise, timeoutPromise]) as string;
-        console.log('Image uploaded successfully:', finalProfilePicUrl);
+          // Add timeout to prevent hanging
+          const uploadPromise = imageService.uploadUserProfile(userData.uid, profileImage);
+          const timeoutPromise = new Promise<string>((_, reject) =>
+            setTimeout(() => reject(new Error('Upload timeout after 30 seconds')), 30000)
+          );
+
+          finalProfilePicUrl = await Promise.race([uploadPromise, timeoutPromise]) as string;
+          console.log('Image uploaded successfully:', finalProfilePicUrl);
+        } catch (uploadError: any) {
+          console.error('Upload error details:', {
+            code: uploadError.code,
+            message: uploadError.message,
+            stack: uploadError.stack
+          });
+          throw uploadError;
+        }
       }
 
       // Update user profile
