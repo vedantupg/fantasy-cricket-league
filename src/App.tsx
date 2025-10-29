@@ -19,6 +19,7 @@ import ViewTeamsPage from './pages/ViewTeamsPage';
 import ProfilePage from './pages/ProfilePage';
 import ProfileSetupPage from './pages/ProfileSetupPage';
 import AdminPage from './pages/AdminPage';
+import PlayerPoolManagementPage from './pages/PlayerPoolManagementPage';
 
 // Create Material-UI theme
 const theme = createTheme({
@@ -152,7 +153,13 @@ function App() {
                 <AdminPage />
               </ProtectedRoute>
             } />
-            
+
+            <Route path="/admin/player-pools" element={
+              <ProtectedRoute adminOnly={true}>
+                <PlayerPoolManagementPage />
+              </ProtectedRoute>
+            } />
+
             {/* Catch all route */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

@@ -109,13 +109,22 @@ const LeagueListPage: React.FC = () => {
         Join League
       </Button>
       {userData?.isAdmin && (
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => navigate('/leagues/create')}
-        >
-          Create League
-        </Button>
+        <>
+          <Button
+            variant="outlined"
+            startIcon={<Groups />}
+            onClick={() => navigate('/admin/player-pools')}
+          >
+            Player Pools
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => navigate('/leagues/create')}
+          >
+            Create League
+          </Button>
+        </>
       )}
     </Box>
   );

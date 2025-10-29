@@ -29,7 +29,8 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AppHeader from '../components/common/AppHeader';
-import type { League, Player, SquadRules } from '../types/database';
+import { playerPoolService, leagueService } from '../services/firestore';
+import type { League, Player, SquadRules, PlayerPool, PlayerPoolEntry } from '../types/database';
 
 // Mock data - replace with actual API calls
 const mockLeague: League = {
@@ -119,12 +120,71 @@ const SquadSelectionPage: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // TODO: Load actual league and player data
-    setTimeout(() => {
-      setLeague(mockLeague);
-      setAvailablePlayers(mockPlayers);
-      setLoading(false);
-    }, 1000);
+    const loadLeagueAndPlayers = async () => {
+      if (!leagueId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        // Load league from Firestore
+        const league = await leagueService.getById(leagueId);
+
+        if (!league) {
+          console.error('League not found');
+          setLoading(false);
+          return;
+        }
+
+        setLeague(league);
+
+        // Fetch player pool if league has a playerPoolId
+        if (league.playerPoolId) {
+          try {
+            const playerPool = await playerPoolService.getById(league.playerPoolId);
+
+            if (playerPool && playerPool.players.length > 0) {
+              // Convert PlayerPoolEntry to Player format with points included
+              const playersFromPool = playerPool.players.map(entry => ({
+                id: entry.playerId,
+                name: entry.name,
+                team: entry.team,
+                country: 'India',
+                role: entry.role,
+                isActive: true,
+                availability: 'available' as const,
+                stats: {
+                  T20: { matches: 0, runs: 0, wickets: 0, economy: 0, strikeRate: 0, catches: 0, recentForm: entry.points },
+                  ODI: { matches: 0, runs: 0, wickets: 0, economy: 0, strikeRate: 0, catches: 0, recentForm: entry.points },
+                  Test: { matches: 0, runs: 0, wickets: 0, economy: 0, strikeRate: 0, catches: 0, recentForm: entry.points }
+                },
+                createdAt: new Date(),
+                updatedAt: new Date()
+              }));
+              setAvailablePlayers(playersFromPool);
+            } else {
+              console.error('Player pool not found or empty');
+              setAvailablePlayers(mockPlayers); // Fallback to mock players
+            }
+          } catch (error) {
+            console.error('Error fetching player pool:', error);
+            setAvailablePlayers(mockPlayers); // Fallback to mock players
+          }
+        } else {
+          // Fallback to mock players if no pool is selected
+          setAvailablePlayers(mockPlayers);
+        }
+
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading league data:', error);
+        setLoading(false);
+      }
+    };
+
+    loadLeagueAndPlayers();
   }, [leagueId]);
 
   const getPositionCounts = () => {
@@ -271,6 +331,17 @@ const CricketPitchFormation: React.FC<{
 
   const requiredSlots = getRequiredSlots();
 
+  const getRoleDisplayText = (role?: string): string => {
+    if (!role) return '';
+    switch (role) {
+      case 'batsman': return 'Batter';
+      case 'bowler': return 'Bowler';
+      case 'allrounder': return 'Allrounder';
+      case 'wicketkeeper': return 'Wicketkeeper';
+      default: return role.charAt(0).toUpperCase() + role.slice(1);
+    }
+  };
+
   const getSlotColors = (slotType: 'required' | 'flexible' | 'bench', role?: string) => {
     if (slotType === 'required') {
       switch (role) {
@@ -370,7 +441,7 @@ const CricketPitchFormation: React.FC<{
                 textShadow: '0 1px 2px rgba(255,255,255,0.8)'
               }}
             >
-              {role ? `${role.charAt(0).toUpperCase() + role.slice(1)}` : `Player ${position + 1}`}
+              {role ? getRoleDisplayText(role) : `Player ${position + 1}`}
             </Typography>
             <Typography
               variant="caption"
@@ -605,7 +676,7 @@ const CricketPitchFormation: React.FC<{
               </Box>
             )}
 
-            {/* Batsmen - Near the batting end */}
+            {/* Batters - Near the batting end */}
             <Box sx={{
               position: 'relative',
               '&::after': {
@@ -632,7 +703,7 @@ const CricketPitchFormation: React.FC<{
                   boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
                 }}>
                   <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: '1rem' }}>
-                    🏏 Batsmen
+                    🏏 Batters
                   </Typography>
                   <Chip
                     label={`${league.squadRules.minBatsmen} Required`}
@@ -1006,7 +1077,7 @@ const PlayerSelectionPanel: React.FC<{
             onChange={(e) => setFilterRole(e.target.value)}
           >
             <MenuItem value="all">All Players</MenuItem>
-            <MenuItem value="batsman">Batsmen</MenuItem>
+            <MenuItem value="batsman">Batters</MenuItem>
             <MenuItem value="bowler">Bowlers</MenuItem>
             <MenuItem value="allrounder">All-rounders</MenuItem>
             <MenuItem value="wicketkeeper">Wicket-keepers</MenuItem>

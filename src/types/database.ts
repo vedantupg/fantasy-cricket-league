@@ -50,11 +50,12 @@ export interface League {
   tournamentName: string;
   startDate: Date;
   endDate: Date;
-  
+
   // Squad Selection Rules
-  playerPool: string[];
+  playerPoolId?: string; // Reference to PlayerPool
+  playerPool: string[]; // Legacy: array of player IDs (kept for backward compatibility)
   squadRules: SquadRules;
-  
+
   createdAt: Date;
 }
 
@@ -159,31 +160,57 @@ export interface Transfer {
   rejectionReason?: string;
 }
 
+export interface PlayerPool {
+  id: string;
+  name: string;
+  description?: string;
+  creatorId: string; // who created this pool (must be admin)
+  adminIds: string[]; // admins who can edit this pool
+
+  // Players in this pool with their current points
+  players: PlayerPoolEntry[];
+
+  // Metadata
+  createdAt: Date;
+  updatedAt: Date;
+  isActive: boolean;
+}
+
+export interface PlayerPoolEntry {
+  playerId: string;
+  name: string;
+  team: string;
+  role: 'batsman' | 'bowler' | 'allrounder' | 'wicketkeeper';
+  points: number; // Current fantasy points for this player
+  lastUpdated: Date;
+  updatedBy?: string; // admin who last updated points
+}
+
 export interface Player {
   id: string;
   name: string;
   team: string;
   country: string;
   role: 'batsman' | 'bowler' | 'allrounder' | 'wicketkeeper';
-  
+
   // Fantasy Relevance
   isActive: boolean;
   availability: 'available' | 'injured' | 'not_selected';
-  
+
   // Pricing
   basePrice?: number;
   currentPrice?: number;
-  
+
   // Stats by Format
   stats: {
     T20: PlayerStats;
     ODI: PlayerStats;
     Test: PlayerStats;
   };
-  
+
   // Media
   imageUrl?: string;
-  
+
   createdAt: Date;
   updatedAt: Date;
 }

@@ -25,14 +25,14 @@ const TeamPage: React.FC = () => {
   const [budget] = useState(100);
   const [usedBudget, setUsedBudget] = useState(0);
 
-  const playerPositions = ['Wicket Keeper', 'Batsman', 'All Rounder', 'Bowler'];
-  
+  const playerPositions = ['Wicket Keeper', 'Batter', 'All Rounder', 'Bowler'];
+
   const samplePlayers = [
-    { id: 1, name: 'Virat Kohli', position: 'Batsman', points: 8.5, price: 11.0 },
+    { id: 1, name: 'Virat Kohli', position: 'Batter', points: 8.5, price: 11.0 },
     { id: 2, name: 'MS Dhoni', position: 'Wicket Keeper', points: 9.0, price: 10.5 },
     { id: 3, name: 'Hardik Pandya', position: 'All Rounder', points: 8.5, price: 9.0 },
     { id: 4, name: 'Jasprit Bumrah', position: 'Bowler', points: 8.0, price: 9.5 },
-    { id: 5, name: 'Rohit Sharma', position: 'Batsman', points: 8.5, price: 10.0 },
+    { id: 5, name: 'Rohit Sharma', position: 'Batter', points: 8.5, price: 10.0 },
     { id: 6, name: 'Rishabh Pant', position: 'Wicket Keeper', points: 7.5, price: 8.5 },
     { id: 7, name: 'Ravindra Jadeja', position: 'All Rounder', points: 8.0, price: 8.5 },
     { id: 8, name: 'Mohammed Shami', position: 'Bowler', points: 7.5, price: 8.0 }
@@ -58,7 +58,7 @@ const TeamPage: React.FC = () => {
   const getPositionColor = (position: string) => {
     const colors: { [key: string]: string } = {
       'Wicket Keeper': '#ff9800',
-      'Batsman': '#4caf50',
+      'Batter': '#4caf50',
       'All Rounder': '#2196f3',
       'Bowler': '#f44336'
     };

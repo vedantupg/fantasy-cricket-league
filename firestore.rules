@@ -116,6 +116,16 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Player Pools collection
+    match /playerPools/{poolId} {
+      // All authenticated users can read player pools
+      allow read: if isAuthenticated();
+      // Only admins can create, update, or delete player pools
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
     // Deny all other reads/writes
     match /{document=**} {
       allow read, write: if false;

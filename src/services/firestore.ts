@@ -23,6 +23,8 @@ import type {
   Match,
   PlayerPerformance,
   PointsConfig,
+  PlayerPool,
+  PlayerPoolEntry,
 } from '../types/database';
 
 // Collection References
@@ -31,6 +33,7 @@ const COLLECTIONS = {
   LEAGUES: 'leagues',
   SQUADS: 'squads',
   PLAYERS: 'players',
+  PLAYER_POOLS: 'playerPools',
   TRANSFERS: 'transfers',
   MATCHES: 'matches',
   PLAYER_PERFORMANCES: 'playerPerformances',
@@ -40,7 +43,12 @@ const COLLECTIONS = {
 // Utility function to convert Firestore Timestamp to Date
 const convertTimestamps = (data: any): any => {
   if (data === null || typeof data !== 'object') return data;
-  
+
+  // Handle arrays separately to preserve array structure
+  if (Array.isArray(data)) {
+    return data.map(item => convertTimestamps(item));
+  }
+
   const converted = { ...data };
   Object.keys(converted).forEach(key => {
     if (converted[key] instanceof Timestamp) {
@@ -49,7 +57,7 @@ const convertTimestamps = (data: any): any => {
       converted[key] = convertTimestamps(converted[key]);
     }
   });
-  
+
   return converted;
 };
 
@@ -370,6 +378,157 @@ export const matchService = {
   },
 };
 
+// Player Pool Operations
+export const playerPoolService = {
+  // Create a new player pool
+  async create(pool: Omit<PlayerPool, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+    const docRef = await addDoc(collection(db, COLLECTIONS.PLAYER_POOLS), {
+      ...pool,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    return docRef.id;
+  },
+
+  // Get all active player pools
+  async getAll(): Promise<PlayerPool[]> {
+    const q = query(
+      collection(db, COLLECTIONS.PLAYER_POOLS),
+      where('isActive', '==', true)
+    );
+    const querySnapshot = await getDocs(q);
+
+    // Sort by createdAt in memory to avoid needing a composite index
+    const pools = querySnapshot.docs.map(doc =>
+      convertTimestamps({ id: doc.id, ...doc.data() }) as PlayerPool
+    );
+
+    return pools.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  },
+
+  // Get player pool by ID
+  async getById(poolId: string): Promise<PlayerPool | null> {
+    const docRef = doc(db, COLLECTIONS.PLAYER_POOLS, poolId);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      return convertTimestamps({ id: docSnap.id, ...docSnap.data() }) as PlayerPool;
+    }
+    return null;
+  },
+
+  // Get player pools created by a user
+  async getByCreator(userId: string): Promise<PlayerPool[]> {
+    const q = query(
+      collection(db, COLLECTIONS.PLAYER_POOLS),
+      where('creatorId', '==', userId)
+    );
+    const querySnapshot = await getDocs(q);
+
+    // Sort by createdAt in memory to avoid needing a composite index
+    const pools = querySnapshot.docs.map(doc =>
+      convertTimestamps({ id: doc.id, ...doc.data() }) as PlayerPool
+    );
+
+    return pools.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  },
+
+  // Update player pool
+  async update(poolId: string, updates: Partial<PlayerPool>): Promise<void> {
+    const docRef = doc(db, COLLECTIONS.PLAYER_POOLS, poolId);
+
+    // Ensure players is always an array if it's being updated
+    const updateData: any = {
+      ...updates,
+      updatedAt: new Date(),
+    };
+
+    if (updates.players !== undefined) {
+      // Force players to be an array
+      updateData.players = Array.isArray(updates.players)
+        ? updates.players
+        : (updates.players ? Object.values(updates.players) : []);
+    }
+
+    await updateDoc(docRef, updateData);
+  },
+
+  // Add player to pool
+  async addPlayer(poolId: string, player: PlayerPoolEntry): Promise<void> {
+    const poolDoc = await this.getById(poolId);
+    if (!poolDoc) {
+      throw new Error('Player pool not found');
+    }
+
+    const updatedPlayers = [...poolDoc.players, player];
+    await this.update(poolId, { players: updatedPlayers });
+  },
+
+  // Update player in pool
+  async updatePlayer(poolId: string, playerId: string, updates: Partial<PlayerPoolEntry>): Promise<void> {
+    const poolDoc = await this.getById(poolId);
+    if (!poolDoc) {
+      throw new Error('Player pool not found');
+    }
+
+    const updatedPlayers = poolDoc.players.map(p =>
+      p.playerId === playerId ? { ...p, ...updates, lastUpdated: new Date() } : p
+    );
+    await this.update(poolId, { players: updatedPlayers });
+  },
+
+  // Remove player from pool
+  async removePlayer(poolId: string, playerId: string): Promise<void> {
+    const poolDoc = await this.getById(poolId);
+    if (!poolDoc) {
+      throw new Error('Player pool not found');
+    }
+
+    const updatedPlayers = poolDoc.players.filter(p => p.playerId !== playerId);
+    await this.update(poolId, { players: updatedPlayers });
+  },
+
+  // Update multiple player points at once
+  async updatePlayerPoints(poolId: string, pointsUpdates: { playerId: string; points: number }[]): Promise<void> {
+    const poolDoc = await this.getById(poolId);
+    if (!poolDoc) {
+      throw new Error('Player pool not found');
+    }
+
+    const updatedPlayers = poolDoc.players.map(player => {
+      const update = pointsUpdates.find(u => u.playerId === player.playerId);
+      if (update) {
+        return {
+          ...player,
+          points: update.points,
+          lastUpdated: new Date(),
+        };
+      }
+      return player;
+    });
+
+    await this.update(poolId, { players: updatedPlayers });
+  },
+
+  // Delete player pool (soft delete by setting isActive to false)
+  async delete(poolId: string): Promise<void> {
+    await this.update(poolId, { isActive: false });
+  },
+
+  // Real-time listener for player pool updates
+  subscribeToPool(poolId: string, callback: (pool: PlayerPool | null) => void): () => void {
+    const docRef = doc(db, COLLECTIONS.PLAYER_POOLS, poolId);
+
+    return onSnapshot(docRef, (doc) => {
+      if (doc.exists()) {
+        callback(convertTimestamps({ id: doc.id, ...doc.data() }) as PlayerPool);
+      } else {
+        callback(null);
+      }
+    });
+  },
+};
+
 // Batch Operations for Performance
 export const batchService = {
   // Update multiple squads' points after a match
@@ -392,6 +551,7 @@ export default {
   leagueService,
   squadService,
   playerService,
+  playerPoolService,
   transferService,
   matchService,
   batchService,

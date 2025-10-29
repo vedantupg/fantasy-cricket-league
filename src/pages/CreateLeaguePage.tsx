@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -29,16 +29,18 @@ import {
 import { SportsCricket } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { leagueService } from '../services/firestore';
+import { leagueService, playerPoolService } from '../services/firestore';
 import { generateLeagueCode } from '../utils/leagueCode';
 import AppHeader from '../components/common/AppHeader';
-import type { League, SquadRules, TransferTypeConfig } from '../types/database';
+import type { League, SquadRules, TransferTypeConfig, PlayerPool } from '../types/database';
 
 const CreateLeaguePage: React.FC = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
+  const [playerPools, setPlayerPools] = useState<PlayerPool[]>([]);
+  const [selectedPlayerPoolId, setSelectedPlayerPoolId] = useState<string>('');
+
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -99,6 +101,21 @@ const CreateLeaguePage: React.FC = () => {
 
   const steps = ['Basic Info', 'Squad Rules', 'Transfer Settings', 'Review & Create'];
 
+  // Load player pools on component mount
+  useEffect(() => {
+    const loadPlayerPools = async () => {
+      try {
+        const pools = await playerPoolService.getAll();
+        setPlayerPools(pools);
+      } catch (error) {
+        console.error('Error loading player pools:', error);
+        setError('Failed to load player pools');
+      }
+    };
+
+    loadPlayerPools();
+  }, []);
+
   const handleNext = () => {
     setActiveStep((prev) => prev + 1);
   };
@@ -140,7 +157,8 @@ const CreateLeaguePage: React.FC = () => {
         tournamentName: leagueData.tournament,
         startDate: leagueData.startDate,
         endDate: leagueData.endDate,
-        playerPool: [], // Will be populated by admin later
+        playerPoolId: selectedPlayerPoolId || undefined, // Reference to selected player pool
+        playerPool: [], // Legacy field (kept for backward compatibility)
         squadRules,
         powerplayEnabled: leagueData.powerplayEnabled,
         transferTypes,
@@ -185,6 +203,43 @@ const CreateLeaguePage: React.FC = () => {
               </MenuItem>
             ))}
           </Select>
+        </FormControl>
+      </Grid>
+
+      <Grid size={12}>
+        <FormControl fullWidth required>
+          <InputLabel>Player Pool</InputLabel>
+          <Select
+            value={selectedPlayerPoolId}
+            label="Player Pool"
+            onChange={(e) => setSelectedPlayerPoolId(e.target.value)}
+          >
+            {playerPools.length === 0 ? (
+              <MenuItem value="" disabled>
+                No player pools available. Create one first!
+              </MenuItem>
+            ) : (
+              playerPools.map((pool) => (
+                <MenuItem key={pool.id} value={pool.id}>
+                  {pool.name} ({pool.players.length} players)
+                </MenuItem>
+              ))
+            )}
+          </Select>
+          {playerPools.length === 0 && (
+            <Alert severity="info" sx={{ mt: 1 }}>
+              <Typography variant="caption">
+                You need to create a player pool first.{' '}
+                <Button
+                  size="small"
+                  onClick={() => navigate('/admin/player-pools')}
+                  sx={{ textTransform: 'none', p: 0, minWidth: 0 }}
+                >
+                  Create Player Pool
+                </Button>
+              </Typography>
+            </Alert>
+          )}
         </FormControl>
       </Grid>
 
@@ -304,11 +359,11 @@ const CreateLeaguePage: React.FC = () => {
           <TextField
             fullWidth
             type="number"
-            label="Minimum Batsmen"
+            label="Minimum Batters"
             value={squadRules.minBatsmen}
             onChange={(e) => setSquadRules(prev => ({ ...prev, minBatsmen: parseInt(e.target.value) }))}
             inputProps={{ min: 1, max: squadSize - 3 }}
-            helperText="Minimum batsmen required in squad"
+            helperText="Minimum batters required in squad"
             error={squadRules.minBatsmen > squadSize - 3}
           />
         </Grid>
@@ -624,7 +679,7 @@ const CreateLeaguePage: React.FC = () => {
               Squad Position Requirements
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
-              <Chip label={`Batsmen: min ${squadRules.minBatsmen}`} color="primary" variant="outlined" />
+              <Chip label={`Batters: min ${squadRules.minBatsmen}`} color="primary" variant="outlined" />
               <Chip label={`Bowlers: min ${squadRules.minBowlers}`} color="secondary" variant="outlined" />
               <Chip label={`All-rounders: min ${squadRules.minAllrounders}`} color="success" variant="outlined" />
               <Chip label={`Wicket-keepers: min ${squadRules.minWicketkeepers}`} color="info" variant="outlined" />
