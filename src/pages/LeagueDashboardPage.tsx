@@ -9,13 +9,21 @@ import {
   Grid,
   Chip,
   CircularProgress,
-  Alert
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Divider
 } from '@mui/material';
 import {
   SportsCricket,
   People,
   Schedule,
-  EmojiEvents
+  EmojiEvents,
+  Edit as EditIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -28,9 +36,14 @@ const LeagueDashboardPage: React.FC = () => {
   const [league, setLeague] = useState<League | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Check if current user is admin of this league
+  const isAdmin = league && user && (league.creatorId === user.uid || league.adminIds.includes(user.uid));
 
   useEffect(() => {
     if (leagueId) {
@@ -44,12 +57,12 @@ const LeagueDashboardPage: React.FC = () => {
     try {
       setLoading(true);
       const leagueData = await leagueService.getById(leagueId);
-      
+
       if (!leagueData) {
         setError('League not found');
         return;
       }
-      
+
       setLeague(leagueData);
     } catch (err: any) {
       setError('Failed to load league');
@@ -59,7 +72,33 @@ const LeagueDashboardPage: React.FC = () => {
     }
   };
 
-  // Removed back button - users can use navbar navigation
+  const handleEditLeague = () => {
+    navigate(`/leagues/${leagueId}/edit`);
+  };
+
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!leagueId) return;
+
+    try {
+      setDeleting(true);
+      await leagueService.delete(leagueId);
+      navigate('/dashboard');
+    } catch (err: any) {
+      console.error('Error deleting league:', err);
+      setError('Failed to delete league. Please try again.');
+      setDeleteDialogOpen(false);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+  };
 
   if (loading) {
     return (
@@ -141,7 +180,7 @@ const LeagueDashboardPage: React.FC = () => {
               <Typography variant="h6" gutterBottom>
                 Quick Actions
               </Typography>
-              
+
               <Button
                 fullWidth
                 variant="contained"
@@ -150,7 +189,7 @@ const LeagueDashboardPage: React.FC = () => {
               >
                 Manage Squad
               </Button>
-              
+
               <Button
                 fullWidth
                 variant="outlined"
@@ -159,7 +198,7 @@ const LeagueDashboardPage: React.FC = () => {
               >
                 View Leaderboard
               </Button>
-              
+
               <Button
                 fullWidth
                 variant="outlined"
@@ -169,8 +208,74 @@ const LeagueDashboardPage: React.FC = () => {
               </Button>
             </CardContent>
           </Card>
+
+          {/* Admin Actions - Only visible to league admins */}
+          {isAdmin && (
+            <Card sx={{ mt: 3 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Admin Actions
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Manage this league
+                </Typography>
+
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={<EditIcon />}
+                  sx={{ mb: 2 }}
+                  onClick={handleEditLeague}
+                >
+                  Edit League
+                </Button>
+
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  onClick={handleDeleteClick}
+                >
+                  Delete League
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </Grid>
       </Grid>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+      >
+        <DialogTitle id="delete-dialog-title">
+          Delete League?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-dialog-description">
+            Are you sure you want to delete "{league?.name}"? This action cannot be undone.
+            All squads, leaderboard data, and league information will be permanently deleted.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+            disabled={deleting}
+            autoFocus
+          >
+            {deleting ? 'Deleting...' : 'Delete League'}
+          </Button>
+        </DialogActions>
+      </Dialog>
       </Container>
     </Box>
   );

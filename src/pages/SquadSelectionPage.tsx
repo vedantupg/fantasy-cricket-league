@@ -16,7 +16,8 @@ import {
   Paper,
   IconButton,
   Chip,
-  Grid
+  Grid,
+  Alert
 } from '@mui/material';
 import {
   PersonAdd,
@@ -29,8 +30,9 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AppHeader from '../components/common/AppHeader';
-import { playerPoolService, leagueService } from '../services/firestore';
-import type { League, Player, SquadRules, PlayerPool, PlayerPoolEntry } from '../types/database';
+import LeagueNav from '../components/common/LeagueNav';
+import { playerPoolService, leagueService, squadService, squadPlayerUtils } from '../services/firestore';
+import type { League, Player, SquadRules, PlayerPool, PlayerPoolEntry, SquadPlayer } from '../types/database';
 
 // Mock data - replace with actual API calls
 const mockLeague: League = {
@@ -115,6 +117,8 @@ const SquadSelectionPage: React.FC = () => {
   const [powerplayMatch, setPowerplayMatch] = useState('');
   const [activeTab, setActiveTab] = useState(0);
   const [filterRole, setFilterRole] = useState<string>('all');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -214,25 +218,79 @@ const SquadSelectionPage: React.FC = () => {
            selectedPlayers.filter(p => p.position === 'vice_captain').length === 1;
   };
 
-  const quickActions = (
-    <Box sx={{ display: 'flex', gap: 1 }}>
-      <Button
-        variant="outlined"
-        onClick={() => navigate(`/leagues/${leagueId}`)}
-        startIcon={<ArrowBack />}
-      >
-        Back to League
-      </Button>
-      <Button
-        variant="contained"
-        color="success"
-        disabled={!isSquadValid()}
-        startIcon={<Star />}
-      >
-        Submit Squad
-      </Button>
-    </Box>
-  );
+  const handleSubmitSquad = async () => {
+    if (!user || !league || !leagueId) return;
+    if (!isSquadValid()) return;
+
+    try {
+      setSubmitting(true);
+      setSubmitError('');
+
+      // Find captain and vice-captain
+      const captain = selectedPlayers.find(p => p.position === 'captain');
+      const viceCaptain = selectedPlayers.find(p => p.position === 'vice_captain');
+
+      // Convert selected players to SquadPlayer format using utility function
+      const squadPlayers: SquadPlayer[] = selectedPlayers.map(player => {
+        const squadPlayer = squadPlayerUtils.createInitialSquadPlayer({
+          playerId: player.id,
+          playerName: player.name,
+          team: player.team,
+          role: player.role,
+          points: player.stats[league.format].recentForm || 0, // Use current points from stats
+        });
+        return squadPlayer;
+      });
+
+      // Check if squad already exists
+      const existingSquad = await squadService.getByUserAndLeague(user.uid, leagueId);
+
+      if (existingSquad) {
+        // Update existing squad
+        await squadService.update(existingSquad.id, {
+          players: squadPlayers,
+          ...(captain?.id && { captainId: captain.id }),
+          ...(viceCaptain?.id && { viceCaptainId: viceCaptain.id }),
+          isSubmitted: true,
+          submittedAt: new Date(),
+          lastUpdated: new Date(),
+        });
+      } else {
+        // Create new squad
+        const squadData: any = {
+          userId: user.uid,
+          leagueId: leagueId,
+          squadName: `${user.displayName || 'User'}'s Squad`,
+          players: squadPlayers,
+          isSubmitted: true,
+          submittedAt: new Date(),
+          totalPoints: 0,
+          captainPoints: 0,
+          viceCaptainPoints: 0,
+          rank: 0,
+          matchPoints: {},
+          transfersUsed: 0,
+          transferHistory: [],
+          isValid: true,
+          validationErrors: [],
+        };
+
+        // Only add captain/vice-captain if they exist
+        if (captain?.id) squadData.captainId = captain.id;
+        if (viceCaptain?.id) squadData.viceCaptainId = viceCaptain.id;
+
+        await squadService.create(squadData);
+      }
+
+      // Navigate to league dashboard
+      navigate(`/leagues/${leagueId}`);
+    } catch (error: any) {
+      console.error('Error submitting squad:', error);
+      setSubmitError(error.message || 'Failed to submit squad');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const addPlayerToSquad = (player: Player, targetPosition: 'captain' | 'vice_captain' | 'regular' | 'bench') => {
     if (selectedPlayers.find(p => p.id === player.id)) return;
@@ -251,14 +309,29 @@ const SquadSelectionPage: React.FC = () => {
     ));
   };
 
+  const quickActions = (
+    <Button
+      variant="contained"
+      color="success"
+      disabled={!isSquadValid() || submitting}
+      startIcon={submitting ? <CircularProgress size={20} /> : <Star />}
+      onClick={handleSubmitSquad}
+    >
+      {submitting ? 'Submitting...' : 'Submit Squad'}
+    </Button>
+  );
+
   if (loading || !league) {
     return (
       <Box>
-        <AppHeader
-          title="Squad Selection"
-          subtitle="Building your dream team..."
-          actions={quickActions}
-        />
+        <AppHeader />
+        {leagueId && (
+          <LeagueNav
+            leagueName="Loading..."
+            leagueId={leagueId}
+            currentPage="Squad Selection"
+          />
+        )}
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
           <CircularProgress size={60} />
         </Box>
@@ -268,13 +341,25 @@ const SquadSelectionPage: React.FC = () => {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppHeader
-        title="Squad Selection"
-        subtitle={`Select ${league.squadSize} players + ${league.transferTypes?.benchTransfers?.enabled ? league.transferTypes.benchTransfers.benchSlots : 0} bench for ${league.name}`}
-        actions={quickActions}
-      />
+      <AppHeader />
+      {league && leagueId && (
+        <LeagueNav
+          leagueName={league.name}
+          leagueId={leagueId}
+          currentPage="Squad Selection"
+          actions={quickActions}
+        />
+      )}
 
       <Container maxWidth="xl" sx={{ py: 2 }}>
+        {submitError && (
+          <Box sx={{ mb: 3 }}>
+            <Alert severity="error" onClose={() => setSubmitError('')}>
+              {submitError}
+            </Alert>
+          </Box>
+        )}
+
         <Grid container spacing={3}>
           {/* Left Panel - Squad Formation */}
           <Grid size={{ xs: 12, lg: 8 }}>

@@ -75,25 +75,18 @@ const JoinLeaguePage: React.FC = () => {
 
   return (
     <Box>
-      <AppHeader 
-        title="Join League"
-        subtitle="Enter a league code to join"
-        showBack={true}
-        backPath="/dashboard"
-        backLabel="Back to My Leagues"
-      />
-      
-      <Container maxWidth="sm" sx={{ py: 4 }}>
+      <AppHeader />
 
+      <Container maxWidth="sm" sx={{ py: 4 }}>
       <Card>
         <CardContent sx={{ p: 4, textAlign: 'center' }}>
           <SportsCricket sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
-          
-          <Typography variant="h5" gutterBottom>
-            Enter League Code
+
+          <Typography variant="h4" fontWeight="bold" gutterBottom>
+            Join League
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            Get the league code from your league admin
+            Enter a league code to join
           </Typography>
 
           {error && (

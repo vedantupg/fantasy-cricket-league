@@ -59,6 +59,30 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "leaderboardSnapshots",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "leagueId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "snapshotDate",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "leagues",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "playerPoolId",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

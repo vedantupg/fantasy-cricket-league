@@ -21,12 +21,17 @@ import {
   Switch,
   Checkbox,
   Divider,
-  Chip
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton
 } from '@mui/material';
 // import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 // import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 // import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { SportsCricket } from '@mui/icons-material';
+import { SportsCricket, ContentCopy } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { leagueService, playerPoolService } from '../services/firestore';
@@ -34,12 +39,25 @@ import { generateLeagueCode } from '../utils/leagueCode';
 import AppHeader from '../components/common/AppHeader';
 import type { League, SquadRules, TransferTypeConfig, PlayerPool } from '../types/database';
 
+// Helper function to format Date for datetime-local input (preserves local timezone)
+const formatDateTimeLocal = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 const CreateLeaguePage: React.FC = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [playerPools, setPlayerPools] = useState<PlayerPool[]>([]);
   const [selectedPlayerPoolId, setSelectedPlayerPoolId] = useState<string>('');
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [createdLeague, setCreatedLeague] = useState<{ id: string; name: string; code: string } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -131,9 +149,11 @@ const CreateLeaguePage: React.FC = () => {
       setLoading(true);
       setError('');
 
+      const leagueCode = generateLeagueCode();
+
       const newLeague: Omit<League, 'id' | 'createdAt'> = {
         name: leagueData.name,
-        code: generateLeagueCode(),
+        code: leagueCode,
         creatorId: user.uid,
         adminIds: [user.uid],
         format: leagueData.format,
@@ -165,13 +185,37 @@ const CreateLeaguePage: React.FC = () => {
       };
 
       const leagueId = await leagueService.create(newLeague);
-      
-      // Navigate to the new league
-      navigate(`/leagues/${leagueId}`);
+
+      // Show success dialog with league code
+      setCreatedLeague({
+        id: leagueId,
+        name: leagueData.name,
+        code: leagueCode
+      });
+      setSuccessDialogOpen(true);
     } catch (err: any) {
       setError(err.message || 'Failed to create league');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCopyCode = async () => {
+    if (createdLeague) {
+      try {
+        await navigator.clipboard.writeText(createdLeague.code);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
+    }
+  };
+
+  const handleCloseDialog = () => {
+    setSuccessDialogOpen(false);
+    if (createdLeague) {
+      navigate(`/leagues/${createdLeague.id}`);
     }
   };
 
@@ -275,10 +319,24 @@ const CreateLeaguePage: React.FC = () => {
           fullWidth
           type="datetime-local"
           label="Squad Selection Deadline"
-          value={leagueData.squadDeadline.toISOString().slice(0, 16)}
+          value={formatDateTimeLocal(leagueData.squadDeadline)}
           onChange={(e) => setLeagueData(prev => ({ ...prev, squadDeadline: new Date(e.target.value) }))}
           required
           InputLabelProps={{ shrink: true }}
+          helperText="Deadline for participants to submit their squads"
+        />
+      </Grid>
+
+      <Grid size={{ xs: 12, md: 6 }}>
+        <TextField
+          fullWidth
+          type="datetime-local"
+          label="League Start Date"
+          value={formatDateTimeLocal(leagueData.startDate)}
+          onChange={(e) => setLeagueData(prev => ({ ...prev, startDate: new Date(e.target.value) }))}
+          required
+          InputLabelProps={{ shrink: true }}
+          helperText="When the league starts and teams become visible"
         />
       </Grid>
 
@@ -550,7 +608,7 @@ const CreateLeaguePage: React.FC = () => {
               <TextField
                 type="datetime-local"
                 label="Window Start Date"
-                value={transferTypes.midSeasonTransfers.windowStartDate.toISOString().slice(0, 16)}
+                value={formatDateTimeLocal(transferTypes.midSeasonTransfers.windowStartDate)}
                 onChange={(e) => setTransferTypes(prev => ({
                   ...prev,
                   midSeasonTransfers: { ...prev.midSeasonTransfers, windowStartDate: new Date(e.target.value) }
@@ -654,6 +712,9 @@ const CreateLeaguePage: React.FC = () => {
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Squad Deadline: {leagueData.squadDeadline.toLocaleString()}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              League Start Date: {leagueData.startDate.toLocaleString()}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Total Transfers Available: {
@@ -775,15 +836,18 @@ const CreateLeaguePage: React.FC = () => {
 
   return (
     <Box>
-      <AppHeader 
-        title="Create New League"
-        subtitle="Set up your fantasy cricket league"
-        showBack={true}
-        backPath="/dashboard"
-        backLabel="Back to My Leagues"
-      />
-      
+      <AppHeader />
+
       <Container maxWidth="md" sx={{ py: 4 }}>
+      {/* Page Title */}
+      <Box sx={{ mb: 4, textAlign: 'center' }}>
+        <Typography variant="h4" fontWeight="bold" gutterBottom>
+          Create New League
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Set up your fantasy cricket league
+        </Typography>
+      </Box>
 
       {/* Stepper */}
       <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
@@ -848,6 +912,104 @@ const CreateLeaguePage: React.FC = () => {
         </CardContent>
       </Card>
       </Container>
+
+      {/* Success Dialog */}
+      <Dialog
+        open={successDialogOpen}
+        onClose={handleCloseDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
+            border: '2px solid #ff005d',
+            borderRadius: 2
+          }
+        }}
+      >
+        <DialogTitle sx={{ textAlign: 'center', pt: 4 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <SportsCricket sx={{ fontSize: 48, color: '#ff005d' }} />
+            <Typography variant="h5" fontWeight="bold">
+              League Created Successfully!
+            </Typography>
+          </Box>
+        </DialogTitle>
+
+        <DialogContent sx={{ px: 4, pb: 2 }}>
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <Typography variant="body1" color="text.secondary" gutterBottom>
+              Join <strong style={{ color: '#00e5ff' }}>{createdLeague?.name}</strong> with the code:
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 2,
+              p: 3,
+              bgcolor: 'rgba(0, 229, 255, 0.1)',
+              border: '2px dashed #00e5ff',
+              borderRadius: 2,
+              mb: 3
+            }}
+          >
+            <Typography
+              variant="h4"
+              fontWeight="bold"
+              sx={{
+                fontFamily: 'monospace',
+                letterSpacing: 4,
+                color: '#00e5ff'
+              }}
+            >
+              {createdLeague?.code}
+            </Typography>
+            <IconButton
+              onClick={handleCopyCode}
+              sx={{
+                bgcolor: copied ? 'success.main' : '#ff005d',
+                color: 'white',
+                '&:hover': {
+                  bgcolor: copied ? 'success.dark' : '#cc0049'
+                }
+              }}
+              size="small"
+            >
+              <ContentCopy />
+            </IconButton>
+          </Box>
+
+          {copied && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              Code copied to clipboard!
+            </Alert>
+          )}
+
+          <Box sx={{ textAlign: 'center', py: 2 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.7 }}>
+              Powered by <strong style={{ color: '#ff005d' }}>Fantasy Cricket League</strong>
+            </Typography>
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 4, pb: 4 }}>
+          <Button
+            fullWidth
+            variant="contained"
+            onClick={handleCloseDialog}
+            size="large"
+            sx={{
+              background: 'linear-gradient(45deg, #ff005d 30%, #ff4081 90%)',
+              fontWeight: 'bold'
+            }}
+          >
+            Go to League Dashboard
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

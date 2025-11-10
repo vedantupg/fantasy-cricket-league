@@ -91,10 +91,7 @@ const PlayerPoolManagementPage: React.FC = () => {
   if (loading) {
     return (
       <Box>
-        <AppHeader
-          title="Player Pool Management"
-          subtitle="Loading player pools..."
-        />
+        <AppHeader />
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
           <CircularProgress size={60} />
         </Box>
@@ -102,26 +99,30 @@ const PlayerPoolManagementPage: React.FC = () => {
     );
   }
 
-  const quickActions = (
-    <Button
-      variant="contained"
-      color="primary"
-      onClick={() => setCreateDialogOpen(true)}
-      startIcon={<Add />}
-    >
-      Create Player Pool
-    </Button>
-  );
-
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppHeader
-        title="Player Pool Management"
-        subtitle="Manage player pools and update points"
-        actions={quickActions}
-      />
+      <AppHeader />
 
       <Container maxWidth="xl" sx={{ py: 3 }}>
+        {/* Page Header with Actions */}
+        <Box mb={4} display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
+          <Box>
+            <Typography variant="h4" fontWeight="bold" gutterBottom>
+              Player Pool Management
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Manage player pools and update points
+            </Typography>
+          </Box>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setCreateDialogOpen(true)}
+            startIcon={<Add />}
+          >
+            Create Player Pool
+          </Button>
+        </Box>
         {error && (
           <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
             {error}

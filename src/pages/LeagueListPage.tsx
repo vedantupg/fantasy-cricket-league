@@ -87,8 +87,8 @@ const LeagueListPage: React.FC = () => {
     }
   };
 
-  const isSquadDeadlinePassed = (deadline: Date) => {
-    return new Date() > new Date(deadline);
+  const hasLeagueStarted = (startDate: Date) => {
+    return new Date() > new Date(startDate);
   };
 
   if (loading) {
@@ -99,49 +99,48 @@ const LeagueListPage: React.FC = () => {
     );
   }
 
-  const headerActions = (
-    <Box display="flex" gap={2}>
-      <Button
-        variant="outlined"
-        startIcon={<PersonAdd />}
-        onClick={() => navigate('/leagues/join')}
-      >
-        Join League
-      </Button>
-      {userData?.isAdmin && (
-        <>
-          <Button
-            variant="outlined"
-            startIcon={<Groups />}
-            onClick={() => navigate('/admin/player-pools')}
-          >
-            Player Pools
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => navigate('/leagues/create')}
-          >
-            Create League
-          </Button>
-        </>
-      )}
-    </Box>
-  );
-
   return (
     <Box>
-      <AppHeader actions={headerActions} />
-      
+      <AppHeader />
+
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        {/* Page Header */}
-        <Box mb={4}>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
-            My Leagues
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Manage your fantasy cricket leagues and squads
-          </Typography>
+        {/* Page Header with Actions */}
+        <Box mb={4} display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
+          <Box>
+            <Typography variant="h4" fontWeight="bold" gutterBottom>
+              My Leagues
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Manage your fantasy cricket leagues and squads
+            </Typography>
+          </Box>
+          <Box display="flex" gap={2} flexWrap="wrap">
+            <Button
+              variant="outlined"
+              startIcon={<PersonAdd />}
+              onClick={() => navigate('/leagues/join')}
+            >
+              Join League
+            </Button>
+            {userData?.isAdmin && (
+              <>
+                <Button
+                  variant="outlined"
+                  startIcon={<Groups />}
+                  onClick={() => navigate('/admin/player-pools')}
+                >
+                  Player Pools
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  onClick={() => navigate('/leagues/create')}
+                >
+                  Create League
+                </Button>
+              </>
+            )}
+          </Box>
         </Box>
 
       {error && (
@@ -298,8 +297,8 @@ const LeagueListPage: React.FC = () => {
                   >
                     Leaderboard
                   </Button>
-                  {isSquadDeadlinePassed(league.squadDeadline) && (
-                    <Button 
+                  {hasLeagueStarted(league.startDate) && (
+                    <Button
                       size="small"
                       startIcon={<Groups />}
                       onClick={(e) => {

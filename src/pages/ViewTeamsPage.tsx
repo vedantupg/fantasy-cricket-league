@@ -31,6 +31,7 @@ import { useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { leagueService, squadService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
+import LeagueNav from '../components/common/LeagueNav';
 import type { League, LeagueSquad } from '../types/database';
 
 const ViewTeamsPage: React.FC = () => {
@@ -62,10 +63,10 @@ const ViewTeamsPage: React.FC = () => {
       if (leagueData) {
         setLeague(leagueData);
         
-        // Check if squad deadline has passed
-        const deadlinePassed = new Date() > new Date(leagueData.squadDeadline);
-        if (!deadlinePassed) {
-          setError('Squad teams are not visible until the registration deadline passes.');
+        // Check if league has started
+        const leagueStarted = new Date() > new Date(leagueData.startDate);
+        if (!leagueStarted) {
+          setError('Squad teams are not visible until the league starts.');
           return;
         }
         
@@ -104,11 +105,14 @@ const ViewTeamsPage: React.FC = () => {
   if (loading) {
     return (
       <Box>
-        <AppHeader 
-          title="League Teams"
-          showBack={true}
-          backPath={`/leagues/${leagueId}`}
-        />
+        <AppHeader />
+        {leagueId && (
+          <LeagueNav
+            leagueName="Loading..."
+            leagueId={leagueId}
+            currentPage="Teams"
+          />
+        )}
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
           <CircularProgress size={60} />
         </Box>
@@ -119,11 +123,14 @@ const ViewTeamsPage: React.FC = () => {
   if (error) {
     return (
       <Box>
-        <AppHeader 
-          title="League Teams"
-          showBack={true}
-          backPath={`/leagues/${leagueId}`}
-        />
+        <AppHeader />
+        {leagueId && league && (
+          <LeagueNav
+            leagueName={league.name}
+            leagueId={leagueId}
+            currentPage="Teams"
+          />
+        )}
         <Container maxWidth="lg" sx={{ py: 4 }}>
           <Alert severity="error">{error}</Alert>
         </Container>
@@ -133,12 +140,14 @@ const ViewTeamsPage: React.FC = () => {
 
   return (
     <Box>
-      <AppHeader 
-        title={`${league?.name} - Teams`}
-        subtitle="View all submitted squads"
-        showBack={true}
-        backPath={`/leagues/${leagueId}`}
-      />
+      <AppHeader />
+      {league && leagueId && (
+        <LeagueNav
+          leagueName={league.name}
+          leagueId={leagueId}
+          currentPage="Teams"
+        />
+      )}
       
       <Container maxWidth="lg" sx={{ py: 4 }}>
         {/* League Info */}

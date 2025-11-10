@@ -103,27 +103,37 @@ export interface LeagueSquad {
   id: string;
   userId: string;
   leagueId: string;
-  
+
   // Squad Details
   squadName: string;
   players: SquadPlayer[];
   isSubmitted: boolean;
-  
+
+  // Captain and Vice-Captain
+  captainId?: string; // playerId of captain (gets 2x points)
+  viceCaptainId?: string; // playerId of vice-captain (gets 1.5x points)
+
   // Performance
   totalPoints: number;
+  captainPoints: number; // Points contributed by captain
+  viceCaptainPoints: number; // Points contributed by vice-captain
   rank: number;
+  previousRank?: number; // Rank from previous snapshot
+  rankChange?: number; // Positive for improvement, negative for decline
+  pointsGainedToday?: number; // Points gained since last snapshot
   matchPoints: { [matchId: string]: number };
-  
+
   // Transfer Management
   transfersUsed: number;
   transferHistory: string[]; // transfer IDs
-  
+
   // Squad Validation
   isValid: boolean;
   validationErrors: string[];
-  
+
   createdAt: Date;
   submittedAt?: Date;
+  lastUpdated?: Date;
 }
 
 export interface SquadPlayer {
@@ -134,6 +144,8 @@ export interface SquadPlayer {
   price?: number;
   points: number;
   matchPerformances: { [matchId: string]: number };
+  addedAt?: Date; // When this player was added to the squad (optional for backward compatibility)
+  pointsAtJoining?: number; // Player's total points when they joined this squad (defaults to 0 for initial squad)
 }
 
 export interface Transfer {
@@ -276,26 +288,84 @@ export interface PlayerPerformance {
 export interface PointsConfig {
   id: string;
   format: 'T20' | 'ODI' | 'Test';
-  
+
   // Batting Points
   runsMultiplier: number;
   boundaryBonus: number;
   sixBonus: number;
   halfCenturyBonus: number;
   centuryBonus: number;
-  
+
   // Bowling Points
   wicketPoints: number;
   maidenBonus: number;
   economyBonus: number;
-  
+
   // Fielding Points
   catchPoints: number;
   runoutPoints: number;
   stumpingPoints: number;
-  
+
   // Penalties
   duckPenalty: number;
-  
+
   isActive: boolean;
+}
+
+export interface LeaderboardSnapshot {
+  id: string;
+  leagueId: string;
+  snapshotDate: Date; // Date of this snapshot (usually end of day)
+
+  // Snapshot Data
+  standings: StandingEntry[];
+
+  // Best Performer (most points gained since last snapshot)
+  bestPerformer?: {
+    userId: string;
+    squadName: string;
+    displayName: string;
+    profilePicUrl?: string;
+    pointsGained: number;
+    matchNumber?: number; // Which match contributed most
+  };
+
+  // Rapid Riser (most ranks gained since last snapshot)
+  rapidRiser?: {
+    userId: string;
+    squadName: string;
+    displayName: string;
+    profilePicUrl?: string;
+    ranksGained: number;
+    previousRank: number;
+    currentRank: number;
+  };
+
+  createdAt: Date;
+}
+
+export interface StandingEntry {
+  userId: string;
+  squadId: string;
+  squadName: string;
+  displayName: string;
+  profilePicUrl?: string;
+
+  // Points & Rank
+  totalPoints: number;
+  captainPoints: number;
+  viceCaptainPoints: number;
+  rank: number;
+  previousRank?: number;
+  rankChange?: number; // Positive for improvement, negative for decline
+
+  // Daily Stats
+  pointsGainedToday: number;
+  leadFromNext?: number; // Points ahead of the next rank
+
+  // Team Composition
+  captainId?: string;
+  captainName?: string;
+  viceCaptainId?: string;
+  viceCaptainName?: string;
 }
