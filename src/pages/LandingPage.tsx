@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Container, 
-  Typography, 
-  Button, 
-  Grid, 
-  Card, 
+import {
+  Box,
+  Container,
+  Typography,
+  Button,
+  Card,
   CardContent,
   Avatar,
   useTheme,
@@ -14,11 +13,9 @@ import {
   Chip,
   CircularProgress
 } from '@mui/material';
-import { 
-  SportsCricket, 
-  EmojiEvents, 
-  People, 
-  TrendingUp,
+import {
+  EmojiEvents,
+  People,
   PlayArrow,
   Star,
   Shield,
@@ -75,24 +72,24 @@ const LandingPage: React.FC = () => {
   ];
 
   useEffect(() => {
+    const loadUserLeagues = async () => {
+      if (!user) return;
+
+      try {
+        setLeaguesLoading(true);
+        const leagues = await leagueService.getForUser(user.uid);
+        setUserLeagues(leagues);
+      } catch (err) {
+        console.error('Error loading leagues:', err);
+      } finally {
+        setLeaguesLoading(false);
+      }
+    };
+
     if (user) {
       loadUserLeagues();
     }
   }, [user]);
-
-  const loadUserLeagues = async () => {
-    if (!user) return;
-    
-    try {
-      setLeaguesLoading(true);
-      const leagues = await leagueService.getForUser(user.uid);
-      setUserLeagues(leagues);
-    } catch (err) {
-      console.error('Error loading leagues:', err);
-    } finally {
-      setLeaguesLoading(false);
-    }
-  };
 
   const handleGetStarted = () => {
     if (user) {

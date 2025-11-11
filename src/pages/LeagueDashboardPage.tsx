@@ -7,18 +7,15 @@ import {
   CardContent,
   Button,
   Grid,
-  Chip,
   CircularProgress,
   Alert,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions,
-  Divider
+  DialogActions
 } from '@mui/material';
 import {
-  SportsCricket,
   People,
   Schedule,
   EmojiEvents,
@@ -46,17 +43,12 @@ const LeagueDashboardPage: React.FC = () => {
   const isAdmin = league && user && (league.creatorId === user.uid || league.adminIds.includes(user.uid));
 
   useEffect(() => {
-    if (leagueId) {
-      loadLeague();
-    }
-  }, [leagueId]);
+    const loadLeague = async () => {
+      if (!leagueId) return;
 
-  const loadLeague = async () => {
-    if (!leagueId) return;
-
-    try {
-      setLoading(true);
-      const leagueData = await leagueService.getById(leagueId);
+      try {
+        setLoading(true);
+        const leagueData = await leagueService.getById(leagueId);
 
       if (!leagueData) {
         setError('League not found');
@@ -64,13 +56,18 @@ const LeagueDashboardPage: React.FC = () => {
       }
 
       setLeague(leagueData);
-    } catch (err: any) {
-      setError('Failed to load league');
-      console.error('Error loading league:', err);
-    } finally {
-      setLoading(false);
+      } catch (err: any) {
+        setError('Failed to load league');
+        console.error('Error loading league:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (leagueId) {
+      loadLeague();
     }
-  };
+  }, [leagueId]);
 
   const handleEditLeague = () => {
     navigate(`/leagues/${leagueId}/edit`);

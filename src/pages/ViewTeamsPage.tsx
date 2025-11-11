@@ -23,12 +23,9 @@ import {
 } from '@mui/material';
 import {
   ExpandMore,
-  Person,
-  Groups,
-  Star
+  Groups
 } from '@mui/icons-material';
 import { useParams } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { leagueService, squadService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
@@ -36,51 +33,50 @@ import type { League, LeagueSquad } from '../types/database';
 
 const ViewTeamsPage: React.FC = () => {
   const { leagueId } = useParams<{ leagueId: string }>();
-  const { user } = useAuth();
   const [league, setLeague] = useState<League | null>(null);
   const [squads, setSquads] = useState<LeagueSquad[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    const loadData = async () => {
+      if (!leagueId) return;
+
+      try {
+        setLoading(true);
+        setError('');
+
+        const [leagueData, squadsData] = await Promise.all([
+          leagueService.getById(leagueId),
+          squadService.getByLeague(leagueId)
+        ]);
+
+        if (leagueData) {
+          setLeague(leagueData);
+
+          // Check if league has started
+          const leagueStarted = new Date() > new Date(leagueData.startDate);
+          if (!leagueStarted) {
+            setError('Squad teams are not visible until the league starts.');
+            return;
+          }
+
+          setSquads(squadsData);
+        } else {
+          setError('League not found');
+        }
+      } catch (err: any) {
+        setError(err.message || 'Failed to load teams');
+        console.error('Error loading teams:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (leagueId) {
       loadData();
     }
   }, [leagueId]);
-
-  const loadData = async () => {
-    if (!leagueId) return;
-
-    try {
-      setLoading(true);
-      setError('');
-
-      const [leagueData, squadsData] = await Promise.all([
-        leagueService.getById(leagueId),
-        squadService.getByLeague(leagueId)
-      ]);
-
-      if (leagueData) {
-        setLeague(leagueData);
-        
-        // Check if league has started
-        const leagueStarted = new Date() > new Date(leagueData.startDate);
-        if (!leagueStarted) {
-          setError('Squad teams are not visible until the league starts.');
-          return;
-        }
-        
-        setSquads(squadsData);
-      } else {
-        setError('League not found');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load teams');
-      console.error('Error loading teams:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getRoleIcon = (role: string) => {
     switch (role) {

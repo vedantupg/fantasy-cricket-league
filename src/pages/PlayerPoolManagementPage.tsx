@@ -26,8 +26,6 @@ import {
   InputLabel,
   Alert,
   CircularProgress,
-  Tabs,
-  Tab,
   Grid,
   Snackbar
 } from '@mui/material';
@@ -38,10 +36,8 @@ import {
   Save,
   Cancel,
   SportsCricket,
-  PersonAdd,
-  ArrowBack
+  PersonAdd
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AppHeader from '../components/common/AppHeader';
 import { playerPoolService } from '../services/firestore';
@@ -52,14 +48,11 @@ const PlayerPoolManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedPool, setSelectedPool] = useState<PlayerPool | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editPoolDialogOpen, setEditPoolDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState(0);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [error, setError] = useState<string>('');
 
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   useEffect(() => {
     const loadPlayerPools = async () => {
@@ -86,7 +79,6 @@ const PlayerPoolManagementPage: React.FC = () => {
 
   // TODO: Add proper admin check when User type includes isAdmin property
   // For now, all logged-in users can access player pool management
-  const isAdmin = true; // Temporary - will be replaced with actual admin check
 
   if (loading) {
     return (

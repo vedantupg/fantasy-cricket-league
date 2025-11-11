@@ -16,8 +16,7 @@ import {
   Grid,
   FormControlLabel,
   Switch,
-  Checkbox,
-  Chip
+  Checkbox
 } from '@mui/material';
 import { Save as SaveIcon } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';

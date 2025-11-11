@@ -22,8 +22,6 @@ import type {
   Player,
   Transfer,
   Match,
-  PlayerPerformance,
-  PointsConfig,
   PlayerPool,
   PlayerPoolEntry,
   LeaderboardSnapshot,
@@ -1156,17 +1154,4 @@ export const squadPlayerUtils = {
     const pointsAtJoining = player.pointsAtJoining ?? 0;
     return Math.max(0, player.points - pointsAtJoining);
   },
-};
-
-export default {
-  leagueService,
-  squadService,
-  playerService,
-  playerPoolService,
-  transferService,
-  matchService,
-  leaderboardSnapshotService,
-  playerPoolUpdateService,
-  batchService,
-  squadPlayerUtils,
 };

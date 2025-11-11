@@ -24,85 +24,14 @@ import {
   Star,
   StarBorder,
   Close,
-  SwapHoriz,
-  ArrowBack
+  SwapHoriz
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
 import { playerPoolService, leagueService, squadService, squadPlayerUtils } from '../services/firestore';
-import type { League, Player, SquadRules, PlayerPool, PlayerPoolEntry, SquadPlayer } from '../types/database';
-
-// Mock data - replace with actual API calls
-const mockLeague: League = {
-  id: '1',
-  name: 'Friends Cricket League',
-  code: 'FCL123',
-  creatorId: '1',
-  adminIds: ['1'],
-  format: 'T20',
-  maxParticipants: 10,
-  powerplayEnabled: true,
-  squadSize: 11,
-  squadDeadline: new Date(),
-  maxTransfers: 5,
-  transfersUsed: {},
-  transferDeadline: new Date(),
-  transferWindow: { startDate: new Date(), endDate: new Date() },
-  status: 'squad_selection',
-  tournamentStarted: false,
-  teamsLocked: false,
-  participants: [],
-  squadsSubmitted: [],
-  tournamentName: 'IPL 2024',
-  startDate: new Date(),
-  endDate: new Date(),
-  playerPool: [],
-  squadRules: {
-    minBatsmen: 3,
-    minBowlers: 3,
-    minAllrounders: 2,
-    minWicketkeepers: 1,
-    hasBudget: false,
-    totalBudget: 100,
-  },
-  transferTypes: {
-    benchTransfers: { enabled: true, maxAllowed: 2, description: 'Bench transfers', benchSlots: 3 },
-    midSeasonTransfers: { enabled: true, maxAllowed: 3, description: 'Mid-season', windowDurationHours: 24, windowStartDate: new Date() },
-    flexibleTransfers: { enabled: false, maxAllowed: 1, description: 'Flexible', canCarryForward: true }
-  },
-  createdAt: new Date()
-};
-
-const mockPlayers: Player[] = [
-  {
-    id: '1', name: 'Virat Kohli', team: 'RCB', country: 'India', role: 'batsman',
-    isActive: true, availability: 'available', stats: { T20: { matches: 100, runs: 3000, wickets: 0, economy: 0, strikeRate: 130, catches: 50, recentForm: 85 }, ODI: { matches: 200, runs: 5000, wickets: 0, economy: 0, strikeRate: 90, catches: 80, recentForm: 90 }, Test: { matches: 100, runs: 8000, wickets: 0, economy: 0, strikeRate: 55, catches: 100, recentForm: 80 } },
-    createdAt: new Date(), updatedAt: new Date()
-  },
-  {
-    id: '2', name: 'Jasprit Bumrah', team: 'MI', country: 'India', role: 'bowler',
-    isActive: true, availability: 'available', stats: { T20: { matches: 80, runs: 200, wickets: 120, economy: 7.2, strikeRate: 150, catches: 30, recentForm: 95 }, ODI: { matches: 70, runs: 100, wickets: 130, economy: 4.5, strikeRate: 0, catches: 25, recentForm: 92 }, Test: { matches: 40, runs: 50, wickets: 150, economy: 2.8, strikeRate: 0, catches: 15, recentForm: 88 } },
-    createdAt: new Date(), updatedAt: new Date()
-  },
-  {
-    id: '3', name: 'Hardik Pandya', team: 'MI', country: 'India', role: 'allrounder',
-    isActive: true, availability: 'available', stats: { T20: { matches: 90, runs: 2000, wickets: 50, economy: 8.5, strikeRate: 140, catches: 40, recentForm: 80 }, ODI: { matches: 80, runs: 1800, wickets: 60, economy: 5.8, strikeRate: 110, catches: 35, recentForm: 85 }, Test: { matches: 20, runs: 800, wickets: 25, economy: 3.2, strikeRate: 75, catches: 15, recentForm: 75 } },
-    createdAt: new Date(), updatedAt: new Date()
-  },
-  {
-    id: '4', name: 'MS Dhoni', team: 'CSK', country: 'India', role: 'wicketkeeper',
-    isActive: true, availability: 'available', stats: { T20: { matches: 150, runs: 4000, wickets: 0, economy: 0, strikeRate: 135, catches: 80, recentForm: 70 }, ODI: { matches: 350, runs: 10000, wickets: 0, economy: 0, strikeRate: 87, catches: 150, recentForm: 75 }, Test: { matches: 90, runs: 4876, wickets: 0, economy: 0, strikeRate: 38, catches: 200, recentForm: 65 } },
-    createdAt: new Date(), updatedAt: new Date()
-  }
-];
-
-const mockPowerplayMatches = [
-  { id: '1', name: 'RCB vs MI', date: '2024-04-15', teams: ['RCB', 'MI'] },
-  { id: '2', name: 'CSK vs DC', date: '2024-04-16', teams: ['CSK', 'DC'] },
-  { id: '3', name: 'KKR vs RR', date: '2024-04-17', teams: ['KKR', 'RR'] }
-];
+import type { League, Player, SquadPlayer } from '../types/database';
 
 interface SelectedPlayer extends Player {
   position: 'captain' | 'vice_captain' | 'regular' | 'bench';
@@ -115,7 +44,6 @@ const SquadSelectionPage: React.FC = () => {
   const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<SelectedPlayer[]>([]);
   const [powerplayMatch, setPowerplayMatch] = useState('');
-  const [activeTab, setActiveTab] = useState(0);
   const [filterRole, setFilterRole] = useState<string>('all');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -170,15 +98,15 @@ const SquadSelectionPage: React.FC = () => {
               setAvailablePlayers(playersFromPool);
             } else {
               console.error('Player pool not found or empty');
-              setAvailablePlayers(mockPlayers); // Fallback to mock players
+              setAvailablePlayers([]);
             }
           } catch (error) {
             console.error('Error fetching player pool:', error);
-            setAvailablePlayers(mockPlayers); // Fallback to mock players
+            setAvailablePlayers([]);
           }
         } else {
-          // Fallback to mock players if no pool is selected
-          setAvailablePlayers(mockPlayers);
+          // No pool selected - show empty state
+          setAvailablePlayers([]);
         }
 
         setLoading(false);
@@ -370,7 +298,7 @@ const SquadSelectionPage: React.FC = () => {
               onUpdatePosition={updatePlayerPosition}
               powerplayMatch={powerplayMatch}
               setPowerplayMatch={setPowerplayMatch}
-              powerplayMatches={mockPowerplayMatches}
+              powerplayMatches={[]}
             />
           </Grid>
 

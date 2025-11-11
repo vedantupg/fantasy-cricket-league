@@ -10,7 +10,7 @@ import {
   Alert,
   Divider,
 } from '@mui/material';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Refresh as RefreshIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import AppHeader from '../components/common/AppHeader';
@@ -22,7 +22,6 @@ import { leaderboardSnapshotService, leagueService } from '../services/firestore
 import type { LeaderboardSnapshot, League } from '../types/database';
 
 const LeaderboardPage: React.FC = () => {
-  const navigate = useNavigate();
   const { userData } = useAuth();
   const { leagueId } = useParams<{ leagueId: string }>();
 

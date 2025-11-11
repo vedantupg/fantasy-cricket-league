@@ -18,8 +18,6 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowBack, Edit, Save, Cancel, PhotoCamera } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { imageService } from '../services/storage';
-import { storage } from '../services/firebase';
-import { ref } from 'firebase/storage';
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -90,7 +88,6 @@ const ProfilePage: React.FC = () => {
         try {
           // Test Firebase Storage connection first
           console.log('Testing storage connection...');
-          const storageRef = ref(storage, 'test-connection');
           console.log('Storage ref created successfully');
 
           // Add timeout to prevent hanging

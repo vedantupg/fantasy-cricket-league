@@ -9,8 +9,6 @@ import {
   CardActions,
   Button,
   Chip,
-  Avatar,
-  IconButton,
   Fab,
   CircularProgress,
   Alert
@@ -41,23 +39,23 @@ const LeagueListPage: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const loadUserLeagues = async () => {
+      if (!user) return;
+
+      try {
+        setLoading(true);
+        const userLeagues = await leagueService.getForUser(user.uid);
+        setLeagues(userLeagues);
+      } catch (err: any) {
+        setError('Failed to load leagues');
+        console.error('Error loading leagues:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadUserLeagues();
   }, [user]);
-
-  const loadUserLeagues = async () => {
-    if (!user) return;
-    
-    try {
-      setLoading(true);
-      const userLeagues = await leagueService.getForUser(user.uid);
-      setLeagues(userLeagues);
-    } catch (err: any) {
-      setError('Failed to load leagues');
-      console.error('Error loading leagues:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getStatusColor = (status: League['status']) => {
     switch (status) {
