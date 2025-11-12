@@ -85,8 +85,8 @@ export interface TransferTypeConfig {
     enabled: boolean;
     maxAllowed: number;
     description: string;
-    windowDurationHours: number; // How long the transfer window stays open (24, 36, or 48 hours)
     windowStartDate: Date; // When the transfer window opens
+    windowEndDate: Date; // When the transfer window closes
     deadlines?: Date[]; // specific windows when these can be used
   };
 
@@ -95,7 +95,6 @@ export interface TransferTypeConfig {
     enabled: boolean;
     maxAllowed: number;
     description: string;
-    canCarryForward: boolean; // if unused transfers can be saved
   };
 }
 

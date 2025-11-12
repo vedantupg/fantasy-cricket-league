@@ -105,14 +105,13 @@ const CreateLeaguePage: React.FC = () => {
       enabled: true,
       maxAllowed: 3,
       description: 'Major changes during tournament breaks',
-      windowDurationHours: 24, // Default 24 hours window
-      windowStartDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000) // Default 3 weeks from now
+      windowStartDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000), // Default 3 weeks from now
+      windowEndDate: new Date(Date.now() + 22 * 24 * 60 * 60 * 1000) // Default 24 hours window
     },
     flexibleTransfers: {
       enabled: false,
       maxAllowed: 1,
-      description: 'Strategic transfers that can be saved',
-      canCarryForward: true
+      description: 'Strategic transfers that can be saved'
     }
   });
 
@@ -589,21 +588,6 @@ const CreateLeaguePage: React.FC = () => {
                 size="small"
                 sx={{ width: 150 }}
               />
-              <FormControl size="small" sx={{ width: 120 }}>
-                <InputLabel>Window Duration</InputLabel>
-                <Select
-                  value={transferTypes.midSeasonTransfers.windowDurationHours}
-                  label="Window Duration"
-                  onChange={(e) => setTransferTypes(prev => ({
-                    ...prev,
-                    midSeasonTransfers: { ...prev.midSeasonTransfers, windowDurationHours: Number(e.target.value) }
-                  }))}
-                >
-                  <MenuItem value={24}>24 Hours</MenuItem>
-                  <MenuItem value={36}>36 Hours</MenuItem>
-                  <MenuItem value={48}>48 Hours</MenuItem>
-                </Select>
-              </FormControl>
               <TextField
                 type="datetime-local"
                 label="Window Start Date"
@@ -614,19 +598,20 @@ const CreateLeaguePage: React.FC = () => {
                 }))}
                 size="small"
                 InputLabelProps={{ shrink: true }}
-                sx={{ width: 200 }}
+                sx={{ width: 220 }}
               />
-              <Box sx={{ p: 1, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-                <Typography variant="caption" color="text.secondary" display="block">
-                  Window closes:
-                </Typography>
-                <Typography variant="body2" fontWeight="bold">
-                  {new Date(
-                    transferTypes.midSeasonTransfers.windowStartDate.getTime() +
-                    transferTypes.midSeasonTransfers.windowDurationHours * 60 * 60 * 1000
-                  ).toLocaleString()}
-                </Typography>
-              </Box>
+              <TextField
+                type="datetime-local"
+                label="Window End Date"
+                value={formatDateTimeLocal(transferTypes.midSeasonTransfers.windowEndDate)}
+                onChange={(e) => setTransferTypes(prev => ({
+                  ...prev,
+                  midSeasonTransfers: { ...prev.midSeasonTransfers, windowEndDate: new Date(e.target.value) }
+                }))}
+                size="small"
+                InputLabelProps={{ shrink: true }}
+                sx={{ width: 220 }}
+              />
             </Box>
           )}
         </Card>
@@ -669,18 +654,6 @@ const CreateLeaguePage: React.FC = () => {
                 inputProps={{ min: 0, max: 5 }}
                 size="small"
                 sx={{ width: 150 }}
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={transferTypes.flexibleTransfers.canCarryForward}
-                    onChange={(e) => setTransferTypes(prev => ({
-                      ...prev,
-                      flexibleTransfers: { ...prev.flexibleTransfers, canCarryForward: e.target.checked }
-                    }))}
-                  />
-                }
-                label="Can carry forward unused transfers"
               />
             </Box>
           )}
@@ -768,14 +741,14 @@ const CreateLeaguePage: React.FC = () => {
               )}
               {transferTypes.midSeasonTransfers.enabled && (
                 <Chip
-                  label={`Mid-Season: ${transferTypes.midSeasonTransfers.maxAllowed} allowed (${transferTypes.midSeasonTransfers.windowDurationHours}h window from ${transferTypes.midSeasonTransfers.windowStartDate.toLocaleDateString()})`}
+                  label={`Mid-Season: ${transferTypes.midSeasonTransfers.maxAllowed} allowed (${transferTypes.midSeasonTransfers.windowStartDate.toLocaleDateString()} - ${transferTypes.midSeasonTransfers.windowEndDate.toLocaleDateString()})`}
                   color="secondary"
                   variant="outlined"
                 />
               )}
               {transferTypes.flexibleTransfers.enabled && (
                 <Chip
-                  label={`Flexible: ${transferTypes.flexibleTransfers.maxAllowed} allowed${transferTypes.flexibleTransfers.canCarryForward ? ' (carry forward)' : ''}`}
+                  label={`Flexible: ${transferTypes.flexibleTransfers.maxAllowed} allowed`}
                   color="success"
                   variant="outlined"
                 />
@@ -814,13 +787,7 @@ const CreateLeaguePage: React.FC = () => {
                   • Opens: {transferTypes.midSeasonTransfers.windowStartDate.toLocaleString()}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  • Closes: {new Date(
-                    transferTypes.midSeasonTransfers.windowStartDate.getTime() +
-                    transferTypes.midSeasonTransfers.windowDurationHours * 60 * 60 * 1000
-                  ).toLocaleString()}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  • Duration: {transferTypes.midSeasonTransfers.windowDurationHours} hours
+                  • Closes: {transferTypes.midSeasonTransfers.windowEndDate.toLocaleString()}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   • Max transfers per participant: {transferTypes.midSeasonTransfers.maxAllowed}

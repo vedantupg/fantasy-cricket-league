@@ -25,16 +25,21 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { leagueService } from '../services/firestore';
+import { leagueService, squadService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
-import type { League } from '../types/database';
+import type { League, LeagueSquad } from '../types/database';
+
+interface LeagueWithSquad {
+  league: League;
+  squad: LeagueSquad | null;
+}
 
 const LeagueListPage: React.FC = () => {
-  const [leagues, setLeagues] = useState<League[]>([]);
+  const [leaguesWithSquads, setLeaguesWithSquads] = useState<LeagueWithSquad[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  
+
   const { user, userData } = useAuth();
   const navigate = useNavigate();
 
@@ -45,7 +50,21 @@ const LeagueListPage: React.FC = () => {
       try {
         setLoading(true);
         const userLeagues = await leagueService.getForUser(user.uid);
-        setLeagues(userLeagues);
+
+        // Fetch squad data for each league
+        const leaguesWithSquadData = await Promise.all(
+          userLeagues.map(async (league) => {
+            try {
+              const squad = await squadService.getByUserAndLeague(user.uid, league.id);
+              return { league, squad };
+            } catch (err) {
+              console.error(`Error fetching squad for league ${league.id}:`, err);
+              return { league, squad: null };
+            }
+          })
+        );
+
+        setLeaguesWithSquads(leaguesWithSquadData);
       } catch (err: any) {
         setError('Failed to load leagues');
         console.error('Error loading leagues:', err);
@@ -57,22 +76,72 @@ const LeagueListPage: React.FC = () => {
     loadUserLeagues();
   }, [user]);
 
-  const getStatusColor = (status: League['status']) => {
-    switch (status) {
-      case 'squad_selection': return 'warning';
-      case 'active': return 'success';
-      case 'completed': return 'default';
-      default: return 'default';
-    }
-  };
+  const getSmartStatus = (league: League, squad: LeagueSquad | null) => {
+    const now = new Date();
+    const deadlinePassed = now > new Date(league.squadDeadline);
+    const leagueStarted = now > new Date(league.startDate);
 
-  const getStatusText = (status: League['status']) => {
-    switch (status) {
-      case 'squad_selection': return 'Squad Selection';
-      case 'active': return 'Active';
-      case 'completed': return 'Completed';
-      default: return status;
+    // League is completed
+    if (league.status === 'completed') {
+      const rank = squad?.rank || '-';
+      return {
+        label: `🏁 Completed - Rank #${rank}`,
+        color: 'default' as const,
+        icon: '🏁'
+      };
     }
+
+    // League is active
+    if (leagueStarted && league.status === 'active') {
+      const rank = squad?.rank || '-';
+      return {
+        label: `🏆 Active - Rank #${rank}`,
+        color: 'success' as const,
+        icon: '🏆'
+      };
+    }
+
+    // Deadline passed but user didn't submit
+    if (deadlinePassed && !squad?.isSubmitted) {
+      return {
+        label: '❌ Missed Deadline',
+        color: 'error' as const,
+        icon: '❌'
+      };
+    }
+
+    // User submitted their squad
+    if (squad?.isSubmitted) {
+      return {
+        label: '✅ Squad Submitted',
+        color: 'success' as const,
+        icon: '✅'
+      };
+    }
+
+    // Deadline approaching - need to submit
+    if (!deadlinePassed) {
+      const hoursLeft = Math.floor((new Date(league.squadDeadline).getTime() - now.getTime()) / (1000 * 60 * 60));
+      if (hoursLeft < 24) {
+        return {
+          label: `⏰ Submit Squad (${hoursLeft}h left)`,
+          color: 'error' as const,
+          icon: '⏰'
+        };
+      }
+      return {
+        label: '⏰ Submit Squad',
+        color: 'warning' as const,
+        icon: '⏰'
+      };
+    }
+
+    // Default fallback
+    return {
+      label: league.status.replace('_', ' '),
+      color: 'default' as const,
+      icon: ''
+    };
   };
 
   const handleCopyCode = async (code: string) => {
@@ -148,7 +217,7 @@ const LeagueListPage: React.FC = () => {
       )}
 
       {/* Leagues Grid */}
-      {leagues.length === 0 ? (
+      {leaguesWithSquads.length === 0 ? (
         <Card sx={{ textAlign: 'center', py: 8 }}>
           <CardContent>
             <SportsCricket sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
@@ -180,12 +249,14 @@ const LeagueListPage: React.FC = () => {
         </Card>
       ) : (
         <Grid container spacing={3}>
-          {leagues.map((league) => (
+          {leaguesWithSquads.map(({ league, squad }) => {
+            const status = getSmartStatus(league, squad);
+            return (
             <Grid size={{ xs: 12, md: 6, lg: 4 }} key={league.id}>
-              <Card 
-                sx={{ 
-                  height: '100%', 
-                  display: 'flex', 
+              <Card
+                sx={{
+                  height: '100%',
+                  display: 'flex',
                   flexDirection: 'column',
                   cursor: 'pointer',
                   '&:hover': {
@@ -201,9 +272,9 @@ const LeagueListPage: React.FC = () => {
                     <Typography variant="h6" fontWeight="bold" noWrap>
                       {league.name}
                     </Typography>
-                    <Chip 
-                      label={getStatusText(league.status)}
-                      color={getStatusColor(league.status)}
+                    <Chip
+                      label={status.label}
+                      color={status.color}
                       size="small"
                     />
                   </Box>
@@ -310,7 +381,8 @@ const LeagueListPage: React.FC = () => {
                 </CardActions>
               </Card>
             </Grid>
-          ))}
+            );
+          })}
         </Grid>
       )}
 

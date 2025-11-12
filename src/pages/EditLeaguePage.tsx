@@ -93,14 +93,13 @@ const EditLeaguePage: React.FC = () => {
       enabled: true,
       maxAllowed: 3,
       description: 'Major changes during tournament breaks',
-      windowDurationHours: 24,
-      windowStartDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000)
+      windowStartDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000),
+      windowEndDate: new Date(Date.now() + 22 * 24 * 60 * 60 * 1000)
     },
     flexibleTransfers: {
       enabled: false,
       maxAllowed: 1,
-      description: 'Strategic transfers that can be saved',
-      canCarryForward: true
+      description: 'Strategic transfers that can be saved'
     }
   });
 

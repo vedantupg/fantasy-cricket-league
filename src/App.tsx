@@ -21,6 +21,7 @@ import ProfileSetupPage from './pages/ProfileSetupPage';
 import AdminPage from './pages/AdminPage';
 import PlayerPoolManagementPage from './pages/PlayerPoolManagementPage';
 import EditLeaguePage from './pages/EditLeaguePage';
+import LeagueRulesPage from './pages/LeagueRulesPage';
 
 // Create Material-UI theme
 const theme = createTheme({
@@ -147,7 +148,13 @@ function App() {
                 <ViewTeamsPage />
               </ProtectedRoute>
             } />
-            
+
+            <Route path="/leagues/:leagueId/rules" element={
+              <ProtectedRoute>
+                <LeagueRulesPage />
+              </ProtectedRoute>
+            } />
+
             <Route path="/profile" element={
               <ProtectedRoute>
                 <ProfilePage />
