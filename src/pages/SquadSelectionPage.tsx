@@ -31,7 +31,7 @@ import { useAuth } from '../contexts/AuthContext';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
 import { playerPoolService, leagueService, squadService, squadPlayerUtils } from '../services/firestore';
-import type { League, Player, SquadPlayer } from '../types/database';
+import type { League, Player, SquadPlayer, LeagueSquad } from '../types/database';
 
 interface SelectedPlayer extends Player {
   position: 'captain' | 'vice_captain' | 'regular' | 'bench';
@@ -47,6 +47,8 @@ const SquadSelectionPage: React.FC = () => {
   const [filterRole, setFilterRole] = useState<string>('all');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [existingSquad, setExistingSquad] = useState<LeagueSquad | null>(null);
+  const [isDeadlinePassed, setIsDeadlinePassed] = useState(false);
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -71,6 +73,21 @@ const SquadSelectionPage: React.FC = () => {
         }
 
         setLeague(league);
+
+        // Check if deadline has passed
+        const deadlinePassed = new Date() > new Date(league.squadDeadline);
+        setIsDeadlinePassed(deadlinePassed);
+
+        // Load existing squad if user has one
+        if (user) {
+          try {
+            const userSquad = await squadService.getByUserAndLeague(user.uid, leagueId);
+            setExistingSquad(userSquad);
+          } catch (err) {
+            console.log('No existing squad found or error loading:', err);
+            setExistingSquad(null);
+          }
+        }
 
         // Fetch player pool if league has a playerPoolId
         if (league.playerPoolId) {
@@ -117,7 +134,57 @@ const SquadSelectionPage: React.FC = () => {
     };
 
     loadLeagueAndPlayers();
-  }, [leagueId]);
+  }, [leagueId, user]);
+
+  // Populate selectedPlayers from existing squad after players are loaded
+  useEffect(() => {
+    if (!existingSquad || !availablePlayers.length || !league) return;
+
+    // Convert SquadPlayer[] to SelectedPlayer[]
+    const squadPlayers: SelectedPlayer[] = existingSquad.players.map(squadPlayer => {
+      // Find the full player data from availablePlayers
+      const fullPlayer = availablePlayers.find(p => p.id === squadPlayer.playerId);
+
+      if (!fullPlayer) {
+        // If player not found in pool, create a basic player object
+        return {
+          id: squadPlayer.playerId,
+          name: squadPlayer.playerName,
+          team: squadPlayer.team,
+          country: 'India',
+          role: squadPlayer.role,
+          isActive: true,
+          availability: 'available' as const,
+          stats: {
+            T20: { matches: 0, runs: 0, wickets: 0, economy: 0, strikeRate: 0, catches: 0, recentForm: squadPlayer.points },
+            ODI: { matches: 0, runs: 0, wickets: 0, economy: 0, strikeRate: 0, catches: 0, recentForm: squadPlayer.points },
+            Test: { matches: 0, runs: 0, wickets: 0, economy: 0, strikeRate: 0, catches: 0, recentForm: squadPlayer.points }
+          },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          position: 'regular' as const // Will be updated below
+        };
+      }
+
+      // Determine position
+      let position: 'captain' | 'vice_captain' | 'regular' | 'bench' = 'regular';
+      if (existingSquad.captainId === squadPlayer.playerId) {
+        position = 'captain';
+      } else if (existingSquad.viceCaptainId === squadPlayer.playerId) {
+        position = 'vice_captain';
+      } else if (existingSquad.players.indexOf(squadPlayer) >= league.squadSize) {
+        // Players beyond squadSize are bench players
+        position = 'bench';
+      }
+
+      return {
+        ...fullPlayer,
+        position
+      };
+    });
+
+    setSelectedPlayers(squadPlayers);
+  }, [existingSquad, availablePlayers, league]);
 
   const getPositionCounts = () => {
     const counts = {
@@ -175,14 +242,20 @@ const SquadSelectionPage: React.FC = () => {
 
       if (existingSquad) {
         // Update existing squad
-        await squadService.update(existingSquad.id, {
+        const updateData: any = {
           players: squadPlayers,
           ...(captain?.id && { captainId: captain.id }),
           ...(viceCaptain?.id && { viceCaptainId: viceCaptain.id }),
           isSubmitted: true,
-          submittedAt: new Date(),
           lastUpdated: new Date(),
-        });
+        };
+
+        // Only set submittedAt if not already submitted
+        if (!existingSquad.isSubmitted) {
+          updateData.submittedAt = new Date();
+        }
+
+        await squadService.update(existingSquad.id, updateData);
       } else {
         // Create new squad
         const squadData: any = {
@@ -237,16 +310,54 @@ const SquadSelectionPage: React.FC = () => {
     ));
   };
 
+  const getSubmitButtonText = () => {
+    if (submitting) return 'Saving...';
+    if (isDeadlinePassed) return 'Deadline Passed';
+    if (existingSquad?.isSubmitted) return 'Update Squad';
+    return 'Submit Squad';
+  };
+
   const quickActions = (
-    <Button
-      variant="contained"
-      color="success"
-      disabled={!isSquadValid() || submitting}
-      startIcon={submitting ? <CircularProgress size={20} /> : <Star />}
-      onClick={handleSubmitSquad}
-    >
-      {submitting ? 'Submitting...' : 'Submit Squad'}
-    </Button>
+    <Box display="flex" gap={2} alignItems="center">
+      {/* Transfer Info if deadline passed */}
+      {isDeadlinePassed && league && league.transferTypes && (
+        <Box display="flex" gap={1} flexWrap="wrap">
+          {league.transferTypes.benchTransfers.enabled && (
+            <Chip
+              label={`Bench: ${existingSquad?.transfersUsed || 0}/${league.transferTypes.benchTransfers.maxAllowed}`}
+              size="small"
+              color="primary"
+              variant="outlined"
+            />
+          )}
+          {league.transferTypes.midSeasonTransfers.enabled && (
+            <Chip
+              label={`Mid-Season: Available`}
+              size="small"
+              color="secondary"
+              variant="outlined"
+            />
+          )}
+          {league.transferTypes.flexibleTransfers.enabled && (
+            <Chip
+              label={`Flexible: Available`}
+              size="small"
+              color="success"
+              variant="outlined"
+            />
+          )}
+        </Box>
+      )}
+      <Button
+        variant="contained"
+        color={isDeadlinePassed ? "inherit" : "success"}
+        disabled={!isSquadValid() || submitting || isDeadlinePassed}
+        startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <Star />}
+        onClick={handleSubmitSquad}
+      >
+        {getSubmitButtonText()}
+      </Button>
+    </Box>
   );
 
   if (loading || !league) {
@@ -280,6 +391,31 @@ const SquadSelectionPage: React.FC = () => {
       )}
 
       <Container maxWidth="xl" sx={{ py: 2 }}>
+        {/* Status Alerts */}
+        {existingSquad?.isSubmitted && !isDeadlinePassed && (
+          <Box sx={{ mb: 2 }}>
+            <Alert severity="success">
+              ✅ Squad Submitted! You can modify your squad freely until the deadline: {new Date(league.squadDeadline).toLocaleString()}
+            </Alert>
+          </Box>
+        )}
+
+        {isDeadlinePassed && (
+          <Box sx={{ mb: 2 }}>
+            <Alert severity="info">
+              🔒 Squad Deadline Passed. Your squad is locked. You can only make changes using available transfers.
+            </Alert>
+          </Box>
+        )}
+
+        {!existingSquad?.isSubmitted && !isDeadlinePassed && (
+          <Box sx={{ mb: 2 }}>
+            <Alert severity="warning">
+              ⚠️ Squad Not Submitted. Please submit your squad before the deadline: {new Date(league.squadDeadline).toLocaleString()}
+            </Alert>
+          </Box>
+        )}
+
         {submitError && (
           <Box sx={{ mb: 3 }}>
             <Alert severity="error" onClose={() => setSubmitError('')}>
