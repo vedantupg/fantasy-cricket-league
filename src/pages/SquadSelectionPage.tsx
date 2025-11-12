@@ -225,8 +225,15 @@ const SquadSelectionPage: React.FC = () => {
       const captain = selectedPlayers.find(p => p.position === 'captain');
       const viceCaptain = selectedPlayers.find(p => p.position === 'vice_captain');
 
+      // Sort players: main squad (captain, vice-captain, regular) first, then bench
+      // This ensures consistent order for loading
+      const sortedPlayers = [
+        ...selectedPlayers.filter(p => p.position !== 'bench'),
+        ...selectedPlayers.filter(p => p.position === 'bench')
+      ];
+
       // Convert selected players to SquadPlayer format using utility function
-      const squadPlayers: SquadPlayer[] = selectedPlayers.map(player => {
+      const squadPlayers: SquadPlayer[] = sortedPlayers.map(player => {
         const squadPlayer = squadPlayerUtils.createInitialSquadPlayer({
           playerId: player.id,
           playerName: player.name,
@@ -294,7 +301,30 @@ const SquadSelectionPage: React.FC = () => {
   };
 
   const addPlayerToSquad = (player: Player, targetPosition: 'captain' | 'vice_captain' | 'regular' | 'bench') => {
+    if (!league) return;
+
+    // Check if player is already selected
     if (selectedPlayers.find(p => p.id === player.id)) return;
+
+    // Calculate current counts
+    const currentMainSquad = selectedPlayers.filter(p => p.position !== 'bench').length;
+    const currentBench = selectedPlayers.filter(p => p.position === 'bench').length;
+    const benchRequired = league.transferTypes?.benchTransfers?.enabled ? league.transferTypes.benchTransfers.benchSlots : 0;
+
+    // Validate squad limits
+    if (targetPosition === 'bench') {
+      if (currentBench >= benchRequired) {
+        setSubmitError(`Maximum ${benchRequired} bench players allowed`);
+        setTimeout(() => setSubmitError(''), 3000);
+        return;
+      }
+    } else {
+      if (currentMainSquad >= league.squadSize) {
+        setSubmitError(`Maximum ${league.squadSize} main squad players allowed (excluding bench)`);
+        setTimeout(() => setSubmitError(''), 3000);
+        return;
+      }
+    }
 
     const newPlayer: SelectedPlayer = { ...player, position: targetPosition };
     setSelectedPlayers(prev => [...prev, newPlayer]);
