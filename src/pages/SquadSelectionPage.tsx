@@ -12,7 +12,6 @@ import {
   Select,
   MenuItem,
   Avatar,
-  Badge,
   Paper,
   IconButton,
   Chip,
@@ -21,10 +20,9 @@ import {
 } from '@mui/material';
 import {
   PersonAdd,
-  Star,
-  StarBorder,
   Close,
-  SwapHoriz
+  SwapHoriz,
+  Star
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,7 +32,7 @@ import { playerPoolService, leagueService, squadService, squadPlayerUtils } from
 import type { League, Player, SquadPlayer, LeagueSquad } from '../types/database';
 
 interface SelectedPlayer extends Player {
-  position: 'captain' | 'vice_captain' | 'regular' | 'bench';
+  position: 'regular' | 'bench';
 }
 
 const SquadSelectionPage: React.FC = () => {
@@ -43,6 +41,9 @@ const SquadSelectionPage: React.FC = () => {
   const [league, setLeague] = useState<League | null>(null);
   const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<SelectedPlayer[]>([]);
+  const [captainId, setCaptainId] = useState<string | null>(null);
+  const [viceCaptainId, setViceCaptainId] = useState<string | null>(null);
+  const [xFactorId, setXFactorId] = useState<string | null>(null);
   const [powerplayMatch, setPowerplayMatch] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
   const [submitting, setSubmitting] = useState(false);
@@ -140,8 +141,13 @@ const SquadSelectionPage: React.FC = () => {
   useEffect(() => {
     if (!existingSquad || !availablePlayers.length || !league) return;
 
+    // Restore captain, vice-captain, and X-factor IDs
+    setCaptainId(existingSquad.captainId || null);
+    setViceCaptainId(existingSquad.viceCaptainId || null);
+    setXFactorId(existingSquad.xFactorId || null);
+
     // Convert SquadPlayer[] to SelectedPlayer[]
-    const squadPlayers: SelectedPlayer[] = existingSquad.players.map(squadPlayer => {
+    const squadPlayers: SelectedPlayer[] = existingSquad.players.map((squadPlayer, index) => {
       // Find the full player data from availablePlayers
       const fullPlayer = availablePlayers.find(p => p.id === squadPlayer.playerId);
 
@@ -162,20 +168,12 @@ const SquadSelectionPage: React.FC = () => {
           },
           createdAt: new Date(),
           updatedAt: new Date(),
-          position: 'regular' as const // Will be updated below
+          position: index >= league.squadSize ? 'bench' : 'regular'
         };
       }
 
-      // Determine position
-      let position: 'captain' | 'vice_captain' | 'regular' | 'bench' = 'regular';
-      if (existingSquad.captainId === squadPlayer.playerId) {
-        position = 'captain';
-      } else if (existingSquad.viceCaptainId === squadPlayer.playerId) {
-        position = 'vice_captain';
-      } else if (existingSquad.players.indexOf(squadPlayer) >= league.squadSize) {
-        // Players beyond squadSize are bench players
-        position = 'bench';
-      }
+      // Determine position (only regular or bench)
+      const position: 'regular' | 'bench' = index >= league.squadSize ? 'bench' : 'regular';
 
       return {
         ...fullPlayer,
@@ -209,8 +207,12 @@ const SquadSelectionPage: React.FC = () => {
            counts.allrounder >= league.squadRules.minAllrounders &&
            counts.wicketkeeper >= league.squadRules.minWicketkeepers &&
            counts.bench >= benchRequired &&
-           selectedPlayers.filter(p => p.position === 'captain').length === 1 &&
-           selectedPlayers.filter(p => p.position === 'vice_captain').length === 1;
+           captainId !== null &&
+           viceCaptainId !== null &&
+           xFactorId !== null &&
+           captainId !== viceCaptainId &&
+           captainId !== xFactorId &&
+           viceCaptainId !== xFactorId;
   };
 
   const handleSubmitSquad = async () => {
@@ -221,11 +223,7 @@ const SquadSelectionPage: React.FC = () => {
       setSubmitting(true);
       setSubmitError('');
 
-      // Find captain and vice-captain
-      const captain = selectedPlayers.find(p => p.position === 'captain');
-      const viceCaptain = selectedPlayers.find(p => p.position === 'vice_captain');
-
-      // Sort players: main squad (captain, vice-captain, regular) first, then bench
+      // Sort players: main squad first, then bench
       // This ensures consistent order for loading
       const sortedPlayers = [
         ...selectedPlayers.filter(p => p.position !== 'bench'),
@@ -251,8 +249,9 @@ const SquadSelectionPage: React.FC = () => {
         // Update existing squad
         const updateData: any = {
           players: squadPlayers,
-          ...(captain?.id && { captainId: captain.id }),
-          ...(viceCaptain?.id && { viceCaptainId: viceCaptain.id }),
+          captainId: captainId || undefined,
+          viceCaptainId: viceCaptainId || undefined,
+          xFactorId: xFactorId || undefined,
           isSubmitted: true,
           lastUpdated: new Date(),
         };
@@ -275,17 +274,17 @@ const SquadSelectionPage: React.FC = () => {
           totalPoints: 0,
           captainPoints: 0,
           viceCaptainPoints: 0,
+          xFactorPoints: 0,
           rank: 0,
           matchPoints: {},
           transfersUsed: 0,
           transferHistory: [],
           isValid: true,
           validationErrors: [],
+          captainId: captainId || undefined,
+          viceCaptainId: viceCaptainId || undefined,
+          xFactorId: xFactorId || undefined,
         };
-
-        // Only add captain/vice-captain if they exist
-        if (captain?.id) squadData.captainId = captain.id;
-        if (viceCaptain?.id) squadData.viceCaptainId = viceCaptain.id;
 
         await squadService.create(squadData);
       }
@@ -300,7 +299,7 @@ const SquadSelectionPage: React.FC = () => {
     }
   };
 
-  const addPlayerToSquad = (player: Player, targetPosition: 'captain' | 'vice_captain' | 'regular' | 'bench') => {
+  const addPlayerToSquad = (player: Player, targetPosition: 'regular' | 'bench') => {
     if (!league) return;
 
     // Check if player is already selected
@@ -331,10 +330,36 @@ const SquadSelectionPage: React.FC = () => {
   };
 
   const removePlayerFromSquad = (playerId: string) => {
+    // Clear special roles if this player had any
+    if (captainId === playerId) setCaptainId(null);
+    if (viceCaptainId === playerId) setViceCaptainId(null);
+    if (xFactorId === playerId) setXFactorId(null);
+
     setSelectedPlayers(prev => prev.filter(p => p.id !== playerId));
   };
 
-  const updatePlayerPosition = (playerId: string, newPosition: 'captain' | 'vice_captain' | 'regular' | 'bench') => {
+  const setPlayerAsSpecialRole = (playerId: string, role: 'captain' | 'vice_captain' | 'x_factor' | null) => {
+    // Can only set special roles for main squad players (not bench)
+    const player = selectedPlayers.find(p => p.id === playerId);
+    if (!player || player.position === 'bench') return;
+
+    if (role === 'captain') {
+      setCaptainId(playerId);
+    } else if (role === 'vice_captain') {
+      setViceCaptainId(playerId);
+    } else if (role === 'x_factor') {
+      setXFactorId(playerId);
+    }
+  };
+
+  const updatePlayerPosition = (playerId: string, newPosition: 'regular' | 'bench') => {
+    // If moving to bench, clear any special roles
+    if (newPosition === 'bench') {
+      if (captainId === playerId) setCaptainId(null);
+      if (viceCaptainId === playerId) setViceCaptainId(null);
+      if (xFactorId === playerId) setXFactorId(null);
+    }
+
     setSelectedPlayers(prev => prev.map(p =>
       p.id === playerId ? { ...p, position: newPosition } : p
     ));
@@ -465,6 +490,10 @@ const SquadSelectionPage: React.FC = () => {
               powerplayMatch={powerplayMatch}
               setPowerplayMatch={setPowerplayMatch}
               powerplayMatches={[]}
+              captainId={captainId}
+              viceCaptainId={viceCaptainId}
+              xFactorId={xFactorId}
+              onSetSpecialRole={setPlayerAsSpecialRole}
             />
           </Grid>
 
@@ -490,11 +519,15 @@ const CricketPitchFormation: React.FC<{
   league: League;
   selectedPlayers: SelectedPlayer[];
   onRemovePlayer: (playerId: string) => void;
-  onUpdatePosition: (playerId: string, position: 'captain' | 'vice_captain' | 'regular' | 'bench') => void;
+  onUpdatePosition: (playerId: string, position: 'regular' | 'bench') => void;
   powerplayMatch: string;
   setPowerplayMatch: (match: string) => void;
   powerplayMatches: any[];
-}> = ({ league, selectedPlayers, onRemovePlayer, onUpdatePosition, powerplayMatch, setPowerplayMatch, powerplayMatches }) => {
+  captainId: string | null;
+  viceCaptainId: string | null;
+  xFactorId: string | null;
+  onSetSpecialRole: (playerId: string, role: 'captain' | 'vice_captain' | 'x_factor' | null) => void;
+}> = ({ league, selectedPlayers, onRemovePlayer, onUpdatePosition, powerplayMatch, setPowerplayMatch, powerplayMatches, captainId, viceCaptainId, xFactorId, onSetSpecialRole }) => {
 
   const getRequiredSlots = () => {
     const { squadRules } = league;
@@ -543,11 +576,19 @@ const CricketPitchFormation: React.FC<{
     slotType: 'required' | 'flexible' | 'bench';
     position: number;
   }> = ({ player, role, slotType, position }) => {
+    const [showRoleMenu, setShowRoleMenu] = useState(false);
     const colors = getSlotColors(slotType, role);
+
+    const isCaptain = player && captainId === player.id;
+    const isViceCaptain = player && viceCaptainId === player.id;
+    const isXFactor = player && xFactorId === player.id;
+    const canAssignRoles = player && slotType !== 'bench';
 
     return (
       <Paper
         elevation={player ? 8 : 2}
+        onMouseEnter={() => canAssignRoles && setShowRoleMenu(true)}
+        onMouseLeave={() => setShowRoleMenu(false)}
         sx={{
           p: 2,
           minHeight: 100,
@@ -575,8 +616,11 @@ const CricketPitchFormation: React.FC<{
           <>
             <IconButton
               size="small"
-              onClick={() => onRemovePlayer(player.id)}
-              sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' } }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemovePlayer(player.id);
+              }}
+              sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, zIndex: 10 }}
             >
               <Close fontSize="small" />
             </IconButton>
@@ -595,16 +639,92 @@ const CricketPitchFormation: React.FC<{
               sx={{ fontSize: '0.6rem', height: 16, mt: 0.5 }}
             />
 
-            {/* Captain/Vice Captain badges */}
-            {player.position === 'captain' && (
-              <Badge sx={{ position: 'absolute', top: -5, left: -5 }}>
-                <Chip label="C" size="small" color="warning" sx={{ fontSize: '0.7rem', height: 18 }} />
-              </Badge>
+            {/* Captain/Vice Captain/X-Factor badges */}
+            {isCaptain && (
+              <Box sx={{ position: 'absolute', top: -5, left: -5 }}>
+                <Chip label="C" size="small" color="warning" sx={{ fontSize: '0.7rem', height: 18, fontWeight: 'bold' }} />
+              </Box>
             )}
-            {player.position === 'vice_captain' && (
-              <Badge sx={{ position: 'absolute', top: -5, left: -5 }}>
-                <Chip label="VC" size="small" color="info" sx={{ fontSize: '0.7rem', height: 18 }} />
-              </Badge>
+            {isViceCaptain && (
+              <Box sx={{ position: 'absolute', top: -5, left: -5 }}>
+                <Chip label="VC" size="small" color="info" sx={{ fontSize: '0.7rem', height: 18, fontWeight: 'bold' }} />
+              </Box>
+            )}
+            {isXFactor && (
+              <Box sx={{ position: 'absolute', top: -5, left: -5 }}>
+                <Chip label="X" size="small" color="secondary" sx={{ fontSize: '0.7rem', height: 18, fontWeight: 'bold' }} />
+              </Box>
+            )}
+
+            {/* Hover menu for assigning roles */}
+            {canAssignRoles && showRoleMenu && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: -40,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  display: 'flex',
+                  gap: 0.5,
+                  bgcolor: 'background.paper',
+                  borderRadius: 2,
+                  p: 0.5,
+                  boxShadow: 3,
+                  zIndex: 100,
+                  border: '1px solid',
+                  borderColor: 'divider'
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSetSpecialRole(player.id, isCaptain ? null : 'captain');
+                  }}
+                  sx={{
+                    bgcolor: isCaptain ? 'warning.main' : 'action.hover',
+                    color: isCaptain ? 'warning.contrastText' : 'text.primary',
+                    '&:hover': { bgcolor: isCaptain ? 'warning.dark' : 'warning.light' },
+                    width: 28,
+                    height: 28
+                  }}
+                >
+                  <Typography variant="caption" fontWeight="bold">C</Typography>
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSetSpecialRole(player.id, isViceCaptain ? null : 'vice_captain');
+                  }}
+                  sx={{
+                    bgcolor: isViceCaptain ? 'info.main' : 'action.hover',
+                    color: isViceCaptain ? 'info.contrastText' : 'text.primary',
+                    '&:hover': { bgcolor: isViceCaptain ? 'info.dark' : 'info.light' },
+                    width: 28,
+                    height: 28
+                  }}
+                >
+                  <Typography variant="caption" fontWeight="bold" fontSize="0.65rem">VC</Typography>
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSetSpecialRole(player.id, isXFactor ? null : 'x_factor');
+                  }}
+                  sx={{
+                    bgcolor: isXFactor ? 'secondary.main' : 'action.hover',
+                    color: isXFactor ? 'secondary.contrastText' : 'text.primary',
+                    '&:hover': { bgcolor: isXFactor ? 'secondary.dark' : 'secondary.light' },
+                    width: 28,
+                    height: 28
+                  }}
+                >
+                  <Typography variant="caption" fontWeight="bold">X</Typography>
+                </IconButton>
+              </Box>
             )}
           </>
         ) : (
@@ -1141,14 +1261,20 @@ const CricketPitchFormation: React.FC<{
               />
             )}
             <Chip
-              label={`Captain: ${selectedPlayers.filter(p => p.position === 'captain').length ? '✓' : '✗'}`}
-              color={selectedPlayers.filter(p => p.position === 'captain').length ? 'success' : 'error'}
+              label={`Captain: ${captainId ? '✓' : '✗'}`}
+              color={captainId ? 'success' : 'error'}
               variant="filled"
               sx={{ fontWeight: 'bold' }}
             />
             <Chip
-              label={`Vice Captain: ${selectedPlayers.filter(p => p.position === 'vice_captain').length ? '✓' : '✗'}`}
-              color={selectedPlayers.filter(p => p.position === 'vice_captain').length ? 'success' : 'error'}
+              label={`Vice Captain: ${viceCaptainId ? '✓' : '✗'}`}
+              color={viceCaptainId ? 'success' : 'error'}
+              variant="filled"
+              sx={{ fontWeight: 'bold' }}
+            />
+            <Chip
+              label={`X-Factor: ${xFactorId ? '✓' : '✗'}`}
+              color={xFactorId ? 'success' : 'error'}
               variant="filled"
               sx={{ fontWeight: 'bold' }}
             />
@@ -1163,7 +1289,7 @@ const CricketPitchFormation: React.FC<{
 const PlayerSelectionPanel: React.FC<{
   availablePlayers: Player[];
   selectedPlayers: SelectedPlayer[];
-  onAddPlayer: (player: Player, position: 'captain' | 'vice_captain' | 'regular' | 'bench') => void;
+  onAddPlayer: (player: Player, position: 'regular' | 'bench') => void;
   filterRole: string;
   setFilterRole: (role: string) => void;
   league: League;
@@ -1200,29 +1326,11 @@ const PlayerSelectionPanel: React.FC<{
         <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
           <Button
             size="small"
-            variant="outlined"
+            variant="contained"
             onClick={() => onAddPlayer(player, 'regular')}
             startIcon={<PersonAdd />}
           >
-            Add
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            color="warning"
-            onClick={() => onAddPlayer(player, 'captain')}
-            startIcon={<Star />}
-          >
-            Captain
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            color="info"
-            onClick={() => onAddPlayer(player, 'vice_captain')}
-            startIcon={<StarBorder />}
-          >
-            VC
+            Add to Squad
           </Button>
           {league.transferTypes?.benchTransfers?.enabled && (
             <Button
@@ -1232,7 +1340,7 @@ const PlayerSelectionPanel: React.FC<{
               onClick={() => onAddPlayer(player, 'bench')}
               startIcon={<SwapHoriz />}
             >
-              Bench
+              Add to Bench
             </Button>
           )}
         </Box>

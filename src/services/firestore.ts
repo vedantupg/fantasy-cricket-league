@@ -686,9 +686,10 @@ export const leaderboardSnapshotService = {
         ? squad.totalPoints - squads[index + 1].totalPoints
         : undefined;
 
-      // Get captain and vice-captain details
+      // Get captain, vice-captain, and X-factor details
       const captain = squad.players.find(p => p.playerId === squad.captainId);
       const viceCaptain = squad.players.find(p => p.playerId === squad.viceCaptainId);
+      const xFactor = squad.players.find(p => p.playerId === squad.xFactorId);
 
       return {
         userId: squad.userId,
@@ -699,6 +700,7 @@ export const leaderboardSnapshotService = {
         totalPoints: squad.totalPoints,
         captainPoints: squad.captainPoints || 0,
         viceCaptainPoints: squad.viceCaptainPoints || 0,
+        xFactorPoints: squad.xFactorPoints || 0,
         rank: index + 1,
         previousRank,
         rankChange,
@@ -708,6 +710,8 @@ export const leaderboardSnapshotService = {
         captainName: captain?.playerName,
         viceCaptainId: squad.viceCaptainId,
         viceCaptainName: viceCaptain?.playerName,
+        xFactorId: squad.xFactorId,
+        xFactorName: xFactor?.playerName,
       };
     });
 

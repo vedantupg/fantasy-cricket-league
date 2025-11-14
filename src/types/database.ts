@@ -108,14 +108,16 @@ export interface LeagueSquad {
   players: SquadPlayer[];
   isSubmitted: boolean;
 
-  // Captain and Vice-Captain
+  // Captain, Vice-Captain, and X-Factor
   captainId?: string; // playerId of captain (gets 2x points)
   viceCaptainId?: string; // playerId of vice-captain (gets 1.5x points)
+  xFactorId?: string; // playerId of X-factor (gets 1.25x points)
 
   // Performance
   totalPoints: number;
   captainPoints: number; // Points contributed by captain
   viceCaptainPoints: number; // Points contributed by vice-captain
+  xFactorPoints: number; // Points contributed by X-factor
   rank: number;
   previousRank?: number; // Rank from previous snapshot
   rankChange?: number; // Positive for improvement, negative for decline
@@ -354,6 +356,7 @@ export interface StandingEntry {
   totalPoints: number;
   captainPoints: number;
   viceCaptainPoints: number;
+  xFactorPoints: number;
   rank: number;
   previousRank?: number;
   rankChange?: number; // Positive for improvement, negative for decline
@@ -367,4 +370,6 @@ export interface StandingEntry {
   captainName?: string;
   viceCaptainId?: string;
   viceCaptainName?: string;
+  xFactorId?: string;
+  xFactorName?: string;
 }
