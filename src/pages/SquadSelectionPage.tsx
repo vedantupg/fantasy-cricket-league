@@ -302,31 +302,38 @@ const SquadSelectionPage: React.FC = () => {
   const addPlayerToSquad = (player: Player, targetPosition: 'regular' | 'bench') => {
     if (!league) return;
 
-    // Check if player is already selected
-    if (selectedPlayers.find(p => p.id === player.id)) return;
-
-    // Calculate current counts
-    const currentMainSquad = selectedPlayers.filter(p => p.position !== 'bench').length;
-    const currentBench = selectedPlayers.filter(p => p.position === 'bench').length;
     const benchRequired = league.transferTypes?.benchTransfers?.enabled ? league.transferTypes.benchTransfers.benchSlots : 0;
 
-    // Validate squad limits
-    if (targetPosition === 'bench') {
-      if (currentBench >= benchRequired) {
-        setSubmitError(`Maximum ${benchRequired} bench players allowed`);
-        setTimeout(() => setSubmitError(''), 3000);
-        return;
+    // Use functional setState to ensure we check against the LATEST state
+    setSelectedPlayers(prev => {
+      // Check if player is already selected (using latest state)
+      if (prev.find(p => p.id === player.id)) {
+        return prev; // Don't add duplicate
       }
-    } else {
-      if (currentMainSquad >= league.squadSize) {
-        setSubmitError(`Maximum ${league.squadSize} main squad players allowed (excluding bench)`);
-        setTimeout(() => setSubmitError(''), 3000);
-        return;
-      }
-    }
 
-    const newPlayer: SelectedPlayer = { ...player, position: targetPosition };
-    setSelectedPlayers(prev => [...prev, newPlayer]);
+      // Calculate current counts from LATEST state
+      const currentMainSquad = prev.filter(p => p.position !== 'bench').length;
+      const currentBench = prev.filter(p => p.position === 'bench').length;
+
+      // Validate squad limits with latest state
+      if (targetPosition === 'bench') {
+        if (currentBench >= benchRequired) {
+          setSubmitError(`Maximum ${benchRequired} bench players allowed`);
+          setTimeout(() => setSubmitError(''), 3000);
+          return prev; // Don't add, return unchanged state
+        }
+      } else {
+        if (currentMainSquad >= league.squadSize) {
+          setSubmitError(`Maximum ${league.squadSize} main squad players allowed (excluding bench)`);
+          setTimeout(() => setSubmitError(''), 3000);
+          return prev; // Don't add, return unchanged state
+        }
+      }
+
+      // All validations passed, add the player
+      const newPlayer: SelectedPlayer = { ...player, position: targetPosition };
+      return [...prev, newPlayer];
+    });
   };
 
   const removePlayerFromSquad = (playerId: string) => {
@@ -343,8 +350,19 @@ const SquadSelectionPage: React.FC = () => {
     const player = selectedPlayers.find(p => p.id === playerId);
     if (!player || player.position === 'bench') return;
 
+    // If this player already has a different role, remove it first
+    if (captainId === playerId && role !== 'captain') {
+      setCaptainId(null);
+    }
+    if (viceCaptainId === playerId && role !== 'vice_captain') {
+      setViceCaptainId(null);
+    }
+    if (xFactorId === playerId && role !== 'x_factor') {
+      setXFactorId(null);
+    }
+
     // Toggle off if clicking the same player with the same role
-    // Otherwise, automatically transfer the role to the new player
+    // Otherwise, set the new role
     if (role === 'captain') {
       setCaptainId(captainId === playerId ? null : playerId);
     } else if (role === 'vice_captain') {

@@ -1065,6 +1065,28 @@ export const playerPoolUpdateService = {
 };
 
 // Batch Operations for Performance
+export const userService = {
+  async getById(userId: string): Promise<User | null> {
+    const userDoc = await getDoc(doc(db, COLLECTIONS.USERS, userId));
+    if (!userDoc.exists()) return null;
+    return convertTimestamps({ uid: userDoc.id, ...userDoc.data() }) as User;
+  },
+
+  async getByIds(userIds: string[]): Promise<User[]> {
+    const users = await Promise.all(
+      userIds.map(async (userId) => {
+        try {
+          return await this.getById(userId);
+        } catch (error) {
+          console.error(`Error fetching user ${userId}:`, error);
+          return null;
+        }
+      })
+    );
+    return users.filter((user): user is User => user !== null);
+  },
+};
+
 export const batchService = {
   // Update multiple squads' points after a match
   async updateSquadPoints(squadUpdates: { squadId: string; points: number; matchId: string }[]): Promise<void> {

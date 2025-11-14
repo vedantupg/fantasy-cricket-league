@@ -18,23 +18,26 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow,
-  Paper
+  TableRow
 } from '@mui/material';
 import {
   ExpandMore,
   Groups
 } from '@mui/icons-material';
 import { useParams } from 'react-router-dom';
-import { leagueService, squadService } from '../services/firestore';
+import { leagueService, squadService, userService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
-import type { League, LeagueSquad } from '../types/database';
+import type { League, LeagueSquad, User } from '../types/database';
+
+interface SquadWithUser extends LeagueSquad {
+  user?: User;
+}
 
 const ViewTeamsPage: React.FC = () => {
   const { leagueId } = useParams<{ leagueId: string }>();
   const [league, setLeague] = useState<League | null>(null);
-  const [squads, setSquads] = useState<LeagueSquad[]>([]);
+  const [squads, setSquads] = useState<SquadWithUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -61,7 +64,20 @@ const ViewTeamsPage: React.FC = () => {
             return;
           }
 
-          setSquads(squadsData);
+          // Fetch user data for each squad
+          const squadsWithUsers = await Promise.all(
+            squadsData.map(async (squad) => {
+              try {
+                const user = await userService.getById(squad.userId);
+                return { ...squad, user: user || undefined };
+              } catch (err) {
+                console.error(`Error fetching user ${squad.userId}:`, err);
+                return { ...squad, user: undefined };
+              }
+            })
+          );
+
+          setSquads(squadsWithUsers);
         } else {
           setError('League not found');
         }
@@ -96,6 +112,18 @@ const ViewTeamsPage: React.FC = () => {
       case 'wicketkeeper': return 'warning';
       default: return 'default';
     }
+  };
+
+  // Calculate pick percentage for each player across all squads (only main squad, not bench)
+  const getPickPercentage = (playerId: string): number => {
+    if (squads.length === 0 || !league) return 0;
+    const squadSize = league.squadSize;
+    const teamsWithPlayer = squads.filter(squad => {
+      // Only check main squad players (first squadSize players)
+      const mainSquadPlayers = squad.players.slice(0, squadSize);
+      return mainSquadPlayers.some(p => p.playerId === playerId);
+    }).length;
+    return Math.round((teamsWithPlayer / squads.length) * 100);
   };
 
   if (loading) {
@@ -182,90 +210,200 @@ const ViewTeamsPage: React.FC = () => {
           </Card>
         ) : (
           <Grid container spacing={3}>
-            {squads.map((squad, index) => (
-              <Grid size={{ xs: 12, lg: 6 }} key={squad.id}>
-                <Card>
-                  <CardContent>
-                    <Box display="flex" alignItems="center" gap={2} mb={2}>
-                      <Avatar sx={{ bgcolor: 'primary.main' }}>
-                        {squad.squadName.charAt(0)}
-                      </Avatar>
-                      <Box flex={1}>
-                        <Typography variant="h6" fontWeight="bold">
-                          {squad.squadName}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Rank #{squad.rank || index + 1} • {squad.totalPoints} points
-                        </Typography>
-                      </Box>
-                      {squad.isSubmitted && (
-                        <Chip 
-                          label="Submitted" 
-                          color="success" 
-                          size="small" 
-                        />
-                      )}
-                    </Box>
+            {squads.map((squad, index) => {
+              const squadSize = league?.squadSize || 11;
 
-                    <Accordion>
-                      <AccordionSummary expandIcon={<ExpandMore />}>
-                        <Typography variant="subtitle2">
-                          View Squad ({squad.players.length} players)
-                        </Typography>
-                      </AccordionSummary>
-                      <AccordionDetails>
-                        <TableContainer component={Paper} variant="outlined">
-                          <Table size="small">
-                            <TableHead>
-                              <TableRow>
-                                <TableCell>Player</TableCell>
-                                <TableCell>Team</TableCell>
-                                <TableCell>Role</TableCell>
-                                <TableCell align="right">Points</TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {squad.players.map((player, playerIndex) => (
-                                <TableRow key={playerIndex}>
-                                  <TableCell>
-                                    <Box display="flex" alignItems="center" gap={1}>
-                                      <Typography variant="body2">
-                                        {getRoleIcon(player.role)}
-                                      </Typography>
-                                      <Typography variant="body2" fontWeight="medium">
-                                        {player.playerName}
-                                      </Typography>
-                                    </Box>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Typography variant="body2">
-                                      {player.team}
-                                    </Typography>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Chip 
-                                      label={player.role.replace('keeper', '')} 
-                                      size="small"
-                                      color={getRoleColor(player.role) as any}
-                                      variant="outlined"
-                                    />
-                                  </TableCell>
-                                  <TableCell align="right">
-                                    <Typography variant="body2" fontWeight="medium">
-                                      {player.points}
-                                    </Typography>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
-                      </AccordionDetails>
-                    </Accordion>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
+              // Sort function to order by role: batsman -> allrounder -> wicketkeeper -> bowler
+              const sortByRole = (players: typeof squad.players) => {
+                const roleOrder: { [key: string]: number } = {
+                  'batsman': 1,
+                  'allrounder': 2,
+                  'wicketkeeper': 3,
+                  'bowler': 4
+                };
+                return [...players].sort((a, b) => {
+                  const orderA = roleOrder[a.role] || 999;
+                  const orderB = roleOrder[b.role] || 999;
+                  return orderA - orderB;
+                });
+              };
+
+              const mainSquad = sortByRole(squad.players.slice(0, squadSize));
+              const bench = sortByRole(squad.players.slice(squadSize));
+
+              return (
+                <Grid size={{ xs: 12, lg: 6 }} key={squad.id}>
+                  <Card>
+                    <CardContent>
+                      <Box display="flex" alignItems="center" gap={2} mb={2}>
+                        <Avatar
+                          src={squad.user?.profilePicUrl}
+                          sx={{ bgcolor: 'primary.main', width: 48, height: 48 }}
+                        >
+                          {squad.user?.displayName?.charAt(0) || squad.squadName.charAt(0)}
+                        </Avatar>
+                        <Box flex={1}>
+                          <Typography variant="h6" fontWeight="bold">
+                            {squad.squadName}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {squad.user?.displayName} • Rank #{squad.rank || index + 1} • {squad.totalPoints} points
+                          </Typography>
+                        </Box>
+                        {squad.isSubmitted && (
+                          <Chip
+                            label="Submitted"
+                            color="success"
+                            size="small"
+                          />
+                        )}
+                      </Box>
+
+                      <Accordion>
+                        <AccordionSummary expandIcon={<ExpandMore />}>
+                          <Typography variant="subtitle2">
+                            View Squad ({squad.players.length} players)
+                          </Typography>
+                        </AccordionSummary>
+                        <AccordionDetails sx={{ p: 0 }}>
+                          {/* Main Squad */}
+                          <Box sx={{ mb: 2 }}>
+                            <Box sx={{ bgcolor: 'primary.main', px: 2, py: 1 }}>
+                              <Typography variant="subtitle2" color="white" fontWeight="bold">
+                                Main Squad ({squadSize})
+                              </Typography>
+                            </Box>
+                            <TableContainer>
+                              <Table size="small">
+                                <TableHead>
+                                  <TableRow>
+                                    <TableCell>Player</TableCell>
+                                    <TableCell>Team</TableCell>
+                                    <TableCell align="center">Picked</TableCell>
+                                    <TableCell align="right">Points</TableCell>
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {mainSquad.map((player, playerIndex) => {
+                                    const isCaptain = squad.captainId === player.playerId;
+                                    const isViceCaptain = squad.viceCaptainId === player.playerId;
+                                    const isXFactor = squad.xFactorId === player.playerId;
+                                    const pickPercentage = getPickPercentage(player.playerId);
+
+                                    return (
+                                      <TableRow key={playerIndex}>
+                                        <TableCell>
+                                          <Box display="flex" alignItems="center" gap={1}>
+                                            <Typography variant="body2">
+                                              {getRoleIcon(player.role)}
+                                            </Typography>
+                                            <Typography variant="body2" fontWeight="medium">
+                                              {player.playerName}
+                                            </Typography>
+                                            {isCaptain && (
+                                              <Chip label="C" size="small" color="warning" sx={{ fontSize: '0.7rem', height: 18, fontWeight: 'bold' }} />
+                                            )}
+                                            {isViceCaptain && (
+                                              <Chip label="VC" size="small" color="info" sx={{ fontSize: '0.7rem', height: 18, fontWeight: 'bold' }} />
+                                            )}
+                                            {isXFactor && (
+                                              <Chip label="X" size="small" color="secondary" sx={{ fontSize: '0.7rem', height: 18, fontWeight: 'bold' }} />
+                                            )}
+                                          </Box>
+                                        </TableCell>
+                                        <TableCell>
+                                          <Typography variant="body2">
+                                            {player.team}
+                                          </Typography>
+                                        </TableCell>
+                                        <TableCell align="center">
+                                          <Chip
+                                            label={`${pickPercentage}%`}
+                                            size="small"
+                                            color={pickPercentage >= 75 ? 'error' : pickPercentage >= 50 ? 'warning' : 'success'}
+                                            sx={{ fontWeight: 'bold', minWidth: 55 }}
+                                          />
+                                        </TableCell>
+                                        <TableCell align="right">
+                                          <Typography variant="body2" fontWeight="medium">
+                                            {player.points}
+                                          </Typography>
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                                </TableBody>
+                              </Table>
+                            </TableContainer>
+                          </Box>
+
+                          {/* Bench */}
+                          {bench.length > 0 && (
+                            <Box>
+                              <Box sx={{ bgcolor: 'action.hover', px: 2, py: 1 }}>
+                                <Typography variant="subtitle2" fontWeight="bold">
+                                  Bench ({bench.length})
+                                </Typography>
+                              </Box>
+                              <TableContainer>
+                                <Table size="small">
+                                  <TableHead>
+                                    <TableRow>
+                                      <TableCell>Player</TableCell>
+                                      <TableCell>Team</TableCell>
+                                      <TableCell align="center">Picked</TableCell>
+                                      <TableCell align="right">Points</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {bench.map((player, playerIndex) => {
+                                      const pickPercentage = getPickPercentage(player.playerId);
+
+                                      return (
+                                        <TableRow key={playerIndex} sx={{ bgcolor: 'action.hover' }}>
+                                          <TableCell>
+                                            <Box display="flex" alignItems="center" gap={1}>
+                                              <Typography variant="body2">
+                                                {getRoleIcon(player.role)}
+                                              </Typography>
+                                              <Typography variant="body2" fontWeight="medium">
+                                                {player.playerName}
+                                              </Typography>
+                                            </Box>
+                                          </TableCell>
+                                          <TableCell>
+                                            <Typography variant="body2">
+                                              {player.team}
+                                            </Typography>
+                                          </TableCell>
+                                          <TableCell align="center">
+                                            <Chip
+                                              label={`${pickPercentage}%`}
+                                              size="small"
+                                              color={pickPercentage >= 75 ? 'error' : pickPercentage >= 50 ? 'warning' : 'success'}
+                                              sx={{ fontWeight: 'bold', minWidth: 55 }}
+                                            />
+                                          </TableCell>
+                                          <TableCell align="right">
+                                            <Typography variant="body2" fontWeight="medium">
+                                              {player.points}
+                                            </Typography>
+                                          </TableCell>
+                                        </TableRow>
+                                      );
+                                    })}
+                                  </TableBody>
+                                </Table>
+                              </TableContainer>
+                            </Box>
+                          )}
+                        </AccordionDetails>
+                      </Accordion>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })}
           </Grid>
         )}
       </Container>
