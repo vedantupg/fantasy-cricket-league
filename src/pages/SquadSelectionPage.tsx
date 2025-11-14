@@ -343,12 +343,14 @@ const SquadSelectionPage: React.FC = () => {
     const player = selectedPlayers.find(p => p.id === playerId);
     if (!player || player.position === 'bench') return;
 
+    // Toggle off if clicking the same player with the same role
+    // Otherwise, automatically transfer the role to the new player
     if (role === 'captain') {
-      setCaptainId(playerId);
+      setCaptainId(captainId === playerId ? null : playerId);
     } else if (role === 'vice_captain') {
-      setViceCaptainId(playerId);
+      setViceCaptainId(viceCaptainId === playerId ? null : playerId);
     } else if (role === 'x_factor') {
-      setXFactorId(playerId);
+      setXFactorId(xFactorId === playerId ? null : playerId);
     }
   };
 
@@ -450,7 +452,7 @@ const SquadSelectionPage: React.FC = () => {
         {existingSquad?.isSubmitted && !isDeadlinePassed && (
           <Box sx={{ mb: 2 }}>
             <Alert severity="success">
-              ✅ Squad Submitted! You can modify your squad freely until the deadline: {new Date(league.squadDeadline).toLocaleString()}
+              Squad Submitted! You can modify your squad freely until the deadline: {new Date(league.squadDeadline).toLocaleString()}
             </Alert>
           </Box>
         )}
@@ -466,7 +468,7 @@ const SquadSelectionPage: React.FC = () => {
         {!existingSquad?.isSubmitted && !isDeadlinePassed && (
           <Box sx={{ mb: 2 }}>
             <Alert severity="warning">
-              ⚠️ Squad Not Submitted. Please submit your squad before the deadline: {new Date(league.squadDeadline).toLocaleString()}
+              Squad Not Submitted. Please submit your squad before the deadline: {new Date(league.squadDeadline).toLocaleString()}
             </Alert>
           </Box>
         )}
@@ -577,6 +579,7 @@ const CricketPitchFormation: React.FC<{
     position: number;
   }> = ({ player, role, slotType, position }) => {
     const [showRoleMenu, setShowRoleMenu] = useState(false);
+    const [hideTimeout, setHideTimeout] = React.useState<NodeJS.Timeout | null>(null);
     const colors = getSlotColors(slotType, role);
 
     const isCaptain = player && captainId === player.id;
@@ -584,11 +587,28 @@ const CricketPitchFormation: React.FC<{
     const isXFactor = player && xFactorId === player.id;
     const canAssignRoles = player && slotType !== 'bench';
 
+    const handleMouseEnter = () => {
+      if (canAssignRoles) {
+        if (hideTimeout) {
+          clearTimeout(hideTimeout);
+          setHideTimeout(null);
+        }
+        setShowRoleMenu(true);
+      }
+    };
+
+    const handleMouseLeave = () => {
+      const timeout = setTimeout(() => {
+        setShowRoleMenu(false);
+      }, 300); // 300ms delay before hiding
+      setHideTimeout(timeout);
+    };
+
     return (
       <Paper
         elevation={player ? 8 : 2}
-        onMouseEnter={() => canAssignRoles && setShowRoleMenu(true)}
-        onMouseLeave={() => setShowRoleMenu(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         sx={{
           p: 2,
           minHeight: 100,
@@ -659,6 +679,8 @@ const CricketPitchFormation: React.FC<{
             {/* Hover menu for assigning roles */}
             {canAssignRoles && showRoleMenu && (
               <Box
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
                 sx={{
                   position: 'absolute',
                   bottom: -40,
@@ -680,7 +702,7 @@ const CricketPitchFormation: React.FC<{
                   size="small"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onSetSpecialRole(player.id, isCaptain ? null : 'captain');
+                    onSetSpecialRole(player.id, 'captain');
                   }}
                   sx={{
                     bgcolor: isCaptain ? 'warning.main' : 'action.hover',
@@ -696,7 +718,7 @@ const CricketPitchFormation: React.FC<{
                   size="small"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onSetSpecialRole(player.id, isViceCaptain ? null : 'vice_captain');
+                    onSetSpecialRole(player.id, 'vice_captain');
                   }}
                   sx={{
                     bgcolor: isViceCaptain ? 'info.main' : 'action.hover',
@@ -712,7 +734,7 @@ const CricketPitchFormation: React.FC<{
                   size="small"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onSetSpecialRole(player.id, isXFactor ? null : 'x_factor');
+                    onSetSpecialRole(player.id, 'x_factor');
                   }}
                   sx={{
                     bgcolor: isXFactor ? 'secondary.main' : 'action.hover',
@@ -767,7 +789,7 @@ const CricketPitchFormation: React.FC<{
         {league.powerplayEnabled && (
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" gutterBottom>
-              ⚡ Powerplay Match Selection
+              Powerplay Match Selection
             </Typography>
             <FormControl fullWidth>
               <InputLabel>Select Powerplay Match</InputLabel>
@@ -910,7 +932,7 @@ const CricketPitchFormation: React.FC<{
           </Box>
 
           <Typography variant="h6" color="white" textAlign="center" pt={2} pb={1} sx={{ textShadow: '2px 2px 4px rgba(0,0,0,0.7)', position: 'relative', zIndex: 2 }}>
-            🏟️ Squad Formation
+            Squad Formation
           </Typography>
 
           {/* Cricket Field Formation Layout */}
@@ -1002,7 +1024,7 @@ const CricketPitchFormation: React.FC<{
                   boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
                 }}>
                   <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: '1rem' }}>
-                    🏏 Batters
+                    Batters
                   </Typography>
                   <Chip
                     label={`${league.squadRules.minBatsmen} Required`}
@@ -1059,7 +1081,7 @@ const CricketPitchFormation: React.FC<{
                   boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
                 }}>
                   <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: '1rem' }}>
-                    ⚡ All-Rounders
+                    All-Rounders
                   </Typography>
                   <Chip
                     label={`${league.squadRules.minAllrounders} Required`}
@@ -1116,7 +1138,7 @@ const CricketPitchFormation: React.FC<{
                   boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
                 }}>
                   <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: '1rem' }}>
-                    🎯 Bowlers
+                    Bowlers
                   </Typography>
                   <Chip
                     label={`${league.squadRules.minBowlers} Required`}
@@ -1162,7 +1184,7 @@ const CricketPitchFormation: React.FC<{
                     boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
                   }}>
                     <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: '1rem' }}>
-                      ⚡ Flexible Positions (Any Role)
+                      Flexible Positions (Any Role)
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -1203,7 +1225,7 @@ const CricketPitchFormation: React.FC<{
           <Box sx={{ mt: 3 }}>
             <Box sx={{ textAlign: 'center' }}>
               <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold', color: 'warning.main' }}>
-                🪑 Bench Players (Outside Field)
+                Bench Players (Outside Field)
               </Typography>
               <Box sx={{
                 display: 'flex',
@@ -1243,7 +1265,7 @@ const CricketPitchFormation: React.FC<{
           boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
         }}>
           <Typography variant="h6" gutterBottom color="white" sx={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)', fontWeight: 'bold' }}>
-            📊 Squad Summary
+            Squad Summary
           </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
             <Chip
@@ -1352,7 +1374,7 @@ const PlayerSelectionPanel: React.FC<{
     <Card>
       <CardContent>
         <Typography variant="h6" gutterBottom>
-          🎯 Player Selection
+          Player Selection
         </Typography>
 
         {/* Role Filter */}

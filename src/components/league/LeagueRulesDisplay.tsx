@@ -184,56 +184,89 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
 
             {/* Bench Transfers Details */}
             {league.transferTypes.benchTransfers.enabled && (
-              <Box sx={{ mb: 2, p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
-                <Typography variant="subtitle2" fontWeight="bold" gutterBottom color="success.dark">
-                  🔄 Bench Transfer System
-                </Typography>
-                <Typography variant="body2" color="success.dark">
-                  • Bench slots: {league.transferTypes.benchTransfers.benchSlots}
-                </Typography>
-                <Typography variant="body2" color="success.dark">
-                  • Max bench transfers: {league.transferTypes.benchTransfers.maxAllowed}
-                </Typography>
-                <Typography variant="body2" color="success.dark">
-                  • {league.transferTypes.benchTransfers.description}
-                </Typography>
-              </Box>
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid size={12}>
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                    Bench Transfer System
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="body2" color="text.secondary">Bench Slots</Typography>
+                  <Typography variant="body1" fontWeight="medium">
+                    {league.transferTypes.benchTransfers.benchSlots}
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="body2" color="text.secondary">Max Bench Transfers</Typography>
+                  <Typography variant="body1" fontWeight="medium">
+                    {league.transferTypes.benchTransfers.maxAllowed}
+                  </Typography>
+                </Grid>
+                <Grid size={12}>
+                  <Typography variant="body2" color="text.secondary">Description</Typography>
+                  <Typography variant="body1" fontWeight="medium">
+                    {league.transferTypes.benchTransfers.description}
+                  </Typography>
+                </Grid>
+              </Grid>
             )}
 
             {/* Mid-Season Transfers Details */}
             {league.transferTypes.midSeasonTransfers.enabled && (
-              <Box sx={{ mb: 2, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
-                <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-                  📅 Mid-Season Transfer Window
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  • Opens: {new Date(league.transferTypes.midSeasonTransfers.windowStartDate).toLocaleString()}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  • Closes: {new Date(league.transferTypes.midSeasonTransfers.windowEndDate).toLocaleString()}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  • Max transfers: {league.transferTypes.midSeasonTransfers.maxAllowed}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  • {league.transferTypes.midSeasonTransfers.description}
-                </Typography>
-              </Box>
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid size={12}>
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                    Mid-Season Transfer Window
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="body2" color="text.secondary">Window Opens</Typography>
+                  <Typography variant="body1" fontWeight="medium">
+                    {new Date(league.transferTypes.midSeasonTransfers.windowStartDate).toLocaleString()}
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="body2" color="text.secondary">Window Closes</Typography>
+                  <Typography variant="body1" fontWeight="medium">
+                    {new Date(league.transferTypes.midSeasonTransfers.windowEndDate).toLocaleString()}
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="body2" color="text.secondary">Max Transfers</Typography>
+                  <Typography variant="body1" fontWeight="medium">
+                    {league.transferTypes.midSeasonTransfers.maxAllowed}
+                  </Typography>
+                </Grid>
+                <Grid size={12}>
+                  <Typography variant="body2" color="text.secondary">Description</Typography>
+                  <Typography variant="body1" fontWeight="medium">
+                    {league.transferTypes.midSeasonTransfers.description}
+                  </Typography>
+                </Grid>
+              </Grid>
             )}
 
             {/* Flexible Transfers Details */}
             {league.transferTypes.flexibleTransfers.enabled && (
-              <Box sx={{ p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
-                <Typography variant="subtitle2" fontWeight="bold" gutterBottom color="info.dark">
-                  ⚡ Flexible Transfers
-                </Typography>
-                <Typography variant="body2" color="info.dark">
-                  • Max allowed: {league.transferTypes.flexibleTransfers.maxAllowed}
-                </Typography>
-                <Typography variant="body2" color="info.dark">
-                  • {league.transferTypes.flexibleTransfers.description}
-                </Typography>
-              </Box>
+              <Grid container spacing={2}>
+                <Grid size={12}>
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                    Flexible Transfers
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="body2" color="text.secondary">Max Allowed</Typography>
+                  <Typography variant="body1" fontWeight="medium">
+                    {league.transferTypes.flexibleTransfers.maxAllowed}
+                  </Typography>
+                </Grid>
+                <Grid size={12}>
+                  <Typography variant="body2" color="text.secondary">Description</Typography>
+                  <Typography variant="body1" fontWeight="medium">
+                    {league.transferTypes.flexibleTransfers.description}
+                  </Typography>
+                </Grid>
+              </Grid>
             )}
           </CardContent>
         </Card>
