@@ -8,7 +8,8 @@ import {
   Breadcrumbs,
   Link,
   Tabs,
-  Tab
+  Tab,
+  useMediaQuery
 } from '@mui/material';
 import {
   ArrowBack,
@@ -42,6 +43,8 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
 }) => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const handleBack = () => {
     if (backPath) {
@@ -104,112 +107,192 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
       {/* Top row - Back button and Breadcrumbs */}
       <Box
         sx={{
-          px: 3,
-          py: 1.5,
+          px: { xs: 2, sm: 3 },
+          py: { xs: 1, sm: 1.5 },
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center'
+          alignItems: 'center',
+          flexWrap: { xs: 'wrap', sm: 'nowrap' },
+          gap: { xs: 1, sm: 0 }
         }}
       >
       {/* Left side - Back button and Breadcrumb */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
+      <Box sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: { xs: 1, sm: 2 },
+        flex: 1,
+        minWidth: 0,
+        overflow: 'hidden'
+      }}>
         {/* Back Button */}
         <Button
-          startIcon={<ArrowBack />}
+          startIcon={!isSmallMobile ? <ArrowBack /> : undefined}
           onClick={handleBack}
           size="small"
           sx={{
             textTransform: 'none',
             color: 'text.secondary',
             fontWeight: 500,
-            px: 2,
+            px: { xs: 1, sm: 2 },
             py: 0.75,
+            minWidth: { xs: 'auto', sm: 'auto' },
             '&:hover': {
               backgroundColor: alpha(theme.palette.primary.main, 0.08),
               color: theme.palette.primary.main,
             }
           }}
         >
-          Back
+          {isSmallMobile ? <ArrowBack /> : 'Back'}
         </Button>
 
         {/* Breadcrumb Navigation */}
-        <Breadcrumbs
-          separator={<ChevronRight sx={{ fontSize: 18, color: 'text.disabled' }} />}
-          sx={{
-            '& .MuiBreadcrumbs-separator': {
-              mx: 1
-            }
-          }}
-        >
-          {/* League Name */}
-          <Link
-            component="button"
-            onClick={() => navigate(`/leagues/${leagueId}`)}
+        {!isSmallMobile && (
+          <Breadcrumbs
+            separator={<ChevronRight sx={{ fontSize: 18, color: 'text.disabled' }} />}
             sx={{
-              display: 'flex',
-              alignItems: 'center',
-              color: theme.palette.secondary.main,
-              textDecoration: 'none',
-              fontWeight: 600,
-              fontSize: '0.95rem',
-              cursor: 'pointer',
-              '&:hover': {
-                textDecoration: 'underline',
-                color: theme.palette.secondary.light
-              }
+              '& .MuiBreadcrumbs-separator': {
+                mx: 1
+              },
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
             }}
           >
-            {leagueName}
-          </Link>
+            {/* League Name */}
+            <Link
+              component="button"
+              onClick={() => navigate(`/leagues/${leagueId}`)}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                color: theme.palette.secondary.main,
+                textDecoration: 'none',
+                fontWeight: 600,
+                fontSize: { xs: '0.85rem', sm: '0.95rem' },
+                cursor: 'pointer',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                maxWidth: { xs: '120px', md: 'none' },
+                '&:hover': {
+                  textDecoration: 'underline',
+                  color: theme.palette.secondary.light
+                }
+              }}
+            >
+              {leagueName}
+            </Link>
 
-          {/* Current Page */}
+            {/* Current Page */}
+            <Typography
+              sx={{
+                color: 'text.primary',
+                fontWeight: 500,
+                fontSize: { xs: '0.85rem', sm: '0.95rem' },
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {currentPage}
+            </Typography>
+          </Breadcrumbs>
+        )}
+        {isSmallMobile && (
           <Typography
             sx={{
               color: 'text.primary',
-              fontWeight: 500,
-              fontSize: '0.95rem'
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              flex: 1
             }}
           >
             {currentPage}
           </Typography>
-        </Breadcrumbs>
+        )}
       </Box>
 
       {/* Right side - Quick Actions */}
       {actions && (
-        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+        <Box sx={{
+          display: 'flex',
+          gap: { xs: 1, sm: 1.5 },
+          alignItems: 'center',
+          flexShrink: 0
+        }}>
           {actions}
         </Box>
       )}
       </Box>
 
       {/* Bottom row - Navigation Tabs */}
-      <Box sx={{ px: 3, borderTop: `1px solid ${alpha(theme.palette.divider, 0.05)}` }}>
+      <Box sx={{
+        px: { xs: 0, sm: 3 },
+        borderTop: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
+        overflowX: 'auto',
+        '&::-webkit-scrollbar': {
+          display: 'none'
+        },
+        scrollbarWidth: 'none'
+      }}>
         <Tabs
           value={getTabValue()}
           onChange={handleTabChange}
           textColor="primary"
           indicatorColor="primary"
+          variant={isMobile ? 'scrollable' : 'standard'}
+          scrollButtons={isMobile ? 'auto' : false}
+          allowScrollButtonsMobile
           sx={{
-            minHeight: 48,
+            minHeight: { xs: 56, sm: 48 },
             '& .MuiTab-root': {
-              minHeight: 48,
+              minHeight: { xs: 56, sm: 48 },
               textTransform: 'none',
-              fontSize: '0.9rem',
+              fontSize: { xs: '0.8rem', sm: '0.9rem' },
               fontWeight: 500,
               color: 'text.secondary',
+              minWidth: { xs: 'auto', sm: 90 },
+              px: { xs: 2, sm: 2 },
               '&.Mui-selected': {
                 color: 'primary.main'
+              }
+            },
+            '& .MuiTabs-scrollButtons': {
+              '&.Mui-disabled': {
+                opacity: 0.3
               }
             }
           }}
         >
-          <Tab icon={<Dashboard sx={{ fontSize: 20 }} />} iconPosition="start" label="Overview" />
-          <Tab icon={<People sx={{ fontSize: 20 }} />} iconPosition="start" label="Squad" />
-          <Tab icon={<EmojiEvents sx={{ fontSize: 20 }} />} iconPosition="start" label="Leaderboard" />
-          <Tab icon={<Groups sx={{ fontSize: 20 }} />} iconPosition="start" label="Teams" />
-          <Tab icon={<MenuBook sx={{ fontSize: 20 }} />} iconPosition="start" label="Rules" />
+          <Tab
+            icon={<Dashboard sx={{ fontSize: { xs: 20, sm: 20 } }} />}
+            iconPosition={isMobile ? 'top' : 'start'}
+            label={currentPage === 'Squad Selection' ? 'Back' : 'Overview'}
+          />
+          <Tab
+            icon={<People sx={{ fontSize: { xs: 20, sm: 20 } }} />}
+            iconPosition={isMobile ? 'top' : 'start'}
+            label={isMobile ? 'Squad' : 'Squad'}
+          />
+          <Tab
+            icon={<EmojiEvents sx={{ fontSize: { xs: 20, sm: 20 } }} />}
+            iconPosition={isMobile ? 'top' : 'start'}
+            label={isMobile ? 'Leaderboard' : 'Leaderboard'}
+          />
+          <Tab
+            icon={<Groups sx={{ fontSize: { xs: 20, sm: 20 } }} />}
+            iconPosition={isMobile ? 'top' : 'start'}
+            label={isMobile ? 'Teams' : 'Teams'}
+          />
+          <Tab
+            icon={<MenuBook sx={{ fontSize: { xs: 20, sm: 20 } }} />}
+            iconPosition={isMobile ? 'top' : 'start'}
+            label={isMobile ? 'Rules' : 'Rules'}
+          />
         </Tabs>
       </Box>
     </Box>

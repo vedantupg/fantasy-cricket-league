@@ -173,23 +173,24 @@ const ViewTeamsPage: React.FC = () => {
         />
       )}
       
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3, md: 4 }, px: { xs: 2, sm: 3 } }}>
         {/* League Info */}
-        <Card sx={{ mb: 4 }}>
+        <Card sx={{ mb: { xs: 2, sm: 3, md: 4 } }}>
           <CardContent>
-            <Box display="flex" alignItems="center" gap={2} mb={2}>
-              <Groups color="primary" />
-              <Typography variant="h6" fontWeight="bold">
+            <Box display="flex" alignItems="center" gap={{ xs: 1, sm: 2 }} mb={2} flexWrap="wrap">
+              <Groups color="primary" sx={{ fontSize: { xs: 20, sm: 24 } }} />
+              <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 {league?.name}
               </Typography>
-              <Chip label={league?.format} />
-              <Chip 
-                label={`${squads.length} Teams`} 
-                color="primary" 
-                variant="outlined" 
+              <Chip label={league?.format} size="small" />
+              <Chip
+                label={`${squads.length} Teams`}
+                color="primary"
+                variant="outlined"
+                size="small"
               />
             </Box>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
               {league?.tournamentName} • Squad deadline: {new Date(league?.squadDeadline || '').toLocaleString()}
             </Typography>
           </CardContent>
@@ -197,19 +198,19 @@ const ViewTeamsPage: React.FC = () => {
 
         {/* Teams List */}
         {squads.length === 0 ? (
-          <Card sx={{ textAlign: 'center', py: 8 }}>
+          <Card sx={{ textAlign: 'center', py: { xs: 4, sm: 8 } }}>
             <CardContent>
-              <Groups sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h5" gutterBottom>
+              <Groups sx={{ fontSize: { xs: 60, sm: 80 }, color: 'text.secondary', mb: 2 }} />
+              <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                 No Teams Submitted Yet
               </Typography>
-              <Typography variant="body1" color="text.secondary">
+              <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                 Waiting for players to submit their squads...
               </Typography>
             </CardContent>
           </Card>
         ) : (
-          <Grid container spacing={3}>
+          <Grid container spacing={{ xs: 2, sm: 3 }}>
             {squads.map((squad, index) => {
               const squadSize = league?.squadSize || 11;
 
@@ -234,19 +235,33 @@ const ViewTeamsPage: React.FC = () => {
               return (
                 <Grid size={{ xs: 12, lg: 6 }} key={squad.id}>
                   <Card>
-                    <CardContent>
-                      <Box display="flex" alignItems="center" gap={2} mb={2}>
+                    <CardContent sx={{ p: { xs: 2, sm: 2, md: 3 } }}>
+                      <Box display="flex" alignItems="center" gap={{ xs: 1.5, sm: 2 }} mb={2}>
                         <Avatar
                           src={squad.user?.profilePicUrl}
-                          sx={{ bgcolor: 'primary.main', width: 48, height: 48 }}
+                          sx={{
+                            bgcolor: 'primary.main',
+                            width: { xs: 40, sm: 48 },
+                            height: { xs: 40, sm: 48 }
+                          }}
                         >
                           {squad.user?.displayName?.charAt(0) || squad.squadName.charAt(0)}
                         </Avatar>
-                        <Box flex={1}>
-                          <Typography variant="h6" fontWeight="bold">
+                        <Box flex={1} minWidth={0}>
+                          <Typography variant="h6" fontWeight="bold" sx={{
+                            fontSize: { xs: '1rem', sm: '1.25rem' },
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
                             {squad.squadName}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
+                          <Typography variant="body2" color="text.secondary" sx={{
+                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
                             {squad.user?.displayName} • Rank #{squad.rank || index + 1} • {squad.totalPoints} points
                           </Typography>
                         </Box>
@@ -255,32 +270,33 @@ const ViewTeamsPage: React.FC = () => {
                             label="Submitted"
                             color="success"
                             size="small"
+                            sx={{ flexShrink: 0 }}
                           />
                         )}
                       </Box>
 
                       <Accordion>
                         <AccordionSummary expandIcon={<ExpandMore />}>
-                          <Typography variant="subtitle2">
+                          <Typography variant="subtitle2" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                             View Squad ({squad.players.length} players)
                           </Typography>
                         </AccordionSummary>
                         <AccordionDetails sx={{ p: 0 }}>
                           {/* Main Squad */}
                           <Box sx={{ mb: 2 }}>
-                            <Box sx={{ bgcolor: 'primary.main', px: 2, py: 1 }}>
-                              <Typography variant="subtitle2" color="white" fontWeight="bold">
+                            <Box sx={{ bgcolor: 'primary.main', px: { xs: 1.5, sm: 2 }, py: 1 }}>
+                              <Typography variant="subtitle2" color="white" fontWeight="bold" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                                 Main Squad ({squadSize})
                               </Typography>
                             </Box>
-                            <TableContainer>
+                            <TableContainer sx={{ overflowX: 'auto' }}>
                               <Table size="small">
                                 <TableHead>
                                   <TableRow>
-                                    <TableCell>Player</TableCell>
-                                    <TableCell>Team</TableCell>
-                                    <TableCell align="center">Picked</TableCell>
-                                    <TableCell align="right">Points</TableCell>
+                                    <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1, sm: 2 } }}>Player</TableCell>
+                                    <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1, sm: 2 }, display: { xs: 'none', sm: 'table-cell' } }}>Team</TableCell>
+                                    <TableCell align="center" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1, sm: 2 } }}>Picked</TableCell>
+                                    <TableCell align="right" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1, sm: 2 } }}>Pts</TableCell>
                                   </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -292,40 +308,46 @@ const ViewTeamsPage: React.FC = () => {
 
                                     return (
                                       <TableRow key={playerIndex}>
-                                        <TableCell>
-                                          <Box display="flex" alignItems="center" gap={1}>
-                                            <Typography variant="body2">
+                                        <TableCell sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 } }}>
+                                          <Box display="flex" alignItems="center" gap={{ xs: 0.5, sm: 1 }} flexWrap="wrap">
+                                            <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                                               {getRoleIcon(player.role)}
                                             </Typography>
-                                            <Typography variant="body2" fontWeight="medium">
+                                            <Typography variant="body2" fontWeight="medium" sx={{
+                                              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                                              overflow: 'hidden',
+                                              textOverflow: 'ellipsis',
+                                              whiteSpace: 'nowrap',
+                                              maxWidth: { xs: '100px', sm: '200px' }
+                                            }}>
                                               {player.playerName}
                                             </Typography>
                                             {isCaptain && (
-                                              <Chip label="C" size="small" color="warning" sx={{ fontSize: '0.7rem', height: 18, fontWeight: 'bold' }} />
+                                              <Chip label="C" size="small" color="warning" sx={{ fontSize: { xs: '0.6rem', sm: '0.7rem' }, height: { xs: 16, sm: 18 }, fontWeight: 'bold' }} />
                                             )}
                                             {isViceCaptain && (
-                                              <Chip label="VC" size="small" color="info" sx={{ fontSize: '0.7rem', height: 18, fontWeight: 'bold' }} />
+                                              <Chip label="VC" size="small" color="info" sx={{ fontSize: { xs: '0.6rem', sm: '0.7rem' }, height: { xs: 16, sm: 18 }, fontWeight: 'bold' }} />
                                             )}
                                             {isXFactor && (
-                                              <Chip label="X" size="small" color="secondary" sx={{ fontSize: '0.7rem', height: 18, fontWeight: 'bold' }} />
+                                              <Chip label="X" size="small" color="secondary" sx={{ fontSize: { xs: '0.6rem', sm: '0.7rem' }, height: { xs: 16, sm: 18 }, fontWeight: 'bold' }} />
                                             )}
                                           </Box>
                                         </TableCell>
-                                        <TableCell>
-                                          <Typography variant="body2">
+                                        <TableCell sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 }, display: { xs: 'none', sm: 'table-cell' } }}>
+                                          <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                                             {player.team}
                                           </Typography>
                                         </TableCell>
-                                        <TableCell align="center">
+                                        <TableCell align="center" sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 } }}>
                                           <Chip
                                             label={`${pickPercentage}%`}
                                             size="small"
                                             color={pickPercentage >= 75 ? 'error' : pickPercentage >= 50 ? 'warning' : 'success'}
-                                            sx={{ fontWeight: 'bold', minWidth: 55 }}
+                                            sx={{ fontWeight: 'bold', minWidth: { xs: 45, sm: 55 }, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
                                           />
                                         </TableCell>
-                                        <TableCell align="right">
-                                          <Typography variant="body2" fontWeight="medium">
+                                        <TableCell align="right" sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 } }}>
+                                          <Typography variant="body2" fontWeight="medium" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                                             {player.points}
                                           </Typography>
                                         </TableCell>
@@ -340,19 +362,19 @@ const ViewTeamsPage: React.FC = () => {
                           {/* Bench */}
                           {bench.length > 0 && (
                             <Box>
-                              <Box sx={{ bgcolor: 'action.hover', px: 2, py: 1 }}>
-                                <Typography variant="subtitle2" fontWeight="bold">
+                              <Box sx={{ bgcolor: 'action.hover', px: { xs: 1.5, sm: 2 }, py: 1 }}>
+                                <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                                   Bench ({bench.length})
                                 </Typography>
                               </Box>
-                              <TableContainer>
+                              <TableContainer sx={{ overflowX: 'auto' }}>
                                 <Table size="small">
                                   <TableHead>
                                     <TableRow>
-                                      <TableCell>Player</TableCell>
-                                      <TableCell>Team</TableCell>
-                                      <TableCell align="center">Picked</TableCell>
-                                      <TableCell align="right">Points</TableCell>
+                                      <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1, sm: 2 } }}>Player</TableCell>
+                                      <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1, sm: 2 }, display: { xs: 'none', sm: 'table-cell' } }}>Team</TableCell>
+                                      <TableCell align="center" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1, sm: 2 } }}>Picked</TableCell>
+                                      <TableCell align="right" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1, sm: 2 } }}>Pts</TableCell>
                                     </TableRow>
                                   </TableHead>
                                   <TableBody>
@@ -361,31 +383,37 @@ const ViewTeamsPage: React.FC = () => {
 
                                       return (
                                         <TableRow key={playerIndex} sx={{ bgcolor: 'action.hover' }}>
-                                          <TableCell>
-                                            <Box display="flex" alignItems="center" gap={1}>
-                                              <Typography variant="body2">
+                                          <TableCell sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 } }}>
+                                            <Box display="flex" alignItems="center" gap={{ xs: 0.5, sm: 1 }} flexWrap="wrap">
+                                              <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                                                 {getRoleIcon(player.role)}
                                               </Typography>
-                                              <Typography variant="body2" fontWeight="medium">
+                                              <Typography variant="body2" fontWeight="medium" sx={{
+                                                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                whiteSpace: 'nowrap',
+                                                maxWidth: { xs: '100px', sm: '200px' }
+                                              }}>
                                                 {player.playerName}
                                               </Typography>
                                             </Box>
                                           </TableCell>
-                                          <TableCell>
-                                            <Typography variant="body2">
+                                          <TableCell sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 }, display: { xs: 'none', sm: 'table-cell' } }}>
+                                            <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                                               {player.team}
                                             </Typography>
                                           </TableCell>
-                                          <TableCell align="center">
+                                          <TableCell align="center" sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 } }}>
                                             <Chip
                                               label={`${pickPercentage}%`}
                                               size="small"
                                               color={pickPercentage >= 75 ? 'error' : pickPercentage >= 50 ? 'warning' : 'success'}
-                                              sx={{ fontWeight: 'bold', minWidth: 55 }}
+                                              sx={{ fontWeight: 'bold', minWidth: { xs: 45, sm: 55 }, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
                                             />
                                           </TableCell>
-                                          <TableCell align="right">
-                                            <Typography variant="body2" fontWeight="medium">
+                                          <TableCell align="right" sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 } }}>
+                                            <Typography variant="body2" fontWeight="medium" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                                               {player.points}
                                             </Typography>
                                           </TableCell>

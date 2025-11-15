@@ -6,7 +6,8 @@ import {
   useTheme,
   alpha,
   Tabs,
-  Tab
+  Tab,
+  useMediaQuery
 } from '@mui/material';
 import { Home, Dashboard } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -26,6 +27,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Determine current tab based on current route
   const getCurrentTab = () => {
@@ -39,8 +42,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
     <Box
       component="nav"
       sx={{
-        px: 3,
-        py: 2,
+        px: { xs: 2, sm: 3 },
+        py: { xs: 1.5, sm: 2 },
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -53,10 +56,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
       }}
     >
       {/* Left side - Logo and Navigation */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, sm: 4 }, flex: 1, minWidth: 0 }}>
         {/* Brand Logo */}
         <Typography
-          variant="h5"
+          variant={isSmallMobile ? 'h6' : 'h5'}
           sx={{
             fontWeight: 'bold',
             background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
@@ -64,7 +67,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             cursor: 'pointer',
-            letterSpacing: 1
+            letterSpacing: 1,
+            flexShrink: 0
           }}
           onClick={() => navigate('/')}
         >
@@ -88,11 +92,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
               },
               '& .MuiTab-root': {
                 minHeight: 'auto',
-                py: 1.5,
-                px: 3,
+                py: { xs: 1, sm: 1.5 },
+                px: { xs: 1.5, sm: 3 },
+                minWidth: { xs: 'auto', sm: 90 },
                 textTransform: 'none',
                 fontWeight: 600,
-                fontSize: '0.95rem',
+                fontSize: { xs: '0.75rem', sm: '0.95rem' },
                 color: alpha(theme.palette.text.primary, 0.6),
                 '&.Mui-selected': {
                   color: theme.palette.primary.main,
@@ -104,14 +109,22 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
               }
             }}
           >
-            <Tab icon={<Home sx={{ fontSize: 20 }} />} label="Home" iconPosition="start" />
-            <Tab icon={<Dashboard sx={{ fontSize: 20 }} />} label="My Leagues" iconPosition="start" />
+            <Tab
+              icon={<Home sx={{ fontSize: { xs: 18, sm: 20 } }} />}
+              label={isSmallMobile ? undefined : 'Home'}
+              iconPosition="start"
+            />
+            <Tab
+              icon={<Dashboard sx={{ fontSize: { xs: 18, sm: 20 } }} />}
+              label={isSmallMobile ? undefined : (isMobile ? 'Leagues' : 'My Leagues')}
+              iconPosition="start"
+            />
           </Tabs>
         )}
       </Box>
 
       {/* Right side - User menu or auth buttons */}
-      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+      <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, alignItems: 'center', flexShrink: 0 }}>
         {user ? (
           <UserMenu />
         ) : (
@@ -119,17 +132,27 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
             <Button
               variant="outlined"
               onClick={() => navigate('/login')}
-              sx={{ borderRadius: 2, px: 3 }}
+              sx={{
+                borderRadius: 2,
+                px: { xs: 2, sm: 3 },
+                fontSize: { xs: '0.8rem', sm: '0.875rem' }
+              }}
             >
               Login
             </Button>
-            <Button
-              variant="contained"
-              onClick={() => navigate('/register')}
-              sx={{ borderRadius: 2, px: 3 }}
-            >
-              Sign Up
-            </Button>
+            {!isSmallMobile && (
+              <Button
+                variant="contained"
+                onClick={() => navigate('/register')}
+                sx={{
+                  borderRadius: 2,
+                  px: { xs: 2, sm: 3 },
+                  fontSize: { xs: '0.8rem', sm: '0.875rem' }
+                }}
+              >
+                Sign Up
+              </Button>
+            )}
           </>
         )}
       </Box>

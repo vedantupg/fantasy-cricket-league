@@ -52,9 +52,11 @@ const Podium: React.FC<PodiumProps> = ({ topThree }) => {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'flex-end',
-        gap: 2,
-        mb: 4,
-        py: 3,
+        gap: { xs: 1, sm: 2 },
+        mb: { xs: 2, sm: 3, md: 4 },
+        py: { xs: 2, sm: 3 },
+        px: { xs: 1, sm: 0 },
+        overflowX: 'auto',
       }}
     >
       {podiumOrder.map((standing, index) => {
@@ -72,16 +74,16 @@ const Podium: React.FC<PodiumProps> = ({ topThree }) => {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              minWidth: 180,
+              minWidth: { xs: 120, sm: 150, md: 180 },
             }}
           >
             {/* Trophy Icon for 1st place */}
             {rank === 1 && (
               <TrophyIcon
                 sx={{
-                  fontSize: 40,
+                  fontSize: { xs: 28, sm: 36, md: 40 },
                   color: rankColor,
-                  mb: 1,
+                  mb: { xs: 0.5, sm: 1 },
                   animation: 'pulse 2s ease-in-out infinite',
                   '@keyframes pulse': {
                     '0%, 100%': {
@@ -101,15 +103,15 @@ const Podium: React.FC<PodiumProps> = ({ topThree }) => {
             <Box
               sx={{
                 position: 'relative',
-                mb: 1,
+                mb: { xs: 0.5, sm: 1 },
               }}
             >
               <Avatar
                 src={standing.profilePicUrl}
                 alt={standing.displayName}
                 sx={{
-                  width: rank === 1 ? 100 : 80,
-                  height: rank === 1 ? 100 : 80,
+                  width: { xs: rank === 1 ? 70 : 60, sm: rank === 1 ? 85 : 70, md: rank === 1 ? 100 : 80 },
+                  height: { xs: rank === 1 ? 70 : 60, sm: rank === 1 ? 85 : 70, md: rank === 1 ? 100 : 80 },
                   border: `4px solid ${rankColor}`,
                   boxShadow: `0 0 20px ${borderColor}`,
                 }}
@@ -117,10 +119,10 @@ const Podium: React.FC<PodiumProps> = ({ topThree }) => {
               <Box
                 sx={{
                   position: 'absolute',
-                  bottom: -10,
-                  right: -10,
-                  width: 36,
-                  height: 36,
+                  bottom: { xs: -6, sm: -8, md: -10 },
+                  right: { xs: -6, sm: -8, md: -10 },
+                  width: { xs: 28, sm: 32, md: 36 },
+                  height: { xs: 28, sm: 32, md: 36 },
                   borderRadius: '50%',
                   backgroundColor: rankColor,
                   border: '3px solid white',
@@ -128,7 +130,7 @@ const Podium: React.FC<PodiumProps> = ({ topThree }) => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 'bold',
-                  fontSize: rank === 1 ? 18 : 16,
+                  fontSize: { xs: rank === 1 ? 14 : 13, sm: rank === 1 ? 16 : 15, md: rank === 1 ? 18 : 16 },
                   color: 'white',
                   boxShadow: 2,
                 }}
@@ -144,7 +146,7 @@ const Podium: React.FC<PodiumProps> = ({ topThree }) => {
                 fontWeight: rank === 1 ? 'bold' : 600,
                 textAlign: 'center',
                 mb: 0.5,
-                fontSize: rank === 1 ? '1.1rem' : '1rem',
+                fontSize: { xs: rank === 1 ? '0.8rem' : '0.75rem', sm: rank === 1 ? '0.95rem' : '0.9rem', md: rank === 1 ? '1.1rem' : '1rem' },
               }}
             >
               {standing.displayName.toUpperCase()}
@@ -157,14 +159,15 @@ const Podium: React.FC<PodiumProps> = ({ topThree }) => {
                 fontWeight: 'bold',
                 color: rankColor,
                 mb: 0.5,
+                fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
               }}
             >
               {standing.totalPoints.toFixed(2)}
             </Typography>
 
             {/* Points Breakdown */}
-            <Box sx={{ textAlign: 'center', mb: 1 }}>
-              <Typography variant="caption" color="text.secondary" display="block">
+            <Box sx={{ textAlign: 'center', mb: { xs: 0.5, sm: 1 } }}>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
                 C: {standing.captainPoints.toFixed(2)} | VC: {standing.viceCaptainPoints.toFixed(2)}
               </Typography>
             </Box>
@@ -176,7 +179,8 @@ const Podium: React.FC<PodiumProps> = ({ topThree }) => {
                 sx={{
                   color: 'success.main',
                   fontWeight: 600,
-                  mb: 1,
+                  mb: { xs: 0.5, sm: 1 },
+                  fontSize: { xs: '0.65rem', sm: '0.75rem' },
                 }}
               >
                 +{standing.leadFromNext.toFixed(2)}
@@ -188,7 +192,7 @@ const Podium: React.FC<PodiumProps> = ({ topThree }) => {
               elevation={3}
               sx={{
                 width: '100%',
-                height: height,
+                height: { xs: height * 0.6, sm: height * 0.8, md: height },
                 background: `linear-gradient(135deg, ${rankColor}33 0%, ${rankColor}11 100%)`,
                 border: `2px solid ${borderColor}`,
                 borderRadius: 1,
@@ -215,7 +219,7 @@ const Podium: React.FC<PodiumProps> = ({ topThree }) => {
                   fontWeight: 'bold',
                   color: rankColor,
                   opacity: 0.3,
-                  fontSize: '4rem',
+                  fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4rem' },
                 }}
               >
                 {rank}

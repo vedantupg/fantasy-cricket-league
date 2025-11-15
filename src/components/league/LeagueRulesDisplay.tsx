@@ -25,54 +25,54 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
   return (
     <Box>
       {/* Basic Info */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box display="flex" alignItems="center" gap={1} mb={2}>
-            <SportsCricket color="primary" />
-            <Typography variant="h6" fontWeight="bold">
+      <Card sx={{ mb: { xs: 2, sm: 3 } }}>
+        <CardContent sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: { xs: 1.5, sm: 2, md: 2.5 } }}>
+          <Box display="flex" alignItems="center" gap={{ xs: 0.5, sm: 1 }} mb={{ xs: 1.5, sm: 2 }}>
+            <SportsCricket color="primary" sx={{ fontSize: { xs: 20, sm: 24 } }} />
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
               League Information
             </Typography>
           </Box>
-          <Grid container spacing={2}>
+          <Grid container spacing={{ xs: 1.5, sm: 2 }}>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="body2" color="text.secondary">League Name</Typography>
-              <Typography variant="body1" fontWeight="medium">{league.name}</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>League Name</Typography>
+              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>{league.name}</Typography>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="body2" color="text.secondary">Tournament</Typography>
-              <Typography variant="body1" fontWeight="medium">{league.tournamentName}</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Tournament</Typography>
+              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>{league.tournamentName}</Typography>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="body2" color="text.secondary">Format</Typography>
-              <Chip label={league.format} size="small" color="primary" />
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Format</Typography>
+              <Chip label={league.format} size="small" color="primary" sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' }, height: { xs: 20, sm: 24 } }} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="body2" color="text.secondary">Status</Typography>
-              <Chip label={league.status.replace('_', ' ')} size="small" />
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Status</Typography>
+              <Chip label={league.status.replace('_', ' ')} size="small" sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' }, height: { xs: 20, sm: 24 } }} />
             </Grid>
           </Grid>
         </CardContent>
       </Card>
 
       {/* Important Dates */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box display="flex" alignItems="center" gap={1} mb={2}>
-            <CalendarMonth color="primary" />
-            <Typography variant="h6" fontWeight="bold">
+      <Card sx={{ mb: { xs: 2, sm: 3 } }}>
+        <CardContent sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: { xs: 1.5, sm: 2, md: 2.5 } }}>
+          <Box display="flex" alignItems="center" gap={{ xs: 0.5, sm: 1 }} mb={{ xs: 1.5, sm: 2 }}>
+            <CalendarMonth color="primary" sx={{ fontSize: { xs: 20, sm: 24 } }} />
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
               Important Dates
             </Typography>
           </Box>
-          <Grid container spacing={2}>
+          <Grid container spacing={{ xs: 1.5, sm: 2 }}>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="body2" color="text.secondary">League Start Date</Typography>
-              <Typography variant="body1" fontWeight="medium">
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>League Start Date</Typography>
+              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                 {new Date(league.startDate).toLocaleString()}
               </Typography>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="body2" color="text.secondary">Squad Selection Deadline</Typography>
-              <Typography variant="body1" fontWeight="medium">
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Squad Selection Deadline</Typography>
+              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                 {new Date(league.squadDeadline).toLocaleString()}
               </Typography>
             </Grid>
@@ -81,55 +81,55 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
       </Card>
 
       {/* Squad Rules */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box display="flex" alignItems="center" gap={1} mb={2}>
-            <People color="primary" />
-            <Typography variant="h6" fontWeight="bold">
+      <Card sx={{ mb: { xs: 2, sm: 3 } }}>
+        <CardContent sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: { xs: 1.5, sm: 2, md: 2.5 } }}>
+          <Box display="flex" alignItems="center" gap={{ xs: 0.5, sm: 1 }} mb={{ xs: 1.5, sm: 2 }}>
+            <People color="primary" sx={{ fontSize: { xs: 20, sm: 24 } }} />
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
               Squad Rules
             </Typography>
           </Box>
-          <Grid container spacing={2}>
+          <Grid container spacing={{ xs: 1.5, sm: 2 }}>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="body2" color="text.secondary">Squad Size</Typography>
-              <Typography variant="body1" fontWeight="medium">
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Squad Size</Typography>
+              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                 {league.squadSize} players
               </Typography>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="body2" color="text.secondary">Max Participants</Typography>
-              <Typography variant="body1" fontWeight="medium">
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Max Participants</Typography>
+              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                 {league.maxParticipants} teams
               </Typography>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="body2" color="text.secondary">Min Batsmen</Typography>
-              <Typography variant="body1" fontWeight="medium">
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Min Batsmen</Typography>
+              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                 {league.squadRules.minBatsmen}
               </Typography>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="body2" color="text.secondary">Min Bowlers</Typography>
-              <Typography variant="body1" fontWeight="medium">
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Min Bowlers</Typography>
+              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                 {league.squadRules.minBowlers}
               </Typography>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="body2" color="text.secondary">Min All-rounders</Typography>
-              <Typography variant="body1" fontWeight="medium">
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Min All-rounders</Typography>
+              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                 {league.squadRules.minAllrounders}
               </Typography>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="body2" color="text.secondary">Min Wicketkeepers</Typography>
-              <Typography variant="body1" fontWeight="medium">
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Min Wicketkeepers</Typography>
+              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                 {league.squadRules.minWicketkeepers}
               </Typography>
             </Grid>
             {league.squadRules.hasBudget && (
               <Grid size={{ xs: 12, sm: 6 }}>
-                <Typography variant="body2" color="text.secondary">Budget</Typography>
-                <Typography variant="body1" fontWeight="medium">
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Budget</Typography>
+                <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                   {league.squadRules.totalBudget} credits
                 </Typography>
               </Grid>
@@ -140,28 +140,29 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
 
       {/* Transfer Settings */}
       {league.transferTypes && (
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Box display="flex" alignItems="center" gap={1} mb={2}>
-              <SwapHoriz color="primary" />
-              <Typography variant="h6" fontWeight="bold">
+        <Card sx={{ mb: { xs: 2, sm: 3 } }}>
+          <CardContent sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: { xs: 1.5, sm: 2, md: 2.5 } }}>
+            <Box display="flex" alignItems="center" gap={{ xs: 0.5, sm: 1 }} mb={{ xs: 1.5, sm: 2 }}>
+              <SwapHoriz color="primary" sx={{ fontSize: { xs: 20, sm: 24 } }} />
+              <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 Transfer Settings
               </Typography>
             </Box>
 
-            <Typography variant="body2" color="text.secondary" mb={2}>
+            <Typography variant="body2" color="text.secondary" mb={{ xs: 1.5, sm: 2 }} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
               Total transfers allowed: {' '}
               {(league.transferTypes.benchTransfers.enabled ? league.transferTypes.benchTransfers.maxAllowed : 0) +
                (league.transferTypes.midSeasonTransfers.enabled ? league.transferTypes.midSeasonTransfers.maxAllowed : 0) +
                (league.transferTypes.flexibleTransfers.enabled ? league.transferTypes.flexibleTransfers.maxAllowed : 0)}
             </Typography>
 
-            <Box display="flex" flexWrap="wrap" gap={1} mb={2}>
+            <Box display="flex" flexWrap="wrap" gap={{ xs: 0.75, sm: 1 }} mb={{ xs: 1.5, sm: 2 }}>
               {league.transferTypes.benchTransfers.enabled && (
                 <Chip
                   label={`Bench: ${league.transferTypes.benchTransfers.maxAllowed} allowed`}
                   color="primary"
                   variant="outlined"
+                  sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
                 />
               )}
               {league.transferTypes.midSeasonTransfers.enabled && (
@@ -169,6 +170,7 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
                   label={`Mid-Season: ${league.transferTypes.midSeasonTransfers.maxAllowed} allowed`}
                   color="secondary"
                   variant="outlined"
+                  sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
                 />
               )}
               {league.transferTypes.flexibleTransfers.enabled && (
@@ -176,35 +178,36 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
                   label={`Flexible: ${league.transferTypes.flexibleTransfers.maxAllowed} allowed`}
                   color="success"
                   variant="outlined"
+                  sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
                 />
               )}
             </Box>
 
-            <Divider sx={{ my: 2 }} />
+            <Divider sx={{ my: { xs: 1.5, sm: 2 } }} />
 
             {/* Bench Transfers Details */}
             {league.transferTypes.benchTransfers.enabled && (
-              <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid container spacing={{ xs: 1.5, sm: 2 }} sx={{ mb: { xs: 1.5, sm: 2 } }}>
                 <Grid size={12}>
-                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                     Bench Transfer System
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="body2" color="text.secondary">Bench Slots</Typography>
-                  <Typography variant="body1" fontWeight="medium">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Bench Slots</Typography>
+                  <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                     {league.transferTypes.benchTransfers.benchSlots}
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="body2" color="text.secondary">Max Bench Transfers</Typography>
-                  <Typography variant="body1" fontWeight="medium">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Max Bench Transfers</Typography>
+                  <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                     {league.transferTypes.benchTransfers.maxAllowed}
                   </Typography>
                 </Grid>
                 <Grid size={12}>
-                  <Typography variant="body2" color="text.secondary">Description</Typography>
-                  <Typography variant="body1" fontWeight="medium">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Description</Typography>
+                  <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                     {league.transferTypes.benchTransfers.description}
                   </Typography>
                 </Grid>
@@ -213,33 +216,33 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
 
             {/* Mid-Season Transfers Details */}
             {league.transferTypes.midSeasonTransfers.enabled && (
-              <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid container spacing={{ xs: 1.5, sm: 2 }} sx={{ mb: { xs: 1.5, sm: 2 } }}>
                 <Grid size={12}>
-                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                     Mid-Season Transfer Window
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="body2" color="text.secondary">Window Opens</Typography>
-                  <Typography variant="body1" fontWeight="medium">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Window Opens</Typography>
+                  <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                     {new Date(league.transferTypes.midSeasonTransfers.windowStartDate).toLocaleString()}
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="body2" color="text.secondary">Window Closes</Typography>
-                  <Typography variant="body1" fontWeight="medium">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Window Closes</Typography>
+                  <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                     {new Date(league.transferTypes.midSeasonTransfers.windowEndDate).toLocaleString()}
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="body2" color="text.secondary">Max Transfers</Typography>
-                  <Typography variant="body1" fontWeight="medium">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Max Transfers</Typography>
+                  <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                     {league.transferTypes.midSeasonTransfers.maxAllowed}
                   </Typography>
                 </Grid>
                 <Grid size={12}>
-                  <Typography variant="body2" color="text.secondary">Description</Typography>
-                  <Typography variant="body1" fontWeight="medium">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Description</Typography>
+                  <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                     {league.transferTypes.midSeasonTransfers.description}
                   </Typography>
                 </Grid>
@@ -248,21 +251,21 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
 
             {/* Flexible Transfers Details */}
             {league.transferTypes.flexibleTransfers.enabled && (
-              <Grid container spacing={2}>
+              <Grid container spacing={{ xs: 1.5, sm: 2 }}>
                 <Grid size={12}>
-                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                     Flexible Transfers
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="body2" color="text.secondary">Max Allowed</Typography>
-                  <Typography variant="body1" fontWeight="medium">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Max Allowed</Typography>
+                  <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                     {league.transferTypes.flexibleTransfers.maxAllowed}
                   </Typography>
                 </Grid>
                 <Grid size={12}>
-                  <Typography variant="body2" color="text.secondary">Description</Typography>
-                  <Typography variant="body1" fontWeight="medium">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Description</Typography>
+                  <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                     {league.transferTypes.flexibleTransfers.description}
                   </Typography>
                 </Grid>
@@ -274,30 +277,30 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
 
       {/* Scoring & Additional Rules */}
       <Card>
-        <CardContent>
-          <Box display="flex" alignItems="center" gap={1} mb={2}>
-            <Schedule color="primary" />
-            <Typography variant="h6" fontWeight="bold">
+        <CardContent sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: { xs: 1.5, sm: 2, md: 2.5 } }}>
+          <Box display="flex" alignItems="center" gap={{ xs: 0.5, sm: 1 }} mb={{ xs: 1.5, sm: 2 }}>
+            <Schedule color="primary" sx={{ fontSize: { xs: 20, sm: 24 } }} />
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
               Additional Rules
             </Typography>
           </Box>
-          <Grid container spacing={2}>
+          <Grid container spacing={{ xs: 1.5, sm: 2 }}>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="body2" color="text.secondary">Captain Points</Typography>
-              <Typography variant="body1" fontWeight="medium">
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Captain Points</Typography>
+              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                 2x multiplier
               </Typography>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="body2" color="text.secondary">Vice-Captain Points</Typography>
-              <Typography variant="body1" fontWeight="medium">
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Vice-Captain Points</Typography>
+              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                 1.5x multiplier
               </Typography>
             </Grid>
             {league.powerplayEnabled && (
               <Grid size={12}>
-                <Typography variant="body2" color="text.secondary">Powerplay Bonus</Typography>
-                <Typography variant="body1" fontWeight="medium">
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Powerplay Bonus</Typography>
+                <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                   Enabled - Select one match for bonus points
                 </Typography>
               </Grid>

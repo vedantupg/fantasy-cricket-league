@@ -125,7 +125,7 @@ const LeaderboardPage: React.FC = () => {
             actions={quickActions}
           />
         )}
-        <Container maxWidth="lg" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3, md: 4 }, display: 'flex', justifyContent: 'center' }}>
           <CircularProgress />
         </Container>
       </Box>
@@ -144,7 +144,7 @@ const LeaderboardPage: React.FC = () => {
             actions={quickActions}
           />
         )}
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3, md: 4 } }}>
           <Alert severity="error">{error || 'No leaderboard data available'}</Alert>
         </Container>
       </Box>
@@ -166,26 +166,26 @@ const LeaderboardPage: React.FC = () => {
         />
       )}
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3, md: 4 } }}>
         {/* League Info */}
-        <Card sx={{ mb: 4 }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-              <Box>
-                <Typography variant="h6" fontWeight="bold">
+        <Card sx={{ mb: { xs: 2, sm: 3, md: 4 } }}>
+          <CardContent sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: { xs: 1.5, sm: 2, md: 2.5 } }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: { xs: 1.5, sm: 2 } }}>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} noWrap>
                   {league?.tournamentName || 'Tournament'}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                   {snapshot.standings.length} participants • Last updated:{' '}
                   {snapshot.snapshotDate.toLocaleString()}
                 </Typography>
               </Box>
               {userStanding && (
-                <Box sx={{ textAlign: 'right' }}>
-                  <Typography variant="h4" fontWeight="bold" color="primary">
+                <Box sx={{ textAlign: 'right', minWidth: { xs: 70, sm: 'auto' } }}>
+                  <Typography variant="h4" fontWeight="bold" color="primary" sx={{ fontSize: { xs: '1.75rem', sm: '2.125rem' } }}>
                     #{userStanding.rank}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                     Your Rank
                   </Typography>
                 </Box>
@@ -197,14 +197,14 @@ const LeaderboardPage: React.FC = () => {
         {/* Podium for Top 3 */}
         {topThree.length > 0 && <Podium topThree={topThree} />}
 
-        <Divider sx={{ my: 4 }} />
+        <Divider sx={{ my: { xs: 2, sm: 3, md: 4 } }} />
 
         {/* Best Performer & Rapid Riser */}
         <LeaderboardHighlights snapshot={snapshot} />
 
         {/* Full Leaderboard */}
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h5" fontWeight="bold" gutterBottom>
+        <Box sx={{ mt: { xs: 2, sm: 3, md: 4 } }}>
+          <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
             Full Standings
           </Typography>
 
@@ -220,12 +220,12 @@ const LeaderboardPage: React.FC = () => {
 
         {/* Empty State */}
         {snapshot.standings.length === 0 && (
-          <Card sx={{ mt: 4 }}>
-            <CardContent sx={{ textAlign: 'center', py: 6 }}>
-              <Typography variant="h6" color="text.secondary" gutterBottom>
+          <Card sx={{ mt: { xs: 2, sm: 3, md: 4 } }}>
+            <CardContent sx={{ textAlign: 'center', py: { xs: 4, sm: 6 }, px: { xs: 2, sm: 3 } }}>
+              <Typography variant="h6" color="text.secondary" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 No standings available yet
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                 Standings will appear once squads are submitted and matches begin.
               </Typography>
             </CardContent>

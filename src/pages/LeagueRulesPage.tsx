@@ -73,7 +73,7 @@ const LeagueRulesPage: React.FC = () => {
             currentPage="Rules"
           />
         )}
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3, md: 4 } }}>
           <Alert severity="error">{error || 'League not found'}</Alert>
         </Container>
       </Box>
@@ -91,7 +91,7 @@ const LeagueRulesPage: React.FC = () => {
         />
       )}
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3, md: 4 } }}>
         <LeagueRulesDisplay league={league} />
       </Container>
     </Box>

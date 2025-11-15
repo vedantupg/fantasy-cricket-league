@@ -18,23 +18,24 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
   }
 
   return (
-    <Box sx={{ mt: 4, mb: 3 }}>
-      <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+    <Box sx={{ mt: { xs: 2, sm: 3, md: 4 }, mb: { xs: 2, sm: 3 } }}>
+      <Box sx={{ display: 'flex', gap: { xs: 2, sm: 3 }, flexWrap: 'wrap' }}>
         {/* Best Performer */}
         {bestPerformer && (
-          <Box sx={{ flex: '1 1 calc(50% - 12px)', minWidth: 300 }}>
+          <Box sx={{ flex: '1 1 calc(50% - 12px)', minWidth: { xs: '100%', sm: 280, md: 300 } }}>
             <Paper
               elevation={4}
               sx={{
-                p: 3,
+                px: { xs: 2, sm: 3 },
+                py: { xs: 2, sm: 3 },
                 background: 'linear-gradient(135deg, rgba(33, 150, 243, 0.15) 0%, rgba(33, 150, 243, 0.05) 100%)',
                 border: '2px solid',
                 borderColor: 'primary.main',
                 borderRadius: 2,
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <TrophyIcon sx={{ fontSize: 32, color: 'primary.main', mr: 1 }} />
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, sm: 2 }, gap: { xs: 0.5, sm: 1 } }}>
+                <TrophyIcon sx={{ fontSize: { xs: 24, sm: 32 }, color: 'primary.main' }} />
                 <Typography
                   variant="h6"
                   sx={{
@@ -42,29 +43,30 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
                     color: 'primary.main',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
+                    fontSize: { xs: '0.9rem', sm: '1.25rem' },
                   }}
                 >
                   Best Performer
                 </Typography>
               </Box>
 
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 } }}>
                 <Avatar
                   src={bestPerformer.profilePicUrl}
                   alt={bestPerformer.displayName}
                   sx={{
-                    width: 80,
-                    height: 80,
+                    width: { xs: 60, sm: 80 },
+                    height: { xs: 60, sm: 80 },
                     border: '3px solid',
                     borderColor: 'primary.main',
                   }}
                 />
 
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="h5" fontWeight="bold">
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="h5" fontWeight="bold" sx={{ fontSize: { xs: '1.1rem', sm: '1.5rem' } }} noWrap>
                     {bestPerformer.displayName}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                  <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }} noWrap>
                     {bestPerformer.squadName}
                   </Typography>
 
@@ -72,9 +74,9 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
                     sx={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      mt: 1,
-                      px: 2,
-                      py: 0.5,
+                      mt: { xs: 0.5, sm: 1 },
+                      px: { xs: 1.5, sm: 2 },
+                      py: { xs: 0.4, sm: 0.5 },
                       backgroundColor: 'primary.main',
                       borderRadius: 2,
                     }}
@@ -84,6 +86,7 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
                       sx={{
                         color: 'white',
                         fontWeight: 'bold',
+                        fontSize: { xs: '0.875rem', sm: '1.25rem' },
                       }}
                     >
                       +{bestPerformer.pointsGained.toFixed(2)} points
@@ -96,7 +99,7 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
                 <Typography
                   variant="caption"
                   color="text.secondary"
-                  sx={{ display: 'block', mt: 2, textAlign: 'center' }}
+                  sx={{ display: 'block', mt: { xs: 1.5, sm: 2 }, textAlign: 'center', fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
                 >
                   from Match #{bestPerformer.matchNumber}
                 </Typography>
@@ -105,13 +108,14 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
               <Typography
                 variant="body2"
                 sx={{
-                  mt: 2,
-                  pt: 2,
+                  mt: { xs: 1.5, sm: 2 },
+                  pt: { xs: 1.5, sm: 2 },
                   borderTop: '1px solid',
                   borderColor: 'divider',
                   textAlign: 'center',
                   fontStyle: 'italic',
                   color: 'text.secondary',
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
                 }}
               >
                 {bestPerformer.displayName} scored {bestPerformer.pointsGained.toFixed(2)} points since the last snapshot!
@@ -122,19 +126,20 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
 
         {/* Rapid Riser */}
         {rapidRiser && (
-          <Box sx={{ flex: '1 1 calc(50% - 12px)', minWidth: 300 }}>
+          <Box sx={{ flex: '1 1 calc(50% - 12px)', minWidth: { xs: '100%', sm: 280, md: 300 } }}>
             <Paper
               elevation={4}
               sx={{
-                p: 3,
+                px: { xs: 2, sm: 3 },
+                py: { xs: 2, sm: 3 },
                 background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(76, 175, 80, 0.05) 100%)',
                 border: '2px solid',
                 borderColor: 'success.main',
                 borderRadius: 2,
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <TrendingUpIcon sx={{ fontSize: 32, color: 'success.main', mr: 1 }} />
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, sm: 2 }, gap: { xs: 0.5, sm: 1 } }}>
+                <TrendingUpIcon sx={{ fontSize: { xs: 24, sm: 32 }, color: 'success.main' }} />
                 <Typography
                   variant="h6"
                   sx={{
@@ -142,29 +147,30 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
                     color: 'success.main',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
+                    fontSize: { xs: '0.9rem', sm: '1.25rem' },
                   }}
                 >
                   Rapid Riser
                 </Typography>
               </Box>
 
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 } }}>
                 <Avatar
                   src={rapidRiser.profilePicUrl}
                   alt={rapidRiser.displayName}
                   sx={{
-                    width: 80,
-                    height: 80,
+                    width: { xs: 60, sm: 80 },
+                    height: { xs: 60, sm: 80 },
                     border: '3px solid',
                     borderColor: 'success.main',
                   }}
                 />
 
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="h5" fontWeight="bold">
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="h5" fontWeight="bold" sx={{ fontSize: { xs: '1.1rem', sm: '1.5rem' } }} noWrap>
                     {rapidRiser.displayName}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                  <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }} noWrap>
                     {rapidRiser.squadName}
                   </Typography>
 
@@ -172,9 +178,9 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
                     sx={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      mt: 1,
-                      px: 2,
-                      py: 0.5,
+                      mt: { xs: 0.5, sm: 1 },
+                      px: { xs: 1.5, sm: 2 },
+                      py: { xs: 0.4, sm: 0.5 },
                       backgroundColor: 'success.main',
                       borderRadius: 2,
                     }}
@@ -184,6 +190,7 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
                       sx={{
                         color: 'white',
                         fontWeight: 'bold',
+                        fontSize: { xs: '0.875rem', sm: '1.25rem' },
                       }}
                     >
                       +{rapidRiser.ranksGained} ranks
@@ -195,13 +202,14 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
               <Typography
                 variant="body2"
                 sx={{
-                  mt: 2,
-                  pt: 2,
+                  mt: { xs: 1.5, sm: 2 },
+                  pt: { xs: 1.5, sm: 2 },
                   borderTop: '1px solid',
                   borderColor: 'divider',
                   textAlign: 'center',
                   fontStyle: 'italic',
                   color: 'text.secondary',
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
                 }}
               >
                 1 rank{rapidRiser.ranksGained > 1 ? 's' : ''} jumped by {rapidRiser.displayName}

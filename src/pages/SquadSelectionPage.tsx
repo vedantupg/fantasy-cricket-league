@@ -393,16 +393,17 @@ const SquadSelectionPage: React.FC = () => {
   };
 
   const quickActions = (
-    <Box display="flex" gap={2} alignItems="center">
+    <Box display="flex" gap={{ xs: 1, sm: 2 }} alignItems="center" flexWrap="wrap">
       {/* Transfer Info if deadline passed */}
       {isDeadlinePassed && league && league.transferTypes && (
-        <Box display="flex" gap={1} flexWrap="wrap">
+        <Box display="flex" gap={{ xs: 0.5, sm: 1 }} flexWrap="wrap">
           {league.transferTypes.benchTransfers.enabled && (
             <Chip
               label={`Bench: ${existingSquad?.transfersUsed || 0}/${league.transferTypes.benchTransfers.maxAllowed}`}
               size="small"
               color="primary"
               variant="outlined"
+              sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, height: { xs: 20, sm: 24 } }}
             />
           )}
           {league.transferTypes.midSeasonTransfers.enabled && (
@@ -411,6 +412,7 @@ const SquadSelectionPage: React.FC = () => {
               size="small"
               color="secondary"
               variant="outlined"
+              sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, height: { xs: 20, sm: 24 } }}
             />
           )}
           {league.transferTypes.flexibleTransfers.enabled && (
@@ -419,6 +421,7 @@ const SquadSelectionPage: React.FC = () => {
               size="small"
               color="success"
               variant="outlined"
+              sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, height: { xs: 20, sm: 24 } }}
             />
           )}
         </Box>
@@ -429,6 +432,7 @@ const SquadSelectionPage: React.FC = () => {
         disabled={!isSquadValid() || submitting || isDeadlinePassed}
         startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <Star />}
         onClick={handleSubmitSquad}
+        sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1.5, sm: 2 }, py: { xs: 0.5, sm: 1 } }}
       >
         {getSubmitButtonText()}
       </Button>
@@ -465,41 +469,41 @@ const SquadSelectionPage: React.FC = () => {
         />
       )}
 
-      <Container maxWidth="xl" sx={{ py: 2 }}>
+      <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 1.5, sm: 2 } }}>
         {/* Status Alerts */}
         {existingSquad?.isSubmitted && !isDeadlinePassed && (
-          <Box sx={{ mb: 2 }}>
-            <Alert severity="success">
+          <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
+            <Alert severity="success" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 0.5, sm: 1 } }}>
               Squad Submitted! You can modify your squad freely until the deadline: {new Date(league.squadDeadline).toLocaleString()}
             </Alert>
           </Box>
         )}
 
         {isDeadlinePassed && (
-          <Box sx={{ mb: 2 }}>
-            <Alert severity="info">
-              🔒 Squad Deadline Passed. Your squad is locked. You can only make changes using available transfers.
+          <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
+            <Alert severity="info" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 0.5, sm: 1 } }}>
+              Squad Deadline Passed. Your squad is locked. You can only make changes using available transfers.
             </Alert>
           </Box>
         )}
 
         {!existingSquad?.isSubmitted && !isDeadlinePassed && (
-          <Box sx={{ mb: 2 }}>
-            <Alert severity="warning">
+          <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
+            <Alert severity="warning" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 0.5, sm: 1 } }}>
               Squad Not Submitted. Please submit your squad before the deadline: {new Date(league.squadDeadline).toLocaleString()}
             </Alert>
           </Box>
         )}
 
         {submitError && (
-          <Box sx={{ mb: 3 }}>
-            <Alert severity="error" onClose={() => setSubmitError('')}>
+          <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+            <Alert severity="error" onClose={() => setSubmitError('')} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 0.5, sm: 1 } }}>
               {submitError}
             </Alert>
           </Box>
         )}
 
-        <Grid container spacing={3}>
+        <Grid container spacing={{ xs: 2, sm: 3 }}>
           {/* Left Panel - Squad Formation */}
           <Grid size={{ xs: 12, lg: 8 }}>
             <CricketPitchFormation
@@ -628,17 +632,17 @@ const CricketPitchFormation: React.FC<{
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         sx={{
-          p: 2,
-          minHeight: 100,
+          p: { xs: 1, sm: 1.5, md: 2 },
+          minHeight: { xs: 80, sm: 90, md: 100 },
           width: '100%',
-          maxWidth: 140,
+          maxWidth: { xs: 100, sm: 120, md: 140 },
           mx: 'auto',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           border: player ? 'none' : `2px dashed ${colors.border}`,
-          borderRadius: 3,
+          borderRadius: { xs: 2, sm: 3 },
           bgcolor: player ? 'background.paper' : colors.bg,
           position: 'relative',
           cursor: 'pointer',
@@ -658,39 +662,39 @@ const CricketPitchFormation: React.FC<{
                 e.stopPropagation();
                 onRemovePlayer(player.id);
               }}
-              sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, zIndex: 10 }}
+              sx={{ position: 'absolute', top: { xs: -6, sm: -8 }, right: { xs: -6, sm: -8 }, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, zIndex: 10, width: { xs: 20, sm: 24 }, height: { xs: 20, sm: 24 } }}
             >
-              <Close fontSize="small" />
+              <Close sx={{ fontSize: { xs: 14, sm: 18 } }} />
             </IconButton>
 
-            <Avatar sx={{ width: 32, height: 32, mb: 0.5, bgcolor: 'primary.main' }}>
+            <Avatar sx={{ width: { xs: 24, sm: 28, md: 32 }, height: { xs: 24, sm: 28, md: 32 }, mb: 0.5, bgcolor: 'primary.main', fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
               {player.name.charAt(0)}
             </Avatar>
 
-            <Typography variant="caption" fontWeight="bold" textAlign="center">
+            <Typography variant="caption" fontWeight="bold" textAlign="center" sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem', md: '0.75rem' } }} noWrap>
               {player.name.split(' ').pop()}
             </Typography>
 
             <Chip
               size="small"
               label={player.team}
-              sx={{ fontSize: '0.6rem', height: 16, mt: 0.5 }}
+              sx={{ fontSize: { xs: '0.55rem', sm: '0.6rem' }, height: { xs: 14, sm: 16 }, mt: 0.5 }}
             />
 
             {/* Captain/Vice Captain/X-Factor badges */}
             {isCaptain && (
-              <Box sx={{ position: 'absolute', top: -5, left: -5 }}>
-                <Chip label="C" size="small" color="warning" sx={{ fontSize: '0.7rem', height: 18, fontWeight: 'bold' }} />
+              <Box sx={{ position: 'absolute', top: { xs: -4, sm: -5 }, left: { xs: -4, sm: -5 } }}>
+                <Chip label="C" size="small" color="warning" sx={{ fontSize: { xs: '0.6rem', sm: '0.7rem' }, height: { xs: 16, sm: 18 }, fontWeight: 'bold' }} />
               </Box>
             )}
             {isViceCaptain && (
-              <Box sx={{ position: 'absolute', top: -5, left: -5 }}>
-                <Chip label="VC" size="small" color="info" sx={{ fontSize: '0.7rem', height: 18, fontWeight: 'bold' }} />
+              <Box sx={{ position: 'absolute', top: { xs: -4, sm: -5 }, left: { xs: -4, sm: -5 } }}>
+                <Chip label="VC" size="small" color="info" sx={{ fontSize: { xs: '0.6rem', sm: '0.7rem' }, height: { xs: 16, sm: 18 }, fontWeight: 'bold' }} />
               </Box>
             )}
             {isXFactor && (
-              <Box sx={{ position: 'absolute', top: -5, left: -5 }}>
-                <Chip label="X" size="small" color="secondary" sx={{ fontSize: '0.7rem', height: 18, fontWeight: 'bold' }} />
+              <Box sx={{ position: 'absolute', top: { xs: -4, sm: -5 }, left: { xs: -4, sm: -5 } }}>
+                <Chip label="X" size="small" color="secondary" sx={{ fontSize: { xs: '0.6rem', sm: '0.7rem' }, height: { xs: 16, sm: 18 }, fontWeight: 'bold' }} />
               </Box>
             )}
 
@@ -802,22 +806,23 @@ const CricketPitchFormation: React.FC<{
 
   return (
     <Card>
-      <CardContent>
+      <CardContent sx={{ px: { xs: 1, sm: 1.5, md: 2, lg: 3 }, py: { xs: 1, sm: 1.5, md: 2, lg: 2.5 } }}>
         {/* Powerplay Selection */}
         {league.powerplayEnabled && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
+          <Box sx={{ mb: { xs: 1.5, sm: 2, md: 3 } }}>
+            <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' } }}>
               Powerplay Match Selection
             </Typography>
             <FormControl fullWidth>
-              <InputLabel>Select Powerplay Match</InputLabel>
+              <InputLabel sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>Select Powerplay Match</InputLabel>
               <Select
                 value={powerplayMatch}
                 label="Select Powerplay Match"
                 onChange={(e) => setPowerplayMatch(e.target.value)}
+                sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}
               >
                 {powerplayMatches.map((match) => (
-                  <MenuItem key={match.id} value={match.id}>
+                  <MenuItem key={match.id} value={match.id} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
                     {match.name} - {match.date}
                   </MenuItem>
                 ))}
@@ -830,12 +835,12 @@ const CricketPitchFormation: React.FC<{
         <Box
           sx={{
             background: 'linear-gradient(180deg, #2E7D32 0%, #1B5E20 100%)',
-            borderRadius: 3,
+            borderRadius: { xs: 1.5, sm: 2, md: 3 },
             position: 'relative',
             overflow: 'visible',
             boxShadow: '0 12px 40px rgba(0,0,0,0.3)',
-            minHeight: 800,
-            pb: 3,
+            minHeight: { xs: 500, sm: 600, md: 700, lg: 800 },
+            pb: { xs: 1.5, sm: 2, md: 3 },
             // Outer boundary rope
             '&::before': {
               content: '""',
@@ -949,12 +954,12 @@ const CricketPitchFormation: React.FC<{
             }} />
           </Box>
 
-          <Typography variant="h6" color="white" textAlign="center" pt={2} pb={1} sx={{ textShadow: '2px 2px 4px rgba(0,0,0,0.7)', position: 'relative', zIndex: 2 }}>
+          <Typography variant="h6" color="white" textAlign="center" pt={{ xs: 1, sm: 1.5, md: 2 }} pb={{ xs: 0.5, sm: 1 }} sx={{ textShadow: '2px 2px 4px rgba(0,0,0,0.7)', position: 'relative', zIndex: 2, fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' } }}>
             Squad Formation
           </Typography>
 
           {/* Cricket Field Formation Layout */}
-          <Box sx={{ zIndex: 2, position: 'relative', px: 3 }}>
+          <Box sx={{ zIndex: 2, position: 'relative', px: { xs: 1, sm: 2, md: 3 } }}>
 
             {/* Wicket-keepers - ABOVE the batting end stumps and crease */}
             {league.squadRules.minWicketkeepers > 0 && (
@@ -971,19 +976,19 @@ const CricketPitchFormation: React.FC<{
                   zIndex: 1
                 }
               }}>
-                <Box sx={{ textAlign: 'center', py: 2 }}>
+                <Box sx={{ textAlign: 'center', py: { xs: 1, sm: 1.5, md: 2 } }}>
                   <Box sx={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 1,
+                    gap: { xs: 0.5, sm: 1 },
                     bgcolor: 'rgba(76, 175, 80, 0.7)',
-                    px: 2.5,
-                    py: 0.75,
+                    px: { xs: 1.5, sm: 2, md: 2.5 },
+                    py: { xs: 0.5, sm: 0.75 },
                     borderRadius: '20px',
-                    mb: 2,
+                    mb: { xs: 1, sm: 1.5, md: 2 },
                     boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
                   }}>
-                    <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: '1rem' }}>
+                    <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
                       🥅 Wicket-Keepers
                     </Typography>
                     <Chip
@@ -993,11 +998,12 @@ const CricketPitchFormation: React.FC<{
                         bgcolor: 'rgba(255,255,255,0.9)',
                         color: '#2E7D32',
                         fontWeight: 'bold',
-                        fontSize: '0.75rem'
+                        fontSize: { xs: '0.65rem', sm: '0.7rem', md: '0.75rem' },
+                        height: { xs: 18, sm: 20, md: 22 }
                       }}
                     />
                   </Box>
-                  <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap', pb: 2 }}>
+                  <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5, md: 2 }, justifyContent: 'center', flexWrap: 'wrap', pb: { xs: 1, sm: 1.5, md: 2 } }}>
                     {requiredSlots.wicketkeepers.map((_, index) => {
                       const players = selectedPlayers.filter(p => p.role === 'wicketkeeper' && p.position !== 'bench');
                       return (
@@ -1029,19 +1035,19 @@ const CricketPitchFormation: React.FC<{
                 zIndex: 1
               }
             }}>
-              <Box sx={{ textAlign: 'center', py: 2, pt: 3 }}>
+              <Box sx={{ textAlign: 'center', py: { xs: 1, sm: 1.5, md: 2 }, pt: { xs: 1.5, sm: 2, md: 3 } }}>
                 <Box sx={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 1,
+                  gap: { xs: 0.5, sm: 1 },
                   bgcolor: 'rgba(76, 175, 80, 0.7)',
-                  px: 2.5,
-                  py: 0.75,
+                  px: { xs: 1.5, sm: 2, md: 2.5 },
+                  py: { xs: 0.5, sm: 0.75 },
                   borderRadius: '20px',
-                  mb: 2,
+                  mb: { xs: 1, sm: 1.5, md: 2 },
                   boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
                 }}>
-                  <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: '1rem' }}>
+                  <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
                     Batters
                   </Typography>
                   <Chip
@@ -1051,11 +1057,12 @@ const CricketPitchFormation: React.FC<{
                       bgcolor: 'rgba(255,255,255,0.9)',
                       color: '#2E7D32',
                       fontWeight: 'bold',
-                      fontSize: '0.75rem'
+                      fontSize: { xs: '0.65rem', sm: '0.7rem', md: '0.75rem' },
+                      height: { xs: 18, sm: 20, md: 22 }
                     }}
                   />
                 </Box>
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap', pb: 2 }}>
+                <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5, md: 2 }, justifyContent: 'center', flexWrap: 'wrap', pb: { xs: 1, sm: 1.5, md: 2 } }}>
                   {requiredSlots.batsmen.map((_, index) => {
                     const players = selectedPlayers.filter(p => p.role === 'batsman' && p.position !== 'bench');
                     return (
@@ -1086,19 +1093,19 @@ const CricketPitchFormation: React.FC<{
                 zIndex: 1
               }
             }}>
-              <Box sx={{ textAlign: 'center', py: 2 }}>
+              <Box sx={{ textAlign: 'center', py: { xs: 1, sm: 1.5, md: 2 } }}>
                 <Box sx={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 1,
+                  gap: { xs: 0.5, sm: 1 },
                   bgcolor: 'rgba(76, 175, 80, 0.7)',
-                  px: 2.5,
-                  py: 0.75,
+                  px: { xs: 1.5, sm: 2, md: 2.5 },
+                  py: { xs: 0.5, sm: 0.75 },
                   borderRadius: '20px',
-                  mb: 2,
+                  mb: { xs: 1, sm: 1.5, md: 2 },
                   boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
                 }}>
-                  <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: '1rem' }}>
+                  <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
                     All-Rounders
                   </Typography>
                   <Chip
@@ -1108,11 +1115,12 @@ const CricketPitchFormation: React.FC<{
                       bgcolor: 'rgba(255,255,255,0.9)',
                       color: '#2E7D32',
                       fontWeight: 'bold',
-                      fontSize: '0.75rem'
+                      fontSize: { xs: '0.65rem', sm: '0.7rem', md: '0.75rem' },
+                      height: { xs: 18, sm: 20, md: 22 }
                     }}
                   />
                 </Box>
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap', pb: 2 }}>
+                <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5, md: 2 }, justifyContent: 'center', flexWrap: 'wrap', pb: { xs: 1, sm: 1.5, md: 2 } }}>
                   {requiredSlots.allrounders.map((_, index) => {
                     const players = selectedPlayers.filter(p => p.role === 'allrounder' && p.position !== 'bench');
                     return (
@@ -1143,19 +1151,19 @@ const CricketPitchFormation: React.FC<{
                 zIndex: 1
               } : {}
             }}>
-              <Box sx={{ textAlign: 'center', py: 2 }}>
+              <Box sx={{ textAlign: 'center', py: { xs: 1, sm: 1.5, md: 2 } }}>
                 <Box sx={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 1,
+                  gap: { xs: 0.5, sm: 1 },
                   bgcolor: 'rgba(76, 175, 80, 0.7)',
-                  px: 2.5,
-                  py: 0.75,
+                  px: { xs: 1.5, sm: 2, md: 2.5 },
+                  py: { xs: 0.5, sm: 0.75 },
                   borderRadius: '20px',
-                  mb: 2,
+                  mb: { xs: 1, sm: 1.5, md: 2 },
                   boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
                 }}>
-                  <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: '1rem' }}>
+                  <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
                     Bowlers
                   </Typography>
                   <Chip
@@ -1165,11 +1173,12 @@ const CricketPitchFormation: React.FC<{
                       bgcolor: 'rgba(255,255,255,0.9)',
                       color: '#2E7D32',
                       fontWeight: 'bold',
-                      fontSize: '0.75rem'
+                      fontSize: { xs: '0.65rem', sm: '0.7rem', md: '0.75rem' },
+                      height: { xs: 18, sm: 20, md: 22 }
                     }}
                   />
                 </Box>
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap', pb: 2 }}>
+                <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5, md: 2 }, justifyContent: 'center', flexWrap: 'wrap', pb: { xs: 1, sm: 1.5, md: 2 } }}>
                   {requiredSlots.bowlers.map((_, index) => {
                     const players = selectedPlayers.filter(p => p.role === 'bowler' && p.position !== 'bench');
                     return (
@@ -1188,24 +1197,24 @@ const CricketPitchFormation: React.FC<{
 
             {/* Flexible Slots - Inside field, below pitch */}
             {requiredSlots.flexible.length > 0 && (
-              <Box sx={{ py: 3, pb: 4 }}>
+              <Box sx={{ py: { xs: 1.5, sm: 2, md: 3 }, pb: { xs: 2, sm: 3, md: 4 } }}>
                 <Box sx={{ textAlign: 'center' }}>
                   <Box sx={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 1,
+                    gap: { xs: 0.5, sm: 1 },
                     bgcolor: 'rgba(96, 125, 139, 0.8)',
-                    px: 2.5,
-                    py: 0.75,
+                    px: { xs: 1.5, sm: 2, md: 2.5 },
+                    py: { xs: 0.5, sm: 0.75 },
                     borderRadius: '20px',
-                    mb: 2,
+                    mb: { xs: 1, sm: 1.5, md: 2 },
                     boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
                   }}>
-                    <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: '1rem' }}>
+                    <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
                       Flexible Positions (Any Role)
                     </Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5, md: 2 }, justifyContent: 'center', flexWrap: 'wrap' }}>
                     {requiredSlots.flexible.map((_, index) => {
                       const mainSquadPlayers = selectedPlayers.filter(p => p.position !== 'bench');
                       const allSelectedByRole = {
@@ -1240,19 +1249,19 @@ const CricketPitchFormation: React.FC<{
 
         {/* Outside Field - Bench Slots */}
         {requiredSlots.bench.length > 0 && (
-          <Box sx={{ mt: 3 }}>
+          <Box sx={{ mt: { xs: 2, sm: 2.5, md: 3 } }}>
             <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold', color: 'warning.main' }}>
+              <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold', color: 'warning.main', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                 Bench Players (Outside Field)
               </Typography>
               <Box sx={{
                 display: 'flex',
-                gap: 2,
+                gap: { xs: 1, sm: 1.5, md: 2 },
                 justifyContent: 'center',
                 flexWrap: 'wrap',
-                p: 3,
+                p: { xs: 1.5, sm: 2, md: 3 },
                 bgcolor: 'rgba(255, 152, 0, 0.15)',
-                borderRadius: 3,
+                borderRadius: { xs: 2, sm: 2.5, md: 3 },
                 border: '2px solid rgba(255, 152, 0, 0.4)',
                 boxShadow: '0 4px 12px rgba(255, 152, 0, 0.2)'
               }}>
@@ -1274,49 +1283,49 @@ const CricketPitchFormation: React.FC<{
 
         {/* Modern Squad Summary */}
         <Box sx={{
-          mt: 4,
-          p: 3,
+          mt: { xs: 2, sm: 3, md: 4 },
+          p: { xs: 1.5, sm: 2, md: 3 },
           background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
           backdropFilter: 'blur(20px)',
-          borderRadius: 3,
+          borderRadius: { xs: 2, sm: 2.5, md: 3 },
           border: '1px solid rgba(255,255,255,0.2)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
         }}>
-          <Typography variant="h6" gutterBottom color="white" sx={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)', fontWeight: 'bold' }}>
+          <Typography variant="h6" gutterBottom color="white" sx={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)', fontWeight: 'bold', fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' } }}>
             Squad Summary
           </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 0.75, sm: 1, md: 1.5 } }}>
             <Chip
               label={`Players: ${selectedPlayers.filter(p => p.position !== 'bench').length}/${league.squadSize}`}
               color="primary"
               variant="filled"
-              sx={{ fontWeight: 'bold' }}
+              sx={{ fontWeight: 'bold', fontSize: { xs: '0.7rem', sm: '0.8125rem', md: '0.875rem' }, height: { xs: 24, sm: 28, md: 32 } }}
             />
             {requiredSlots.bench.length > 0 && (
               <Chip
                 label={`Bench: ${selectedPlayers.filter(p => p.position === 'bench').length}/${requiredSlots.bench.length}`}
                 color="secondary"
                 variant="filled"
-                sx={{ fontWeight: 'bold' }}
+                sx={{ fontWeight: 'bold', fontSize: { xs: '0.7rem', sm: '0.8125rem', md: '0.875rem' }, height: { xs: 24, sm: 28, md: 32 } }}
               />
             )}
             <Chip
               label={`Captain: ${captainId ? '✓' : '✗'}`}
               color={captainId ? 'success' : 'error'}
               variant="filled"
-              sx={{ fontWeight: 'bold' }}
+              sx={{ fontWeight: 'bold', fontSize: { xs: '0.7rem', sm: '0.8125rem', md: '0.875rem' }, height: { xs: 24, sm: 28, md: 32 } }}
             />
             <Chip
               label={`Vice Captain: ${viceCaptainId ? '✓' : '✗'}`}
               color={viceCaptainId ? 'success' : 'error'}
               variant="filled"
-              sx={{ fontWeight: 'bold' }}
+              sx={{ fontWeight: 'bold', fontSize: { xs: '0.7rem', sm: '0.8125rem', md: '0.875rem' }, height: { xs: 24, sm: 28, md: 32 } }}
             />
             <Chip
               label={`X-Factor: ${xFactorId ? '✓' : '✗'}`}
               color={xFactorId ? 'success' : 'error'}
               variant="filled"
-              sx={{ fontWeight: 'bold' }}
+              sx={{ fontWeight: 'bold', fontSize: { xs: '0.7rem', sm: '0.8125rem', md: '0.875rem' }, height: { xs: 24, sm: 28, md: 32 } }}
             />
           </Box>
         </Box>
@@ -1342,17 +1351,17 @@ const PlayerSelectionPanel: React.FC<{
   });
 
   const PlayerCard: React.FC<{ player: Player }> = ({ player }) => (
-    <Card sx={{ mb: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}>
-      <CardContent sx={{ p: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-          <Avatar sx={{ width: 40, height: 40, mr: 2, bgcolor: 'primary.main' }}>
+    <Card sx={{ mb: { xs: 0.75, sm: 1 }, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}>
+      <CardContent sx={{ p: { xs: 1, sm: 1.5, md: 2 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 0.75, sm: 1 }, gap: { xs: 1, sm: 2 } }}>
+          <Avatar sx={{ width: { xs: 32, sm: 40 }, height: { xs: 32, sm: 40 }, bgcolor: 'primary.main', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
             {player.name.charAt(0)}
           </Avatar>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="subtitle2" fontWeight="bold">
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }} noWrap>
               {player.name}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }} noWrap>
               {player.team} • {player.role}
             </Typography>
           </Box>
@@ -1360,15 +1369,17 @@ const PlayerSelectionPanel: React.FC<{
             label={player.stats[league.format].recentForm}
             size="small"
             color={player.stats[league.format].recentForm > 80 ? 'success' : player.stats[league.format].recentForm > 60 ? 'warning' : 'error'}
+            sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, height: { xs: 18, sm: 20 } }}
           />
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 }, flexWrap: 'wrap' }}>
           <Button
             size="small"
             variant="contained"
             onClick={() => onAddPlayer(player, 'regular')}
-            startIcon={<PersonAdd />}
+            startIcon={<PersonAdd sx={{ fontSize: { xs: 14, sm: 16 } }} />}
+            sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem', md: '0.875rem' }, px: { xs: 0.75, sm: 1 }, py: { xs: 0.25, sm: 0.5 } }}
           >
             Add to Squad
           </Button>
@@ -1378,7 +1389,8 @@ const PlayerSelectionPanel: React.FC<{
               variant="outlined"
               color="secondary"
               onClick={() => onAddPlayer(player, 'bench')}
-              startIcon={<SwapHoriz />}
+              startIcon={<SwapHoriz sx={{ fontSize: { xs: 14, sm: 16 } }} />}
+              sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem', md: '0.875rem' }, px: { xs: 0.75, sm: 1 }, py: { xs: 0.25, sm: 0.5 } }}
             >
               Add to Bench
             </Button>
@@ -1390,36 +1402,37 @@ const PlayerSelectionPanel: React.FC<{
 
   return (
     <Card>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>
+      <CardContent sx={{ px: { xs: 1, sm: 1.5, md: 2 }, py: { xs: 1, sm: 1.5, md: 2 } }}>
+        <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' } }}>
           Player Selection
         </Typography>
 
         {/* Role Filter */}
-        <FormControl fullWidth sx={{ mb: 2 }}>
-          <InputLabel>Filter by Role</InputLabel>
+        <FormControl fullWidth sx={{ mb: { xs: 1.5, sm: 2 } }}>
+          <InputLabel sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>Filter by Role</InputLabel>
           <Select
             value={filterRole}
             label="Filter by Role"
             onChange={(e) => setFilterRole(e.target.value)}
+            sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}
           >
-            <MenuItem value="all">All Players</MenuItem>
-            <MenuItem value="batsman">Batters</MenuItem>
-            <MenuItem value="bowler">Bowlers</MenuItem>
-            <MenuItem value="allrounder">All-rounders</MenuItem>
-            <MenuItem value="wicketkeeper">Wicket-keepers</MenuItem>
+            <MenuItem value="all" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>All Players</MenuItem>
+            <MenuItem value="batsman" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>Batters</MenuItem>
+            <MenuItem value="bowler" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>Bowlers</MenuItem>
+            <MenuItem value="allrounder" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>All-rounders</MenuItem>
+            <MenuItem value="wicketkeeper" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>Wicket-keepers</MenuItem>
           </Select>
         </FormControl>
 
         {/* Available Players */}
-        <Box sx={{ maxHeight: 600, overflow: 'auto' }}>
+        <Box sx={{ maxHeight: { xs: 400, sm: 500, md: 600 }, overflow: 'auto' }}>
           {filteredPlayers.length > 0 ? (
             filteredPlayers.map(player => (
               <PlayerCard key={player.id} player={player} />
             ))
           ) : (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <Typography variant="body2" color="text.secondary">
+            <Box sx={{ textAlign: 'center', py: { xs: 3, sm: 4 } }}>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                 No players available for selection
               </Typography>
             </Box>
