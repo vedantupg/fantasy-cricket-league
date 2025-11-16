@@ -15,6 +15,7 @@ import JoinLeaguePage from './pages/JoinLeaguePage';
 import LeagueDashboardPage from './pages/LeagueDashboardPage';
 import SquadSelectionPage from './pages/SquadSelectionPage';
 import LeaderboardPage from './pages/LeaderboardPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 import ViewTeamsPage from './pages/ViewTeamsPage';
 import ProfilePage from './pages/ProfilePage';
 import ProfileSetupPage from './pages/ProfileSetupPage';
@@ -142,7 +143,13 @@ function App() {
                 <LeaderboardPage />
               </ProtectedRoute>
             } />
-            
+
+            <Route path="/leagues/:leagueId/analytics" element={
+              <ProtectedRoute>
+                <AnalyticsPage />
+              </ProtectedRoute>
+            } />
+
             <Route path="/leagues/:leagueId/teams" element={
               <ProtectedRoute>
                 <ViewTeamsPage />

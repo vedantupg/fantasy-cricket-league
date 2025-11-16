@@ -201,19 +201,29 @@ const PlayerPoolManagementPage: React.FC = () => {
                       players: updatedPool.players || []
                     };
 
-                    // Update in Firestore
-                    await playerPoolService.update(poolToUpdate.id, {
-                      players: poolToUpdate.players,
-                      updatedAt: new Date()
-                    });
+                    // Update in Firestore using updatePlayerPoints to trigger automatic recalculation
+                    // This will update all squads and leaderboards that use this player pool
+                    const pointsUpdates = poolToUpdate.players.map(player => ({
+                      playerId: player.playerId,
+                      points: player.points
+                    }));
+
+                    console.log('Updating player pool and recalculating all leagues...');
+                    await playerPoolService.updatePlayerPoints(poolToUpdate.id, pointsUpdates);
+                    console.log('Player pool updated and leagues recalculated successfully');
 
                     // Update local state
                     setPlayerPools(prev =>
                       prev.map(p => p.id === poolToUpdate.id ? poolToUpdate : p)
                     );
                     setSelectedPool(poolToUpdate);
+
+                    setSnackbarMessage('Player pool updated and all leaderboards recalculated!');
+                    setSnackbarOpen(true);
                   } catch (error) {
                     console.error('Error updating player pool:', error);
+                    setSnackbarMessage('Failed to update player pool');
+                    setSnackbarOpen(true);
                   }
                 }}
                 onDelete={async () => {

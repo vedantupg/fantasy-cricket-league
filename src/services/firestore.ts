@@ -558,59 +558,91 @@ export const playerPoolService = {
       return;
     }
 
-    // For each league, recalculate squad points
+    // For each league, recalculate squad points using batch writes
     const updatePromises = leagues.map(async (league) => {
       try {
+        console.log(`Updating squads for league ${league.id}`);
+
         // Get all squads in this league
         const squads = await squadService.getByLeague(league.id);
+        console.log(`Found ${squads.length} squads to update`);
 
-        // Update each squad's points based on the player pool
-        const squadUpdatePromises = squads.map(async (squad) => {
+        if (squads.length === 0) {
+          console.log(`No squads in league ${league.id}, skipping`);
+          return;
+        }
+
+        // Use batch writes for efficiency
+        // IMPORTANT: Always update ALL squads on every player pool save to ensure consistency
+        const batch = writeBatch(db);
+
+        for (const squad of squads) {
           // Recalculate total points for this squad
           let totalPoints = 0;
           let captainPoints = 0;
           let viceCaptainPoints = 0;
+          let xFactorPoints = 0;
 
-          squad.players.forEach((squadPlayer) => {
-            // Find the player in the pool
-            const poolPlayer = playerPool.players.find(
-              (p) => p.playerId === squadPlayer.playerId
-            );
+          // Update player points in the squad to match current pool
+          const updatedPlayers = squad.players.map(squadPlayer => {
+            const poolPlayer = playerPool.players.find(p => p.playerId === squadPlayer.playerId);
 
             if (poolPlayer) {
-              let playerPoints = poolPlayer.points;
-
-              // Apply captain multiplier (2x)
-              if (squad.captainId === squadPlayer.playerId) {
-                captainPoints = playerPoints * 2;
-                totalPoints += captainPoints;
-              }
-              // Apply vice-captain multiplier (1.5x)
-              else if (squad.viceCaptainId === squadPlayer.playerId) {
-                viceCaptainPoints = playerPoints * 1.5;
-                totalPoints += viceCaptainPoints;
-              }
-              // Regular player
-              else {
-                totalPoints += playerPoints;
-              }
+              return {
+                ...squadPlayer,
+                points: poolPlayer.points,
+              };
             }
+            return squadPlayer;
           });
 
-          // Update squad with new points
-          await squadService.update(squad.id, {
+          // Calculate total points with multipliers
+          // Only count starting XI (first squadSize players), exclude bench
+          const startingXI = updatedPlayers.slice(0, league.squadSize);
+          startingXI.forEach(player => {
+            // Calculate effective points: only count points earned while in this squad
+            const pointsAtJoining = player.pointsAtJoining ?? 0;
+            const effectivePoints = Math.max(0, player.points - pointsAtJoining);
+
+            let playerPoints = effectivePoints;
+
+            if (squad.captainId === player.playerId) {
+              // Captain gets 2x points
+              captainPoints = effectivePoints * 2;
+              playerPoints = captainPoints;
+            } else if (squad.viceCaptainId === player.playerId) {
+              // Vice-captain gets 1.5x points
+              viceCaptainPoints = effectivePoints * 1.5;
+              playerPoints = viceCaptainPoints;
+            } else if (squad.xFactorId === player.playerId) {
+              // X-Factor gets 1.25x points
+              xFactorPoints = effectivePoints * 1.25;
+              playerPoints = xFactorPoints;
+            }
+
+            totalPoints += playerPoints;
+          });
+
+          // Always update every squad on each player pool save
+          const squadRef = doc(db, COLLECTIONS.SQUADS, squad.id);
+          batch.update(squadRef, {
+            players: updatedPlayers,
             totalPoints,
             captainPoints,
             viceCaptainPoints,
+            xFactorPoints,
             lastUpdated: new Date(),
           });
-        });
+        }
 
-        await Promise.all(squadUpdatePromises);
+        // Commit all squad updates
+        await batch.commit();
+        console.log(`Updated ${squads.length} squads in league ${league.id}`);
 
         // Create a new leaderboard snapshot for this league
         console.log(`Creating snapshot for league: ${league.id}`);
         await leaderboardSnapshotService.create(league.id);
+        console.log(`Leaderboard snapshot created for league ${league.id}`);
       } catch (error) {
         console.error(`Error recalculating league ${league.id}:`, error);
       }
@@ -691,28 +723,33 @@ export const leaderboardSnapshotService = {
       const viceCaptain = squad.players.find(p => p.playerId === squad.viceCaptainId);
       const xFactor = squad.players.find(p => p.playerId === squad.xFactorId);
 
-      return {
+      // Build standing entry, only including defined fields (Firestore doesn't allow undefined)
+      const standing: any = {
         userId: squad.userId,
         squadId: squad.id,
         squadName: squad.squadName,
         displayName: user?.displayName || 'Unknown',
-        profilePicUrl: user?.profilePicUrl,
         totalPoints: squad.totalPoints,
         captainPoints: squad.captainPoints || 0,
         viceCaptainPoints: squad.viceCaptainPoints || 0,
         xFactorPoints: squad.xFactorPoints || 0,
         rank: index + 1,
-        previousRank,
         rankChange,
         pointsGainedToday,
-        leadFromNext,
-        captainId: squad.captainId,
-        captainName: captain?.playerName,
-        viceCaptainId: squad.viceCaptainId,
-        viceCaptainName: viceCaptain?.playerName,
-        xFactorId: squad.xFactorId,
-        xFactorName: xFactor?.playerName,
       };
+
+      // Only add optional fields if they're defined
+      if (user?.profilePicUrl) standing.profilePicUrl = user.profilePicUrl;
+      if (previousRank !== undefined) standing.previousRank = previousRank;
+      if (leadFromNext !== undefined) standing.leadFromNext = leadFromNext;
+      if (squad.captainId) standing.captainId = squad.captainId;
+      if (captain?.playerName) standing.captainName = captain.playerName;
+      if (squad.viceCaptainId) standing.viceCaptainId = squad.viceCaptainId;
+      if (viceCaptain?.playerName) standing.viceCaptainName = viceCaptain.playerName;
+      if (squad.xFactorId) standing.xFactorId = squad.xFactorId;
+      if (xFactor?.playerName) standing.xFactorName = xFactor.playerName;
+
+      return standing as StandingEntry;
     });
 
     // Find best performer (most points gained)
@@ -726,9 +763,12 @@ export const leaderboardSnapshotService = {
           userId: topGainer.userId,
           squadName: topGainer.squadName,
           displayName: topGainer.displayName,
-          profilePicUrl: topGainer.profilePicUrl,
           pointsGained: topGainer.pointsGainedToday,
-        };
+        } as any;
+        // Only add profilePicUrl if defined
+        if (topGainer.profilePicUrl) {
+          bestPerformer.profilePicUrl = topGainer.profilePicUrl;
+        }
       }
     }
 
@@ -746,11 +786,14 @@ export const leaderboardSnapshotService = {
           userId: topClimber.userId,
           squadName: topClimber.squadName,
           displayName: topClimber.displayName,
-          profilePicUrl: topClimber.profilePicUrl,
           ranksGained: topClimber.rankChange,
           previousRank: topClimber.previousRank || 0,
           currentRank: topClimber.rank,
-        };
+        } as any;
+        // Only add profilePicUrl if defined
+        if (topClimber.profilePicUrl) {
+          rapidRiser.profilePicUrl = topClimber.profilePicUrl;
+        }
       }
     }
 
@@ -955,6 +998,13 @@ export const playerPoolUpdateService = {
     try {
       console.log(`Updating squads for league ${leagueId}`);
 
+      // Get league to access squadSize
+      const league = await leagueService.getById(leagueId);
+      if (!league) {
+        console.error(`League ${leagueId} not found`);
+        return;
+      }
+
       // Get all squads in the league
       const squads = await squadService.getByLeague(leagueId);
       console.log(`Found ${squads.length} squads to update`);
@@ -965,37 +1015,33 @@ export const playerPoolUpdateService = {
       }
 
       // Update each squad's player points and recalculate totals
+      // IMPORTANT: Always update ALL squads on every player pool save to ensure consistency
       const batch = writeBatch(db);
-      let updatedCount = 0;
 
       for (const squad of squads) {
-        const { updatedPlayers, needsUpdate, newTotalPoints, newCaptainPoints, newViceCaptainPoints } =
-          this.recalculateSquadPoints(squad, playerUpdates);
+        const { updatedPlayers, newTotalPoints, newCaptainPoints, newViceCaptainPoints, newXFactorPoints } =
+          this.recalculateSquadPoints(squad, playerUpdates, league.squadSize);
 
-        if (needsUpdate) {
-          const squadRef = doc(db, COLLECTIONS.SQUADS, squad.id);
-          batch.update(squadRef, {
-            players: updatedPlayers,
-            totalPoints: newTotalPoints,
-            captainPoints: newCaptainPoints,
-            viceCaptainPoints: newViceCaptainPoints,
-            lastUpdated: new Date(),
-          });
-          updatedCount++;
-        }
+        // Always update every squad on each player pool save
+        const squadRef = doc(db, COLLECTIONS.SQUADS, squad.id);
+        batch.update(squadRef, {
+          players: updatedPlayers,
+          totalPoints: newTotalPoints,
+          captainPoints: newCaptainPoints,
+          viceCaptainPoints: newViceCaptainPoints,
+          xFactorPoints: newXFactorPoints,
+          lastUpdated: new Date(),
+        });
       }
 
-      if (updatedCount > 0) {
-        await batch.commit();
-        console.log(`Updated ${updatedCount} squads in league ${leagueId}`);
+      // Commit all squad updates
+      await batch.commit();
+      console.log(`Updated ${squads.length} squads in league ${leagueId}`);
 
-        // Create a new leaderboard snapshot for this league
-        console.log(`Creating new leaderboard snapshot for league ${leagueId}`);
-        await leaderboardSnapshotService.create(leagueId);
-        console.log(`Leaderboard snapshot created for league ${leagueId}`);
-      } else {
-        console.log(`No squads needed updates in league ${leagueId}`);
-      }
+      // Create a new leaderboard snapshot for this league
+      console.log(`Creating new leaderboard snapshot for league ${leagueId}`);
+      await leaderboardSnapshotService.create(leagueId);
+      console.log(`Leaderboard snapshot created for league ${leagueId}`);
     } catch (error) {
       console.error(`Error updating league ${leagueId}:`, error);
       throw error;
@@ -1005,25 +1051,25 @@ export const playerPoolUpdateService = {
   // Recalculate a squad's points based on player updates
   recalculateSquadPoints(
     squad: LeagueSquad,
-    playerUpdates: { playerId: string; points: number }[]
+    playerUpdates: { playerId: string; points: number }[],
+    squadSize: number
   ): {
     updatedPlayers: LeagueSquad['players'];
-    needsUpdate: boolean;
     newTotalPoints: number;
     newCaptainPoints: number;
     newViceCaptainPoints: number;
+    newXFactorPoints: number;
   } {
-    let needsUpdate = false;
     let totalPoints = 0;
     let captainPoints = 0;
     let viceCaptainPoints = 0;
+    let xFactorPoints = 0;
 
     // Update player points in the squad
     const updatedPlayers = squad.players.map(player => {
       const update = playerUpdates.find(u => u.playerId === player.playerId);
 
-      if (update && update.points !== player.points) {
-        needsUpdate = true;
+      if (update) {
         return {
           ...player,
           points: update.points,
@@ -1032,8 +1078,10 @@ export const playerPoolUpdateService = {
       return player;
     });
 
-    // Calculate total points with captain/vice-captain multipliers
-    updatedPlayers.forEach(player => {
+    // Calculate total points with captain/vice-captain/X-factor multipliers
+    // Only count starting XI (first squadSize players), exclude bench
+    const startingXI = updatedPlayers.slice(0, squadSize);
+    startingXI.forEach(player => {
       // Calculate effective points: only count points earned while in this squad
       // If pointsAtJoining is not set (backward compatibility), default to 0
       const pointsAtJoining = player.pointsAtJoining ?? 0;
@@ -1049,6 +1097,10 @@ export const playerPoolUpdateService = {
         // Vice-captain gets 1.5x points
         viceCaptainPoints = effectivePoints * 1.5;
         playerPoints = viceCaptainPoints;
+      } else if (squad.xFactorId === player.playerId) {
+        // X-Factor gets 1.25x points
+        xFactorPoints = effectivePoints * 1.25;
+        playerPoints = xFactorPoints;
       }
 
       totalPoints += playerPoints;
@@ -1056,10 +1108,10 @@ export const playerPoolUpdateService = {
 
     return {
       updatedPlayers,
-      needsUpdate,
       newTotalPoints: totalPoints,
       newCaptainPoints: captainPoints,
       newViceCaptainPoints: viceCaptainPoints,
+      newXFactorPoints: xFactorPoints,
     };
   },
 };

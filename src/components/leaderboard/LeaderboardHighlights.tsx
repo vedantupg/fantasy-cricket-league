@@ -11,7 +11,59 @@ interface LeaderboardHighlightsProps {
 }
 
 const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot }) => {
-  const { bestPerformer, rapidRiser } = snapshot;
+  const { bestPerformer: snapshotBestPerformer, rapidRiser: snapshotRapidRiser, standings } = snapshot;
+
+  // Calculate fallback highlights if not provided (e.g., first snapshot)
+  let bestPerformer = snapshotBestPerformer;
+  let rapidRiser = snapshotRapidRiser;
+
+  // If no bestPerformer, use the player with highest points gained today, or top scorer
+  if (!bestPerformer && standings.length > 0) {
+    const topGainer = standings
+      .filter(s => s.pointsGainedToday > 0)
+      .sort((a, b) => b.pointsGainedToday - a.pointsGainedToday)[0];
+
+    if (topGainer) {
+      bestPerformer = {
+        userId: topGainer.userId,
+        displayName: topGainer.displayName,
+        squadName: topGainer.squadName,
+        profilePicUrl: topGainer.profilePicUrl,
+        pointsGained: topGainer.pointsGainedToday,
+      };
+    } else {
+      // Fallback to top scorer
+      const topScorer = standings[0];
+      bestPerformer = {
+        userId: topScorer.userId,
+        displayName: topScorer.displayName,
+        squadName: topScorer.squadName,
+        profilePicUrl: topScorer.profilePicUrl,
+        pointsGained: topScorer.totalPoints,
+      };
+    }
+  }
+
+  // If no rapidRiser, use the player with highest rank improvement
+  if (!rapidRiser && standings.length > 0) {
+    const topClimber = standings
+      .filter(s => s.rankChange && s.rankChange > 0)
+      .sort((a, b) => (b.rankChange || 0) - (a.rankChange || 0))[0];
+
+    if (topClimber && topClimber.rankChange) {
+      rapidRiser = {
+        userId: topClimber.userId,
+        displayName: topClimber.displayName,
+        squadName: topClimber.squadName,
+        profilePicUrl: topClimber.profilePicUrl,
+        ranksGained: topClimber.rankChange,
+        currentRank: topClimber.rank,
+        previousRank: topClimber.previousRank !== undefined
+          ? topClimber.previousRank
+          : topClimber.rank + topClimber.rankChange,
+      };
+    }
+  }
 
   if (!bestPerformer && !rapidRiser) {
     return null;
@@ -118,7 +170,7 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
                   fontSize: { xs: '0.75rem', sm: '0.875rem' },
                 }}
               >
-                {bestPerformer.displayName} scored {bestPerformer.pointsGained.toFixed(2)} points since the last snapshot!
+                {bestPerformer.displayName} scored {bestPerformer.pointsGained.toFixed(2)} points since the last updated leaderboard!
               </Typography>
             </Paper>
           </Box>
@@ -212,7 +264,7 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
                   fontSize: { xs: '0.75rem', sm: '0.875rem' },
                 }}
               >
-                1 rank{rapidRiser.ranksGained > 1 ? 's' : ''} jumped by {rapidRiser.displayName}
+                {rapidRiser.displayName} jumped {rapidRiser.ranksGained} rank{rapidRiser.ranksGained > 1 ? 's' : ''}!
               </Typography>
             </Paper>
           </Box>

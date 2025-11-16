@@ -297,6 +297,12 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
                 1.5x multiplier
               </Typography>
             </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>X-Factor Points</Typography>
+              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                1.25x multiplier
+              </Typography>
+            </Grid>
             {league.powerplayEnabled && (
               <Grid size={12}>
                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Powerplay Bonus</Typography>

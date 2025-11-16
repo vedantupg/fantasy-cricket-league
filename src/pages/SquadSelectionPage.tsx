@@ -28,7 +28,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
-import { playerPoolService, leagueService, squadService, squadPlayerUtils } from '../services/firestore';
+import { playerPoolService, leagueService, squadService, squadPlayerUtils, leaderboardSnapshotService } from '../services/firestore';
 import type { League, Player, SquadPlayer, LeagueSquad } from '../types/database';
 
 interface SelectedPlayer extends Player {
@@ -215,6 +215,44 @@ const SquadSelectionPage: React.FC = () => {
            viceCaptainId !== xFactorId;
   };
 
+  const calculateSquadPoints = (
+    players: SquadPlayer[],
+    captainId: string | null,
+    viceCaptainId: string | null,
+    xFactorId: string | null
+  ): { totalPoints: number; captainPoints: number; viceCaptainPoints: number; xFactorPoints: number } => {
+    let totalPoints = 0;
+    let captainPoints = 0;
+    let viceCaptainPoints = 0;
+    let xFactorPoints = 0;
+
+    players.forEach(player => {
+      // Calculate effective points: only count points earned while in this squad
+      const pointsAtJoining = player.pointsAtJoining ?? 0;
+      const effectivePoints = Math.max(0, player.points - pointsAtJoining);
+
+      let playerPoints = effectivePoints;
+
+      if (captainId === player.playerId) {
+        // Captain gets 2x points
+        captainPoints = effectivePoints * 2;
+        playerPoints = captainPoints;
+      } else if (viceCaptainId === player.playerId) {
+        // Vice-captain gets 1.5x points
+        viceCaptainPoints = effectivePoints * 1.5;
+        playerPoints = viceCaptainPoints;
+      } else if (xFactorId === player.playerId) {
+        // X-Factor gets 1.25x points
+        xFactorPoints = effectivePoints * 1.25;
+        playerPoints = xFactorPoints;
+      }
+
+      totalPoints += playerPoints;
+    });
+
+    return { totalPoints, captainPoints, viceCaptainPoints, xFactorPoints };
+  };
+
   const handleSubmitSquad = async () => {
     if (!user || !league || !leagueId) return;
     if (!isSquadValid()) return;
@@ -242,6 +280,9 @@ const SquadSelectionPage: React.FC = () => {
         return squadPlayer;
       });
 
+      // Calculate total points based on current player points and multipliers
+      const calculatedPoints = calculateSquadPoints(squadPlayers, captainId, viceCaptainId, xFactorId);
+
       // Check if squad already exists
       const existingSquad = await squadService.getByUserAndLeague(user.uid, leagueId);
 
@@ -252,6 +293,10 @@ const SquadSelectionPage: React.FC = () => {
           captainId: captainId || undefined,
           viceCaptainId: viceCaptainId || undefined,
           xFactorId: xFactorId || undefined,
+          totalPoints: calculatedPoints.totalPoints,
+          captainPoints: calculatedPoints.captainPoints,
+          viceCaptainPoints: calculatedPoints.viceCaptainPoints,
+          xFactorPoints: calculatedPoints.xFactorPoints,
           isSubmitted: true,
           lastUpdated: new Date(),
         };
@@ -267,14 +312,14 @@ const SquadSelectionPage: React.FC = () => {
         const squadData: any = {
           userId: user.uid,
           leagueId: leagueId,
-          squadName: `${user.displayName || 'User'}'s Squad`,
+          squadName: user.displayName || 'User',
           players: squadPlayers,
           isSubmitted: true,
           submittedAt: new Date(),
-          totalPoints: 0,
-          captainPoints: 0,
-          viceCaptainPoints: 0,
-          xFactorPoints: 0,
+          totalPoints: calculatedPoints.totalPoints,
+          captainPoints: calculatedPoints.captainPoints,
+          viceCaptainPoints: calculatedPoints.viceCaptainPoints,
+          xFactorPoints: calculatedPoints.xFactorPoints,
           rank: 0,
           matchPoints: {},
           transfersUsed: 0,
@@ -287,6 +332,15 @@ const SquadSelectionPage: React.FC = () => {
         };
 
         await squadService.create(squadData);
+      }
+
+      // Create/update leaderboard snapshot for this league
+      try {
+        await leaderboardSnapshotService.create(leagueId);
+        console.log('Leaderboard snapshot created/updated after squad submission');
+      } catch (snapshotError) {
+        console.error('Error creating leaderboard snapshot:', snapshotError);
+        // Don't fail the submission if snapshot creation fails
       }
 
       // Navigate to league dashboard
@@ -306,8 +360,12 @@ const SquadSelectionPage: React.FC = () => {
 
     // Use functional setState to ensure we check against the LATEST state
     setSelectedPlayers(prev => {
-      // Check if player is already selected (using latest state)
-      if (prev.find(p => p.id === player.id)) {
+      // Check if player is already selected (using latest state) - CRITICAL for preventing duplicates/stacking
+      const existingPlayer = prev.find(p => p.id === player.id);
+      if (existingPlayer) {
+        console.warn(`Player ${player.name} is already in the squad at position ${existingPlayer.position}`);
+        setSubmitError(`${player.name} is already selected`);
+        setTimeout(() => setSubmitError(''), 3000);
         return prev; // Don't add duplicate
       }
 
@@ -332,6 +390,7 @@ const SquadSelectionPage: React.FC = () => {
 
       // All validations passed, add the player
       const newPlayer: SelectedPlayer = { ...player, position: targetPosition };
+      console.log(`Adding player ${player.name} to ${targetPosition} position. Total main squad: ${currentMainSquad + (targetPosition === 'regular' ? 1 : 0)}/${league.squadSize}`);
       return [...prev, newPlayer];
     });
   };
@@ -566,6 +625,26 @@ const CricketPitchFormation: React.FC<{
   };
 
   const requiredSlots = getRequiredSlots();
+
+  // Pre-calculate player assignments to prevent any duplication or stacking
+  const mainSquadPlayers = selectedPlayers.filter(p => p.position !== 'bench');
+  const benchPlayers = selectedPlayers.filter(p => p.position === 'bench');
+
+  const playersByRole = {
+    batsman: mainSquadPlayers.filter(p => p.role === 'batsman'),
+    bowler: mainSquadPlayers.filter(p => p.role === 'bowler'),
+    allrounder: mainSquadPlayers.filter(p => p.role === 'allrounder'),
+    wicketkeeper: mainSquadPlayers.filter(p => p.role === 'wicketkeeper')
+  };
+
+  // Calculate flexible players (those beyond minimum requirements)
+  // This ensures each player only appears once - either in required OR flexible slots
+  const flexiblePlayersList = [
+    ...playersByRole.batsman.slice(league.squadRules.minBatsmen),
+    ...playersByRole.bowler.slice(league.squadRules.minBowlers),
+    ...playersByRole.allrounder.slice(league.squadRules.minAllrounders),
+    ...playersByRole.wicketkeeper.slice(league.squadRules.minWicketkeepers)
+  ];
 
   const getRoleDisplayText = (role?: string): string => {
     if (!role) return '';
@@ -1004,18 +1083,15 @@ const CricketPitchFormation: React.FC<{
                     />
                   </Box>
                   <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5, md: 2 }, justifyContent: 'center', flexWrap: 'wrap', pb: { xs: 1, sm: 1.5, md: 2 } }}>
-                    {requiredSlots.wicketkeepers.map((_, index) => {
-                      const players = selectedPlayers.filter(p => p.role === 'wicketkeeper' && p.position !== 'bench');
-                      return (
-                        <PlayerSlot
-                          key={`wicketkeeper-${index}`}
-                          player={players[index]}
-                          role="wicketkeeper"
-                          slotType="required"
-                          position={index}
-                        />
-                      );
-                    })}
+                    {requiredSlots.wicketkeepers.map((_, index) => (
+                      <PlayerSlot
+                        key={`wicketkeeper-${index}`}
+                        player={playersByRole.wicketkeeper[index]}
+                        role="wicketkeeper"
+                        slotType="required"
+                        position={index}
+                      />
+                    ))}
                   </Box>
                 </Box>
               </Box>
@@ -1063,18 +1139,15 @@ const CricketPitchFormation: React.FC<{
                   />
                 </Box>
                 <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5, md: 2 }, justifyContent: 'center', flexWrap: 'wrap', pb: { xs: 1, sm: 1.5, md: 2 } }}>
-                  {requiredSlots.batsmen.map((_, index) => {
-                    const players = selectedPlayers.filter(p => p.role === 'batsman' && p.position !== 'bench');
-                    return (
-                      <PlayerSlot
-                        key={`batsman-${index}`}
-                        player={players[index]}
-                        role="batsman"
-                        slotType="required"
-                        position={index}
-                      />
-                    );
-                  })}
+                  {requiredSlots.batsmen.map((_, index) => (
+                    <PlayerSlot
+                      key={`batsman-${index}`}
+                      player={playersByRole.batsman[index]}
+                      role="batsman"
+                      slotType="required"
+                      position={index}
+                    />
+                  ))}
                 </Box>
               </Box>
             </Box>
@@ -1121,18 +1194,15 @@ const CricketPitchFormation: React.FC<{
                   />
                 </Box>
                 <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5, md: 2 }, justifyContent: 'center', flexWrap: 'wrap', pb: { xs: 1, sm: 1.5, md: 2 } }}>
-                  {requiredSlots.allrounders.map((_, index) => {
-                    const players = selectedPlayers.filter(p => p.role === 'allrounder' && p.position !== 'bench');
-                    return (
-                      <PlayerSlot
-                        key={`allrounder-${index}`}
-                        player={players[index]}
-                        role="allrounder"
-                        slotType="required"
-                        position={index}
-                      />
-                    );
-                  })}
+                  {requiredSlots.allrounders.map((_, index) => (
+                    <PlayerSlot
+                      key={`allrounder-${index}`}
+                      player={playersByRole.allrounder[index]}
+                      role="allrounder"
+                      slotType="required"
+                      position={index}
+                    />
+                  ))}
                 </Box>
               </Box>
             </Box>
@@ -1179,18 +1249,15 @@ const CricketPitchFormation: React.FC<{
                   />
                 </Box>
                 <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5, md: 2 }, justifyContent: 'center', flexWrap: 'wrap', pb: { xs: 1, sm: 1.5, md: 2 } }}>
-                  {requiredSlots.bowlers.map((_, index) => {
-                    const players = selectedPlayers.filter(p => p.role === 'bowler' && p.position !== 'bench');
-                    return (
-                      <PlayerSlot
-                        key={`bowler-${index}`}
-                        player={players[index]}
-                        role="bowler"
-                        slotType="required"
-                        position={index}
-                      />
-                    );
-                  })}
+                  {requiredSlots.bowlers.map((_, index) => (
+                    <PlayerSlot
+                      key={`bowler-${index}`}
+                      player={playersByRole.bowler[index]}
+                      role="bowler"
+                      slotType="required"
+                      position={index}
+                    />
+                  ))}
                 </Box>
               </Box>
             </Box>
@@ -1215,31 +1282,14 @@ const CricketPitchFormation: React.FC<{
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5, md: 2 }, justifyContent: 'center', flexWrap: 'wrap' }}>
-                    {requiredSlots.flexible.map((_, index) => {
-                      const mainSquadPlayers = selectedPlayers.filter(p => p.position !== 'bench');
-                      const allSelectedByRole = {
-                        batsman: mainSquadPlayers.filter(p => p.role === 'batsman'),
-                        bowler: mainSquadPlayers.filter(p => p.role === 'bowler'),
-                        allrounder: mainSquadPlayers.filter(p => p.role === 'allrounder'),
-                        wicketkeeper: mainSquadPlayers.filter(p => p.role === 'wicketkeeper')
-                      };
-
-                      const flexiblePlayers = [
-                        ...allSelectedByRole.batsman.slice(league.squadRules.minBatsmen),
-                        ...allSelectedByRole.bowler.slice(league.squadRules.minBowlers),
-                        ...allSelectedByRole.allrounder.slice(league.squadRules.minAllrounders),
-                        ...allSelectedByRole.wicketkeeper.slice(league.squadRules.minWicketkeepers)
-                      ];
-
-                      return (
-                        <PlayerSlot
-                          key={`flexible-${index}`}
-                          player={flexiblePlayers[index]}
-                          slotType="flexible"
-                          position={index}
-                        />
-                      );
-                    })}
+                    {requiredSlots.flexible.map((_, index) => (
+                      <PlayerSlot
+                        key={`flexible-${index}`}
+                        player={flexiblePlayersList[index]}
+                        slotType="flexible"
+                        position={index}
+                      />
+                    ))}
                   </Box>
                 </Box>
               </Box>
@@ -1265,17 +1315,14 @@ const CricketPitchFormation: React.FC<{
                 border: '2px solid rgba(255, 152, 0, 0.4)',
                 boxShadow: '0 4px 12px rgba(255, 152, 0, 0.2)'
               }}>
-                {requiredSlots.bench.map((_, index) => {
-                  const benchPlayers = selectedPlayers.filter(p => p.position === 'bench');
-                  return (
-                    <PlayerSlot
-                      key={`bench-${index}`}
-                      player={benchPlayers[index]}
-                      slotType="bench"
-                      position={index}
-                    />
-                  );
-                })}
+                {requiredSlots.bench.map((_, index) => (
+                  <PlayerSlot
+                    key={`bench-${index}`}
+                    player={benchPlayers[index]}
+                    slotType="bench"
+                    position={index}
+                  />
+                ))}
               </Box>
             </Box>
           </Box>

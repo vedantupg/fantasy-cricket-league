@@ -18,7 +18,8 @@ import {
   People,
   EmojiEvents,
   Groups,
-  MenuBook
+  MenuBook,
+  BarChart
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -68,6 +69,8 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
         return 3;
       case 'Rules':
         return 4;
+      case 'Analytics':
+        return 5;
       default:
         return false;
     }
@@ -89,6 +92,9 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
         break;
       case 4:
         navigate(`/leagues/${leagueId}/rules`);
+        break;
+      case 5:
+        navigate(`/leagues/${leagueId}/analytics`);
         break;
     }
   };
@@ -292,6 +298,11 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
             icon={<MenuBook sx={{ fontSize: { xs: 20, sm: 20 } }} />}
             iconPosition={isMobile ? 'top' : 'start'}
             label={isMobile ? 'Rules' : 'Rules'}
+          />
+          <Tab
+            icon={<BarChart sx={{ fontSize: { xs: 20, sm: 20 } }} />}
+            iconPosition={isMobile ? 'top' : 'start'}
+            label={isMobile ? 'Analytics' : 'Analytics'}
           />
         </Tabs>
       </Box>

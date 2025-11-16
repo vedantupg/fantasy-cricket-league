@@ -187,6 +187,21 @@ const LeaderboardCard: React.FC<LeaderboardCardProps> = ({ standing, isCurrentUs
           )}
         </Box>
 
+        {/* X-Factor Points */}
+        <Box sx={{ flex: 1, minWidth: { xs: 80, sm: 100 } }}>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
+            X-Factor
+          </Typography>
+          <Typography variant="body1" fontWeight="bold" sx={{ color: '#9C27B0', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+            {standing.xFactorPoints.toFixed(2)}
+          </Typography>
+          {standing.xFactorName && (
+            <Typography variant="caption" color="text.secondary" noWrap sx={{ fontSize: { xs: '0.6rem', sm: '0.75rem' } }}>
+              {standing.xFactorName}
+            </Typography>
+          )}
+        </Box>
+
         {/* Points Gained Today */}
         <Box sx={{ flex: 1, minWidth: { xs: 80, sm: 100 } }}>
           <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>

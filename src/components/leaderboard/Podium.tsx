@@ -170,6 +170,9 @@ const Podium: React.FC<PodiumProps> = ({ topThree }) => {
               <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
                 C: {standing.captainPoints.toFixed(2)} | VC: {standing.viceCaptainPoints.toFixed(2)}
               </Typography>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
+                X: {standing.xFactorPoints.toFixed(2)}
+              </Typography>
             </Box>
 
             {/* Lead from next */}
