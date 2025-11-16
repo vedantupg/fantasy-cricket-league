@@ -9,6 +9,22 @@ export interface User {
   leagues: string[]; // league IDs
   totalPoints: number;
   createdAt: Date;
+
+  // User Preferences & Favorites
+  favoriteBatter?: string; // Favorite batsman in the world
+  favoriteBowler?: string; // Favorite bowler in the world
+  favoriteFielder?: string; // Favorite fielder in the world
+  favoriteIPLTeam?: string; // Favorite IPL team they support
+
+  // User Stats (calculated)
+  stats?: {
+    totalLeaguesJoined: number;
+    activeLeagues: number;
+    completedLeagues: number;
+    highestRankAchieved?: number; // Best rank across all leagues
+    totalSquadsSubmitted: number;
+    totalPredictionsMade: number;
+  };
 }
 
 export interface League {
@@ -36,6 +52,10 @@ export interface League {
     startDate: Date;
     endDate: Date;
   };
+
+  // Admin Controls for Squad Changes
+  flexibleChangesEnabled?: boolean; // Admin toggle for allowing flexible changes
+  benchChangesEnabled?: boolean; // Admin toggle for allowing bench changes
   
   // League States
   status: 'squad_selection' | 'active' | 'completed';
@@ -127,6 +147,13 @@ export interface LeagueSquad {
   // Transfer Management
   transfersUsed: number;
   transferHistory: string[]; // transfer IDs
+
+  // Predictions
+  predictions?: {
+    topRunScorer?: string; // Player name prediction for top run scorer
+    topWicketTaker?: string; // Player name prediction for top wicket taker
+    seriesScoreline?: string; // Predicted series scoreline (e.g., "3-1", "2-2")
+  };
 
   // Squad Validation
   isValid: boolean;

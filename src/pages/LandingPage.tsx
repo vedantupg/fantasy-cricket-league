@@ -21,7 +21,8 @@ import {
   Shield,
   Timeline,
   Settings,
-  Dashboard
+  Dashboard,
+  WhatsApp
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -374,9 +375,109 @@ const LandingPage: React.FC = () => {
           </Box>
         </Box>
 
+        {/* WhatsApp Community Section */}
+        <Card
+          sx={{
+            mb: 6,
+            background: `linear-gradient(135deg, ${alpha('#25D366', 0.15)}, ${alpha('#128C7E', 0.1)})`,
+            backdropFilter: 'blur(10px)',
+            border: `2px solid ${alpha('#25D366', 0.3)}`,
+            overflow: 'hidden',
+            position: 'relative'
+          }}
+        >
+          <CardContent sx={{ p: { xs: 3, md: 5 } }}>
+            <Box sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', md: 'row' },
+              alignItems: 'center',
+              gap: 3,
+              textAlign: { xs: 'center', md: 'left' }
+            }}>
+              {/* WhatsApp Icon */}
+              <Avatar
+                sx={{
+                  bgcolor: '#25D366',
+                  width: { xs: 80, md: 100 },
+                  height: { xs: 80, md: 100 },
+                  boxShadow: `0 0 30px ${alpha('#25D366', 0.4)}`
+                }}
+              >
+                <WhatsApp sx={{ fontSize: { xs: 48, md: 64 }, color: 'white' }} />
+              </Avatar>
+
+              {/* Content */}
+              <Box sx={{ flex: 1 }}>
+                <Typography
+                  variant="h4"
+                  sx={{
+                    fontWeight: 'bold',
+                    mb: 1,
+                    fontSize: { xs: '1.75rem', md: '2.125rem' }
+                  }}
+                >
+                  Join Our Cricket Community!
+                </Typography>
+                <Typography
+                  variant="h6"
+                  color="text.secondary"
+                  sx={{ mb: 2, fontSize: { xs: '1rem', md: '1.25rem' } }}
+                >
+                  Connect with 100+ mad cricket fans! Get real-time updates, share strategies, and vibe with fellow cricket enthusiasts.
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: { xs: 'center', md: 'flex-start' } }}>
+                  <Chip
+                    icon={<People sx={{ fontSize: 18 }} />}
+                    label="100+ Active Members"
+                    sx={{ bgcolor: alpha('#25D366', 0.2), fontWeight: 600 }}
+                  />
+                  <Chip
+                    icon={<Star sx={{ fontSize: 18 }} />}
+                    label="Expert Tips & Insights"
+                    sx={{ bgcolor: alpha('#25D366', 0.2), fontWeight: 600 }}
+                  />
+                  <Chip
+                    icon={<EmojiEvents sx={{ fontSize: 18 }} />}
+                    label="Exclusive Contests"
+                    sx={{ bgcolor: alpha('#25D366', 0.2), fontWeight: 600 }}
+                  />
+                </Box>
+              </Box>
+
+              {/* CTA Button */}
+              <Button
+                variant="contained"
+                size="large"
+                startIcon={<WhatsApp />}
+                href="https://chat.whatsapp.com/CREMSkJQbIu2rkuZ75mjzM"
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  bgcolor: '#25D366',
+                  color: 'white',
+                  borderRadius: 3,
+                  px: 4,
+                  py: 1.5,
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold',
+                  minWidth: { xs: '100%', md: 200 },
+                  '&:hover': {
+                    bgcolor: '#128C7E',
+                    transform: 'translateY(-2px)',
+                    boxShadow: `0 8px 20px ${alpha('#25D366', 0.4)}`
+                  },
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                Join Now
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+
         {/* CTA Section */}
-        <Card 
-          sx={{ 
+        <Card
+          sx={{
             background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
             color: 'white',
             textAlign: 'center',
@@ -389,11 +490,11 @@ const LandingPage: React.FC = () => {
           <Typography variant="h6" sx={{ mb: 4, opacity: 0.9 }}>
             No more daily chaos. No FOMO. Just you being the cricket genius your friends wish they were!
           </Typography>
-          <Button 
+          <Button
             variant="contained"
             size="large"
             onClick={handleGetStarted}
-            sx={{ 
+            sx={{
               bgcolor: 'rgba(255, 255, 255, 0.2)',
               borderRadius: 3,
               px: 4,

@@ -16,7 +16,8 @@ import {
   IconButton,
   Chip,
   Grid,
-  Alert
+  Alert,
+  TextField
 } from '@mui/material';
 import {
   PersonAdd,
@@ -50,6 +51,11 @@ const SquadSelectionPage: React.FC = () => {
   const [submitError, setSubmitError] = useState('');
   const [existingSquad, setExistingSquad] = useState<LeagueSquad | null>(null);
   const [isDeadlinePassed, setIsDeadlinePassed] = useState(false);
+
+  // Predictions state
+  const [topRunScorer, setTopRunScorer] = useState('');
+  const [topWicketTaker, setTopWicketTaker] = useState('');
+  const [seriesScoreline, setSeriesScoreline] = useState('');
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -145,6 +151,13 @@ const SquadSelectionPage: React.FC = () => {
     setCaptainId(existingSquad.captainId || null);
     setViceCaptainId(existingSquad.viceCaptainId || null);
     setXFactorId(existingSquad.xFactorId || null);
+
+    // Load predictions if they exist
+    if (existingSquad.predictions) {
+      setTopRunScorer(existingSquad.predictions.topRunScorer || '');
+      setTopWicketTaker(existingSquad.predictions.topWicketTaker || '');
+      setSeriesScoreline(existingSquad.predictions.seriesScoreline || '');
+    }
 
     // Convert SquadPlayer[] to SelectedPlayer[]
     const squadPlayers: SelectedPlayer[] = existingSquad.players.map((squadPlayer, index) => {
@@ -297,6 +310,11 @@ const SquadSelectionPage: React.FC = () => {
           captainPoints: calculatedPoints.captainPoints,
           viceCaptainPoints: calculatedPoints.viceCaptainPoints,
           xFactorPoints: calculatedPoints.xFactorPoints,
+          predictions: {
+            topRunScorer: topRunScorer || undefined,
+            topWicketTaker: topWicketTaker || undefined,
+            seriesScoreline: seriesScoreline || undefined,
+          },
           isSubmitted: true,
           lastUpdated: new Date(),
         };
@@ -320,6 +338,11 @@ const SquadSelectionPage: React.FC = () => {
           captainPoints: calculatedPoints.captainPoints,
           viceCaptainPoints: calculatedPoints.viceCaptainPoints,
           xFactorPoints: calculatedPoints.xFactorPoints,
+          predictions: {
+            topRunScorer: topRunScorer || undefined,
+            topWicketTaker: topWicketTaker || undefined,
+            seriesScoreline: seriesScoreline || undefined,
+          },
           rank: 0,
           matchPoints: {},
           transfersUsed: 0,
@@ -592,6 +615,75 @@ const SquadSelectionPage: React.FC = () => {
             />
           </Grid>
         </Grid>
+
+        {/* Predictions Section */}
+        <Card sx={{ mt: { xs: 2, sm: 3 }, background: 'linear-gradient(135deg, rgba(255, 0, 93, 0.1), rgba(0, 229, 255, 0.05))' }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="h6" fontWeight="bold" gutterBottom>
+                Make Your Predictions
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Predict the top performers and series outcome. Get bragging rights when you're right!
+              </Typography>
+            </Box>
+
+            <Grid container spacing={{ xs: 2, sm: 3 }}>
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <TextField
+                  fullWidth
+                  label="Top Run Scorer"
+                  placeholder="e.g., Virat Kohli"
+                  value={topRunScorer}
+                  onChange={(e) => setTopRunScorer(e.target.value)}
+                  variant="outlined"
+                  size="small"
+                  InputProps={{
+                    startAdornment: <Box sx={{ mr: 1, color: 'warning.main' }}>🏏</Box>
+                  }}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <TextField
+                  fullWidth
+                  label="Top Wicket Taker"
+                  placeholder="e.g., Jasprit Bumrah"
+                  value={topWicketTaker}
+                  onChange={(e) => setTopWicketTaker(e.target.value)}
+                  variant="outlined"
+                  size="small"
+                  InputProps={{
+                    startAdornment: <Box sx={{ mr: 1, color: 'error.main' }}>⚡</Box>
+                  }}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <TextField
+                  fullWidth
+                  label="Series Scoreline"
+                  placeholder="e.g., 3-1 or 2-2"
+                  value={seriesScoreline}
+                  onChange={(e) => setSeriesScoreline(e.target.value)}
+                  variant="outlined"
+                  size="small"
+                  InputProps={{
+                    startAdornment: <Box sx={{ mr: 1, color: 'success.main' }}>📊</Box>
+                  }}
+                />
+              </Grid>
+            </Grid>
+
+            <Box sx={{ mt: 2 }}>
+              <Alert severity="info" sx={{ fontSize: '0.875rem' }}>
+                <Typography variant="caption" display="block">
+                  Your predictions will be saved with your squad and can be updated anytime before the deadline.
+                </Typography>
+              </Alert>
+            </Box>
+          </CardContent>
+        </Card>
       </Container>
     </Box>
   );

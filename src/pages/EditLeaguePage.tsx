@@ -103,6 +103,10 @@ const EditLeaguePage: React.FC = () => {
     }
   });
 
+  // Admin controls for squad changes
+  const [flexibleChangesEnabled, setFlexibleChangesEnabled] = useState(false);
+  const [benchChangesEnabled, setBenchChangesEnabled] = useState(false);
+
   // Load player pools and existing league data
   useEffect(() => {
     const loadData = async () => {
@@ -154,6 +158,10 @@ const EditLeaguePage: React.FC = () => {
           setTransferTypes(leagueData.transferTypes);
         }
 
+        // Load admin control values
+        setFlexibleChangesEnabled(leagueData.flexibleChangesEnabled || false);
+        setBenchChangesEnabled(leagueData.benchChangesEnabled || false);
+
       } catch (err: any) {
         console.error('Error loading data:', err);
         setError('Failed to load league data');
@@ -194,6 +202,8 @@ const EditLeaguePage: React.FC = () => {
         squadRules,
         powerplayEnabled: leagueData.powerplayEnabled,
         transferTypes,
+        flexibleChangesEnabled,
+        benchChangesEnabled,
       };
 
       await leagueService.update(leagueId, updates);
@@ -566,6 +576,74 @@ const EditLeaguePage: React.FC = () => {
                     />
                   </Box>
                 )}
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {/* Admin Controls for Squad Changes */}
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Admin Controls
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Control when users can make flexible and bench changes to their squads
+            </Typography>
+
+            <Grid container spacing={2}>
+              {/* Flexible Changes Toggle */}
+              <Grid size={12}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={flexibleChangesEnabled}
+                      onChange={(e) => setFlexibleChangesEnabled(e.target.checked)}
+                      color="primary"
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body1" fontWeight="medium">
+                        Enable Flexible Changes
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Allow users to make flexible changes to their squad (reorder players, change captain/vice-captain/X-factor)
+                      </Typography>
+                    </Box>
+                  }
+                />
+              </Grid>
+
+              {/* Bench Changes Toggle */}
+              <Grid size={12}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={benchChangesEnabled}
+                      onChange={(e) => setBenchChangesEnabled(e.target.checked)}
+                      color="primary"
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body1" fontWeight="medium">
+                        Enable Bench Changes
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Allow users to swap players between starting XI and bench
+                      </Typography>
+                    </Box>
+                  }
+                />
+              </Grid>
+
+              <Grid size={12}>
+                <Alert severity="info">
+                  <Typography variant="body2">
+                    These toggles allow you (admin) to control when squad changes are allowed. Toggle them ON when you want users to be able to make changes, and OFF to lock squads. Mid-season transfers (configured above) have their own schedule.
+                  </Typography>
+                </Alert>
               </Grid>
             </Grid>
           </CardContent>
