@@ -17,7 +17,9 @@ import {
   Chip,
   Grid,
   Alert,
-  TextField
+  TextField,
+  useTheme,
+  alpha
 } from '@mui/material';
 import {
   PersonAdd,
@@ -29,6 +31,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
+import TransferModal, { TransferData } from '../components/squad/TransferModal';
 import { playerPoolService, leagueService, squadService, squadPlayerUtils, leaderboardSnapshotService } from '../services/firestore';
 import type { League, Player, SquadPlayer, LeagueSquad } from '../types/database';
 
@@ -38,6 +41,7 @@ interface SelectedPlayer extends Player {
 
 const SquadSelectionPage: React.FC = () => {
   const { leagueId } = useParams<{ leagueId: string }>();
+  const theme = useTheme();
   const [loading, setLoading] = useState(true);
   const [league, setLeague] = useState<League | null>(null);
   const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]);
@@ -51,6 +55,7 @@ const SquadSelectionPage: React.FC = () => {
   const [submitError, setSubmitError] = useState('');
   const [existingSquad, setExistingSquad] = useState<LeagueSquad | null>(null);
   const [isDeadlinePassed, setIsDeadlinePassed] = useState(false);
+  const [transferModalOpen, setTransferModalOpen] = useState(false);
 
   // Predictions state
   const [topRunScorer, setTopRunScorer] = useState('');
@@ -217,7 +222,6 @@ const SquadSelectionPage: React.FC = () => {
     return mainSquadCount === league.squadSize &&
            counts.batsman >= league.squadRules.minBatsmen &&
            counts.bowler >= league.squadRules.minBowlers &&
-           counts.allrounder >= league.squadRules.minAllrounders &&
            counts.wicketkeeper >= league.squadRules.minWicketkeepers &&
            counts.bench >= benchRequired &&
            captainId !== null &&
@@ -225,7 +229,10 @@ const SquadSelectionPage: React.FC = () => {
            xFactorId !== null &&
            captainId !== viceCaptainId &&
            captainId !== xFactorId &&
-           viceCaptainId !== xFactorId;
+           viceCaptainId !== xFactorId &&
+           topRunScorer.trim() !== '' &&
+           topWicketTaker.trim() !== '' &&
+           seriesScoreline.trim() !== '';
   };
 
   const calculateSquadPoints = (
@@ -373,6 +380,103 @@ const SquadSelectionPage: React.FC = () => {
       setSubmitError(error.message || 'Failed to submit squad');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleTransferSubmit = async (transferData: TransferData) => {
+    if (!user || !league || !leagueId || !existingSquad) return;
+
+    try {
+      // Create a copy of the existing squad to modify
+      let updatedPlayers = [...existingSquad.players];
+      let updatedViceCaptainId = existingSquad.viceCaptainId;
+      let updatedXFactorId = existingSquad.xFactorId;
+
+      // Process the transfer based on change type
+      if (transferData.changeType === 'playerSubstitution' && transferData.playerOut && transferData.playerIn) {
+        // Find the player to remove
+        const playerOutIndex = updatedPlayers.findIndex(p => p.playerId === transferData.playerOut);
+        if (playerOutIndex === -1) throw new Error('Player to remove not found');
+
+        // Get the full player data for the incoming player
+        const incomingPlayer = availablePlayers.find(p => p.id === transferData.playerIn);
+        if (!incomingPlayer) throw new Error('Incoming player not found');
+
+        // Create new squad player
+        const newSquadPlayer = squadPlayerUtils.createInitialSquadPlayer({
+          playerId: incomingPlayer.id,
+          playerName: incomingPlayer.name,
+          team: incomingPlayer.team,
+          role: incomingPlayer.role,
+          points: incomingPlayer.stats[league.format].recentForm || 0,
+        });
+
+        // Replace the player
+        updatedPlayers[playerOutIndex] = newSquadPlayer;
+
+        // If removing VC in a bench transfer, the incoming player becomes the new VC
+        if (transferData.transferType === 'bench' && transferData.playerOut === existingSquad.viceCaptainId) {
+          updatedViceCaptainId = transferData.playerIn;
+        }
+      } else if (transferData.changeType === 'roleReassignment') {
+        // Update roles without changing players
+        if (transferData.newViceCaptainId) {
+          updatedViceCaptainId = transferData.newViceCaptainId;
+        }
+        if (transferData.newXFactorId) {
+          updatedXFactorId = transferData.newXFactorId;
+        }
+      }
+
+      // Calculate new points
+      const calculatedPoints = calculateSquadPoints(
+        updatedPlayers,
+        existingSquad.captainId || null,
+        updatedViceCaptainId || null,
+        updatedXFactorId || null
+      );
+
+      // Create transfer history entry
+      const transferHistoryEntry = {
+        timestamp: new Date(),
+        transferType: transferData.transferType,
+        changeType: transferData.changeType,
+        playerOut: transferData.playerOut,
+        playerIn: transferData.playerIn,
+        newViceCaptainId: transferData.newViceCaptainId,
+        newXFactorId: transferData.newXFactorId
+      };
+
+      // Update the squad
+      await squadService.update(existingSquad.id, {
+        players: updatedPlayers,
+        viceCaptainId: updatedViceCaptainId || undefined,
+        xFactorId: updatedXFactorId || undefined,
+        totalPoints: calculatedPoints.totalPoints,
+        captainPoints: calculatedPoints.captainPoints,
+        viceCaptainPoints: calculatedPoints.viceCaptainPoints,
+        xFactorPoints: calculatedPoints.xFactorPoints,
+        transfersUsed: (existingSquad.transfersUsed || 0) + 1,
+        transferHistory: [...(existingSquad.transferHistory || []), transferHistoryEntry],
+        lastUpdated: new Date()
+      });
+
+      // Reload the squad
+      const updatedSquad = await squadService.getByUserAndLeague(user.uid, leagueId);
+      setExistingSquad(updatedSquad);
+
+      // Update leaderboard snapshot
+      try {
+        await leaderboardSnapshotService.create(leagueId);
+      } catch (snapshotError) {
+        console.error('Error creating leaderboard snapshot:', snapshotError);
+      }
+
+      // Show success message
+      setSubmitError('');
+    } catch (error: any) {
+      console.error('Error submitting transfer:', error);
+      throw error; // Re-throw to let the modal handle it
     }
   };
 
@@ -526,7 +630,7 @@ const SquadSelectionPage: React.FC = () => {
         <Box display="flex" gap={{ xs: 0.5, sm: 1 }} flexWrap="wrap">
           {league.transferTypes.benchTransfers.enabled && (
             <Chip
-              label={`Bench: ${existingSquad?.transfersUsed || 0}/${league.transferTypes.benchTransfers.maxAllowed}`}
+              label={`${league.transferTypes.benchTransfers.maxAllowed - (existingSquad?.transfersUsed || 0)} Bench Available`}
               size="small"
               color="primary"
               variant="outlined"
@@ -535,7 +639,7 @@ const SquadSelectionPage: React.FC = () => {
           )}
           {league.transferTypes.midSeasonTransfers.enabled && (
             <Chip
-              label={`Mid-Season: Available`}
+              label={`Mid-Season Available`}
               size="small"
               color="secondary"
               variant="outlined"
@@ -544,7 +648,7 @@ const SquadSelectionPage: React.FC = () => {
           )}
           {league.transferTypes.flexibleTransfers.enabled && (
             <Chip
-              label={`Flexible: Available`}
+              label={`Flexible Available`}
               size="small"
               color="success"
               variant="outlined"
@@ -553,16 +657,28 @@ const SquadSelectionPage: React.FC = () => {
           )}
         </Box>
       )}
-      <Button
-        variant="contained"
-        color={isDeadlinePassed ? "inherit" : "success"}
-        disabled={!isSquadValid() || submitting || isDeadlinePassed}
-        startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <Star />}
-        onClick={handleSubmitSquad}
-        sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1.5, sm: 2 }, py: { xs: 0.5, sm: 1 } }}
-      >
-        {getSubmitButtonText()}
-      </Button>
+      {isDeadlinePassed && existingSquad ? (
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<SwapHoriz />}
+          onClick={() => setTransferModalOpen(true)}
+          sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1.5, sm: 2 }, py: { xs: 0.5, sm: 1 } }}
+        >
+          Make Transfer
+        </Button>
+      ) : (
+        <Button
+          variant="contained"
+          color={isDeadlinePassed ? "inherit" : "success"}
+          disabled={!isSquadValid() || submitting || isDeadlinePassed}
+          startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <Star />}
+          onClick={handleSubmitSquad}
+          sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1.5, sm: 2 }, py: { xs: 0.5, sm: 1 } }}
+        >
+          {getSubmitButtonText()}
+        </Button>
+      )}
     </Box>
   );
 
@@ -630,6 +746,105 @@ const SquadSelectionPage: React.FC = () => {
           </Box>
         )}
 
+        {/* Squad Summary - Moved to top */}
+        <Card sx={{
+          mb: { xs: 2, sm: 3 },
+          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.08)}, ${alpha(theme.palette.secondary.main, 0.05)})`,
+          backdropFilter: 'blur(20px)',
+          border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+          borderRadius: 2,
+          boxShadow: `0 4px 16px ${alpha('#000', 0.3)}`
+        }}>
+          <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', fontSize: { xs: '0.95rem', sm: '1.1rem', md: '1.25rem' }, mb: 2 }}>
+              Squad Summary
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 1, sm: 1.5 } }}>
+              <Chip
+                label={`Players: ${selectedPlayers.filter(p => p.position !== 'bench').length}/${league?.squadSize || 0}`}
+                variant="outlined"
+                sx={{
+                  fontWeight: 600,
+                  fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                  height: { xs: 28, sm: 32 },
+                  borderColor: theme.palette.primary.main,
+                  color: 'text.primary',
+                  bgcolor: alpha(theme.palette.primary.main, 0.05)
+                }}
+              />
+              {league?.transferTypes?.benchTransfers?.enabled && (
+                <Chip
+                  label={
+                    isDeadlinePassed
+                      ? `${league.transferTypes.benchTransfers.maxAllowed - (existingSquad?.transfersUsed || 0)} Bench Transfer${league.transferTypes.benchTransfers.maxAllowed - (existingSquad?.transfersUsed || 0) === 1 ? '' : 's'} Available`
+                      : `Bench: ${selectedPlayers.filter(p => p.position === 'bench').length}/${league.transferTypes.benchTransfers.benchSlots}`
+                  }
+                  variant="outlined"
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                    height: { xs: 28, sm: 32 },
+                    borderColor: theme.palette.secondary.main,
+                    color: 'text.primary',
+                    bgcolor: alpha(theme.palette.secondary.main, 0.05)
+                  }}
+                />
+              )}
+              <Chip
+                icon={captainId ? <Star sx={{ fontSize: 18, color: theme.palette.primary.main }} /> : undefined}
+                label="Captain"
+                variant={captainId ? 'filled' : 'outlined'}
+                sx={{
+                  fontWeight: 600,
+                  fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                  height: { xs: 28, sm: 32 },
+                  bgcolor: captainId ? alpha(theme.palette.primary.main, 0.15) : 'transparent',
+                  borderColor: captainId ? theme.palette.primary.main : alpha(theme.palette.text.secondary, 0.3),
+                  color: captainId ? theme.palette.primary.main : 'text.secondary'
+                }}
+              />
+              <Chip
+                icon={viceCaptainId ? <Star sx={{ fontSize: 18, color: theme.palette.secondary.main }} /> : undefined}
+                label="Vice Captain"
+                variant={viceCaptainId ? 'filled' : 'outlined'}
+                sx={{
+                  fontWeight: 600,
+                  fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                  height: { xs: 28, sm: 32 },
+                  bgcolor: viceCaptainId ? alpha(theme.palette.secondary.main, 0.15) : 'transparent',
+                  borderColor: viceCaptainId ? theme.palette.secondary.main : alpha(theme.palette.text.secondary, 0.3),
+                  color: viceCaptainId ? theme.palette.secondary.main : 'text.secondary'
+                }}
+              />
+              <Chip
+                icon={xFactorId ? <Star sx={{ fontSize: 18, color: theme.palette.primary.main }} /> : undefined}
+                label="X-Factor"
+                variant={xFactorId ? 'filled' : 'outlined'}
+                sx={{
+                  fontWeight: 600,
+                  fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                  height: { xs: 28, sm: 32 },
+                  bgcolor: xFactorId ? alpha(theme.palette.primary.main, 0.15) : 'transparent',
+                  borderColor: xFactorId ? theme.palette.primary.main : alpha(theme.palette.text.secondary, 0.3),
+                  color: xFactorId ? theme.palette.primary.main : 'text.secondary'
+                }}
+              />
+              <Chip
+                label={`Predictions: ${topRunScorer && topWicketTaker && seriesScoreline ? 'Complete' : 'Incomplete'}`}
+                variant={topRunScorer && topWicketTaker && seriesScoreline ? 'filled' : 'outlined'}
+                sx={{
+                  fontWeight: 600,
+                  fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                  height: { xs: 28, sm: 32 },
+                  bgcolor: topRunScorer && topWicketTaker && seriesScoreline ? alpha(theme.palette.secondary.main, 0.15) : 'transparent',
+                  borderColor: topRunScorer && topWicketTaker && seriesScoreline ? theme.palette.secondary.main : alpha(theme.palette.text.secondary, 0.3),
+                  color: topRunScorer && topWicketTaker && seriesScoreline ? theme.palette.secondary.main : 'text.secondary'
+                }}
+              />
+            </Box>
+          </CardContent>
+        </Card>
+
         <Grid container spacing={{ xs: 2, sm: 3 }}>
           {/* Left Panel - Squad Formation */}
           <Grid size={{ xs: 12, lg: 8 }}>
@@ -666,10 +881,10 @@ const SquadSelectionPage: React.FC = () => {
           <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
             <Box sx={{ mb: 2 }}>
               <Typography variant="h6" fontWeight="bold" gutterBottom>
-                Make Your Predictions
+                Make Your Predictions *
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Predict the top performers and series outcome. Get bragging rights when you're right!
+                Predict the top performers and series outcome. All predictions are required to submit your squad.
               </Typography>
             </Box>
 
@@ -677,12 +892,15 @@ const SquadSelectionPage: React.FC = () => {
               <Grid size={{ xs: 12, sm: 4 }}>
                 <TextField
                   fullWidth
+                  required
                   label="Top Run Scorer"
                   placeholder="e.g., Virat Kohli"
                   value={topRunScorer}
                   onChange={(e) => setTopRunScorer(e.target.value)}
                   variant="outlined"
                   size="small"
+                  error={topRunScorer.trim() === ''}
+                  helperText={topRunScorer.trim() === '' ? 'Required' : ''}
                   InputProps={{
                     startAdornment: <Box sx={{ mr: 1, color: 'warning.main' }}>🏏</Box>
                   }}
@@ -692,12 +910,15 @@ const SquadSelectionPage: React.FC = () => {
               <Grid size={{ xs: 12, sm: 4 }}>
                 <TextField
                   fullWidth
+                  required
                   label="Top Wicket Taker"
                   placeholder="e.g., Jasprit Bumrah"
                   value={topWicketTaker}
                   onChange={(e) => setTopWicketTaker(e.target.value)}
                   variant="outlined"
                   size="small"
+                  error={topWicketTaker.trim() === ''}
+                  helperText={topWicketTaker.trim() === '' ? 'Required' : ''}
                   InputProps={{
                     startAdornment: <Box sx={{ mr: 1, color: 'error.main' }}>⚡</Box>
                   }}
@@ -707,12 +928,15 @@ const SquadSelectionPage: React.FC = () => {
               <Grid size={{ xs: 12, sm: 4 }}>
                 <TextField
                   fullWidth
+                  required
                   label="Series Scoreline"
                   placeholder="e.g., 3-1 or 2-2"
                   value={seriesScoreline}
                   onChange={(e) => setSeriesScoreline(e.target.value)}
                   variant="outlined"
                   size="small"
+                  error={seriesScoreline.trim() === ''}
+                  helperText={seriesScoreline.trim() === '' ? 'Required' : ''}
                   InputProps={{
                     startAdornment: <Box sx={{ mr: 1, color: 'success.main' }}>📊</Box>
                   }}
@@ -721,15 +945,27 @@ const SquadSelectionPage: React.FC = () => {
             </Grid>
 
             <Box sx={{ mt: 2 }}>
-              <Alert severity="info" sx={{ fontSize: '0.875rem' }}>
+              <Alert severity="warning" sx={{ fontSize: '0.875rem' }}>
                 <Typography variant="caption" display="block">
-                  Your predictions will be saved with your squad and can be updated anytime before the deadline.
+                  All predictions are mandatory. Your predictions will be saved with your squad and can be updated anytime before the deadline.
                 </Typography>
               </Alert>
             </Box>
           </CardContent>
         </Card>
       </Container>
+
+      {/* Transfer Modal */}
+      {isDeadlinePassed && existingSquad && league && (
+        <TransferModal
+          open={transferModalOpen}
+          onClose={() => setTransferModalOpen(false)}
+          league={league}
+          existingSquad={existingSquad}
+          availablePlayers={availablePlayers}
+          onSubmitTransfer={handleTransferSubmit}
+        />
+      )}
     </Box>
   );
 };
@@ -754,9 +990,9 @@ const CricketPitchFormation: React.FC<{
     return {
       batsmen: Array(squadRules.minBatsmen).fill(null),
       bowlers: Array(squadRules.minBowlers).fill(null),
-      allrounders: Array(squadRules.minAllrounders).fill(null),
+      allrounders: Array(0).fill(null), // No minimum all-rounders required
       wicketkeepers: Array(squadRules.minWicketkeepers).fill(null),
-      flexible: Array(league.squadSize - squadRules.minBatsmen - squadRules.minBowlers - squadRules.minAllrounders - squadRules.minWicketkeepers).fill(null),
+      flexible: Array(league.squadSize - squadRules.minBatsmen - squadRules.minBowlers - squadRules.minWicketkeepers).fill(null), // Removed minAllrounders from calculation
       bench: league.transferTypes?.benchTransfers?.enabled ? Array(league.transferTypes.benchTransfers.benchSlots).fill(null) : []
     };
   };
@@ -1321,61 +1557,6 @@ const CricketPitchFormation: React.FC<{
               </Box>
             </Box>
 
-            {/* All-rounders - Middle of pitch */}
-            <Box sx={{
-              position: 'relative',
-              '&::after': {
-                content: '""',
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: '2px',
-                background: 'rgba(255, 255, 255, 0.3)',
-                zIndex: 1
-              }
-            }}>
-              <Box sx={{ textAlign: 'center', py: { xs: 1, sm: 1.5, md: 2 } }}>
-                <Box sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: { xs: 0.5, sm: 1 },
-                  bgcolor: 'rgba(76, 175, 80, 0.7)',
-                  px: { xs: 1.5, sm: 2, md: 2.5 },
-                  py: { xs: 0.5, sm: 0.75 },
-                  borderRadius: '20px',
-                  mb: { xs: 1, sm: 1.5, md: 2 },
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-                }}>
-                  <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
-                    All-Rounders
-                  </Typography>
-                  <Chip
-                    label={`${league.squadRules.minAllrounders} Required`}
-                    size="small"
-                    sx={{
-                      bgcolor: 'rgba(255,255,255,0.9)',
-                      color: '#2E7D32',
-                      fontWeight: 'bold',
-                      fontSize: { xs: '0.65rem', sm: '0.7rem', md: '0.75rem' },
-                      height: { xs: 18, sm: 20, md: 22 }
-                    }}
-                  />
-                </Box>
-                <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.5, md: 2 }, justifyContent: 'center', flexWrap: 'wrap', pb: { xs: 1, sm: 1.5, md: 2 } }}>
-                  {requiredSlots.allrounders.map((_, index) => (
-                    <PlayerSlot
-                      key={`allrounder-${index}`}
-                      player={playersByRole.allrounder[index]}
-                      role="allrounder"
-                      slotType="required"
-                      position={index}
-                    />
-                  ))}
-                </Box>
-              </Box>
-            </Box>
-
             {/* Bowlers - Near the bowling end */}
             <Box sx={{
               position: 'relative',
@@ -1497,54 +1678,6 @@ const CricketPitchFormation: React.FC<{
           </Box>
         )}
 
-        {/* Modern Squad Summary */}
-        <Box sx={{
-          mt: { xs: 2, sm: 3, md: 4 },
-          p: { xs: 1.5, sm: 2, md: 3 },
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: { xs: 2, sm: 2.5, md: 3 },
-          border: '1px solid rgba(255,255,255,0.2)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
-        }}>
-          <Typography variant="h6" gutterBottom color="white" sx={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)', fontWeight: 'bold', fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' } }}>
-            Squad Summary
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 0.75, sm: 1, md: 1.5 } }}>
-            <Chip
-              label={`Players: ${selectedPlayers.filter(p => p.position !== 'bench').length}/${league.squadSize}`}
-              color="primary"
-              variant="filled"
-              sx={{ fontWeight: 'bold', fontSize: { xs: '0.7rem', sm: '0.8125rem', md: '0.875rem' }, height: { xs: 24, sm: 28, md: 32 } }}
-            />
-            {requiredSlots.bench.length > 0 && (
-              <Chip
-                label={`Bench: ${selectedPlayers.filter(p => p.position === 'bench').length}/${requiredSlots.bench.length}`}
-                color="secondary"
-                variant="filled"
-                sx={{ fontWeight: 'bold', fontSize: { xs: '0.7rem', sm: '0.8125rem', md: '0.875rem' }, height: { xs: 24, sm: 28, md: 32 } }}
-              />
-            )}
-            <Chip
-              label={`Captain: ${captainId ? '✓' : '✗'}`}
-              color={captainId ? 'success' : 'error'}
-              variant="filled"
-              sx={{ fontWeight: 'bold', fontSize: { xs: '0.7rem', sm: '0.8125rem', md: '0.875rem' }, height: { xs: 24, sm: 28, md: 32 } }}
-            />
-            <Chip
-              label={`Vice Captain: ${viceCaptainId ? '✓' : '✗'}`}
-              color={viceCaptainId ? 'success' : 'error'}
-              variant="filled"
-              sx={{ fontWeight: 'bold', fontSize: { xs: '0.7rem', sm: '0.8125rem', md: '0.875rem' }, height: { xs: 24, sm: 28, md: 32 } }}
-            />
-            <Chip
-              label={`X-Factor: ${xFactorId ? '✓' : '✗'}`}
-              color={xFactorId ? 'success' : 'error'}
-              variant="filled"
-              sx={{ fontWeight: 'bold', fontSize: { xs: '0.7rem', sm: '0.8125rem', md: '0.875rem' }, height: { xs: 24, sm: 28, md: 32 } }}
-            />
-          </Box>
-        </Box>
       </CardContent>
     </Card>
   );

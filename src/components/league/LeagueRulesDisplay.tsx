@@ -187,89 +187,159 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
 
             {/* Bench Transfers Details */}
             {league.transferTypes.benchTransfers.enabled && (
-              <Grid container spacing={{ xs: 1.5, sm: 2 }} sx={{ mb: { xs: 1.5, sm: 2 } }}>
-                <Grid size={12}>
-                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                    Bench Transfer System
-                  </Typography>
+              <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+                <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, mb: 1 }}>
+                  Bench Change
+                </Typography>
+                <Grid container spacing={{ xs: 1.5, sm: 2 }} sx={{ mb: 1 }}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Bench Slots</Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                      {league.transferTypes.benchTransfers.benchSlots}
+                    </Typography>
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Max Bench Transfers</Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                      {league.transferTypes.benchTransfers.maxAllowed}
+                    </Typography>
+                  </Grid>
                 </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Bench Slots</Typography>
-                  <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                    {league.transferTypes.benchTransfers.benchSlots}
+                <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 1.5, lineHeight: 1.6 }}>
+                  You can make <strong>ONE</strong> of the following two changes:
+                </Typography>
+
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5 }}>
+                    A. Bench Player Substitution
                   </Typography>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Max Bench Transfers</Typography>
-                  <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                    {league.transferTypes.benchTransfers.maxAllowed}
+                  <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 3 }}>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                      Bring in your bench player for anyone in your starting XI, except your Captain (C)
+                    </Typography>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                      You can replace the Vice-Captain (VC) using a bench change
+                    </Typography>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                      The player who comes in from the bench automatically becomes the new Vice-Captain (VC)
+                    </Typography>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                      <strong>Restrictions:</strong> Cannot replace the Captain or bring in someone who is not your designated bench player
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Box>
+                  <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5 }}>
+                    B. Reassign Vice-Captain or X-Factor
                   </Typography>
-                </Grid>
-                <Grid size={12}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Description</Typography>
-                  <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                    {league.transferTypes.benchTransfers.description}
-                  </Typography>
-                </Grid>
-              </Grid>
+                  <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 3 }}>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                      Keep all players the same, but change your Vice-Captain or X-Factor
+                    </Typography>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                      Choose any player already in your team to become the new VC or X-Factor
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
             )}
 
             {/* Mid-Season Transfers Details */}
             {league.transferTypes.midSeasonTransfers.enabled && (
-              <Grid container spacing={{ xs: 1.5, sm: 2 }} sx={{ mb: { xs: 1.5, sm: 2 } }}>
-                <Grid size={12}>
-                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                    Mid-Season Transfer Window
-                  </Typography>
+              <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+                <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, mb: 1 }}>
+                  Mid-Season Change
+                </Typography>
+                <Grid container spacing={{ xs: 1.5, sm: 2 }} sx={{ mb: 1 }}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Window Opens</Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                      {new Date(league.transferTypes.midSeasonTransfers.windowStartDate).toLocaleString()}
+                    </Typography>
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Window Closes</Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                      {new Date(league.transferTypes.midSeasonTransfers.windowEndDate).toLocaleString()}
+                    </Typography>
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Max Transfers</Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                      {league.transferTypes.midSeasonTransfers.maxAllowed}
+                    </Typography>
+                  </Grid>
                 </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Window Opens</Typography>
-                  <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                    {new Date(league.transferTypes.midSeasonTransfers.windowStartDate).toLocaleString()}
+                <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 1.5, lineHeight: 1.6 }}>
+                  A Mid-Season Change works exactly like a Flexible Change, but with a timing restriction.
+                </Typography>
+                <Box component="ul" sx={{ mt: 1, mb: 0, pl: 3 }}>
+                  <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                    Follows all the same rules as a Flexible Change (see below)
                   </Typography>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Window Closes</Typography>
-                  <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                    {new Date(league.transferTypes.midSeasonTransfers.windowEndDate).toLocaleString()}
+                  <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                    <strong>Timing restriction:</strong> Only allowed during the specific mid-season window announced by the league
                   </Typography>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Max Transfers</Typography>
-                  <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                    {league.transferTypes.midSeasonTransfers.maxAllowed}
+                  <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                    Helps teams rebalance mid-tournament based on player form and injuries
                   </Typography>
-                </Grid>
-                <Grid size={12}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Description</Typography>
-                  <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                    {league.transferTypes.midSeasonTransfers.description}
-                  </Typography>
-                </Grid>
-              </Grid>
+                </Box>
+              </Box>
             )}
 
             {/* Flexible Transfers Details */}
             {league.transferTypes.flexibleTransfers.enabled && (
-              <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-                <Grid size={12}>
-                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                    Flexible Transfers
-                  </Typography>
+              <Box>
+                <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, mb: 1 }}>
+                  Flexible Change
+                </Typography>
+                <Grid container spacing={{ xs: 1.5, sm: 2 }} sx={{ mb: 1 }}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Max Allowed</Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                      {league.transferTypes.flexibleTransfers.maxAllowed}
+                    </Typography>
+                  </Grid>
                 </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Max Allowed</Typography>
-                  <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                    {league.transferTypes.flexibleTransfers.maxAllowed}
+                <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 1.5, lineHeight: 1.6 }}>
+                  You can make <strong>ONE</strong> of the following two changes:
+                </Typography>
+
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5 }}>
+                    A. Player Substitution
                   </Typography>
-                </Grid>
-                <Grid size={12}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Description</Typography>
-                  <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                    {league.transferTypes.flexibleTransfers.description}
+                  <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 3 }}>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                      Replace any player in your squad with another eligible player from the remaining pool
+                    </Typography>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                      <strong>Captain (C) and Vice-Captain (VC) cannot be removed</strong>
+                    </Typography>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                      All team configuration rules must still be satisfied
+                    </Typography>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                      <em>Example: Swap a bowler or batsman based on form, injuries, or match-ups</em>
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Box>
+                  <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5 }}>
+                    B. Reassign Vice-Captain or X-Factor
                   </Typography>
-                </Grid>
-              </Grid>
+                  <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 3 }}>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                      Keep all players the same, but change your Vice-Captain or X-Factor
+                    </Typography>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                      Choose any player already in your team to become the new VC or X-Factor
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
             )}
           </CardContent>
         </Card>

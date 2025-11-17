@@ -95,27 +95,27 @@ const LeagueListPage: React.FC = () => {
     if (leagueStarted && league.status === 'active') {
       const rank = squad?.rank || '-';
       return {
-        label: `🏆 Active - Rank #${rank}`,
+        label: `Active - Rank #${rank}`,
         color: 'success' as const,
-        icon: '🏆'
+        icon: ''
       };
     }
 
     // Deadline passed but user didn't submit
     if (deadlinePassed && !squad?.isSubmitted) {
       return {
-        label: '❌ Missed Deadline',
+        label: 'Missed Deadline',
         color: 'error' as const,
-        icon: '❌'
+        icon: ''
       };
     }
 
     // User submitted their squad
     if (squad?.isSubmitted) {
       return {
-        label: '✅ Squad Submitted',
+        label: 'Squad Submitted',
         color: 'success' as const,
-        icon: '✅'
+        icon: ''
       };
     }
 
@@ -124,15 +124,15 @@ const LeagueListPage: React.FC = () => {
       const hoursLeft = Math.floor((new Date(league.squadDeadline).getTime() - now.getTime()) / (1000 * 60 * 60));
       if (hoursLeft < 24) {
         return {
-          label: `⏰ Submit Squad (${hoursLeft}h left)`,
+          label: `Submit Squad (${hoursLeft}h left)`,
           color: 'error' as const,
-          icon: '⏰'
+          icon: ''
         };
       }
       return {
-        label: '⏰ Submit Squad',
+        label: 'Submit Squad',
         color: 'warning' as const,
-        icon: '⏰'
+        icon: ''
       };
     }
 

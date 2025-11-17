@@ -146,7 +146,7 @@ export interface LeagueSquad {
 
   // Transfer Management
   transfersUsed: number;
-  transferHistory: string[]; // transfer IDs
+  transferHistory: TransferHistoryEntry[];
 
   // Predictions
   predictions?: {
@@ -162,6 +162,16 @@ export interface LeagueSquad {
   createdAt: Date;
   submittedAt?: Date;
   lastUpdated?: Date;
+}
+
+export interface TransferHistoryEntry {
+  timestamp: Date;
+  transferType: 'bench' | 'flexible' | 'midSeason';
+  changeType: 'playerSubstitution' | 'roleReassignment';
+  playerOut?: string;
+  playerIn?: string;
+  newViceCaptainId?: string;
+  newXFactorId?: string;
 }
 
 export interface SquadPlayer {
