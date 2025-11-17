@@ -13,7 +13,8 @@ import {
   SportsCricket,
   SwapHoriz,
   CalendarMonth,
-  Schedule
+  Schedule,
+  EmojiEvents
 } from '@mui/icons-material';
 import type { League } from '../../types/database';
 
@@ -24,6 +25,55 @@ interface LeagueRulesDisplayProps {
 const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
   return (
     <Box>
+      {/* Points System */}
+      <Card sx={{ mb: { xs: 2, sm: 3 } }}>
+        <CardContent sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: { xs: 1.5, sm: 2, md: 2.5 } }}>
+          <Box display="flex" alignItems="center" gap={{ xs: 0.5, sm: 1 }} mb={{ xs: 1.5, sm: 2 }}>
+            <EmojiEvents color="primary" sx={{ fontSize: { xs: 20, sm: 24 } }} />
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+              Points System
+            </Typography>
+          </Box>
+          <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Runs</Typography>
+              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                1 run = 1 point
+              </Typography>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Wickets</Typography>
+              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                1 wicket = {league.format === 'Test' ? '20' : '25'} points
+              </Typography>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Catches</Typography>
+              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                1 catch = 5 points
+              </Typography>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Correct Prediction</Typography>
+              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                80 points
+              </Typography>
+            </Grid>
+            <Grid size={12}>
+              <Divider sx={{ my: 1 }} />
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5 }}>
+                Role Multipliers
+              </Typography>
+              <Box display="flex" flexWrap="wrap" gap={1}>
+                <Chip label="Captain: 2x points" color="warning" size="small" sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }} />
+                <Chip label="Vice-Captain: 1.5x points" color="info" size="small" sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }} />
+                <Chip label="X-Factor: 1.25x points" color="secondary" size="small" sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }} />
+              </Box>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
       {/* Basic Info */}
       <Card sx={{ mb: { xs: 2, sm: 3 } }}>
         <CardContent sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: { xs: 1.5, sm: 2, md: 2.5 } }}>
@@ -205,40 +255,23 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
                     </Typography>
                   </Grid>
                 </Grid>
-                <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 1.5, lineHeight: 1.6 }}>
-                  You can make <strong>ONE</strong> of the following two changes:
-                </Typography>
 
-                <Box sx={{ mb: 2 }}>
+                <Box sx={{ mb: 1.5, p: 1.5, bgcolor: 'action.hover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
                   <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5 }}>
-                    A. Bench Player Substitution
+                    Player Substitution
                   </Typography>
                   <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 3 }}>
                     <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
-                      Bring in your bench player for anyone in your starting XI, except your Captain (C)
+                      Swap any main team player with one of your bench players
                     </Typography>
                     <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
-                      You can replace the Vice-Captain (VC) using a bench change
+                      Can replace <strong>ANY player including C, VC, or X-Factor</strong>
                     </Typography>
                     <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
-                      The player who comes in from the bench automatically becomes the new Vice-Captain (VC)
+                      <strong>Auto-assignment:</strong> If you swap out C/VC/X, the incoming bench player automatically gets that role
                     </Typography>
                     <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
-                      <strong>Restrictions:</strong> Cannot replace the Captain or bring in someone who is not your designated bench player
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Box>
-                  <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5 }}>
-                    B. Reassign Vice-Captain or X-Factor
-                  </Typography>
-                  <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 3 }}>
-                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
-                      Keep all players the same, but change your Vice-Captain or X-Factor
-                    </Typography>
-                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
-                      Choose any player already in your team to become the new VC or X-Factor
+                      Pure substitution only - NO manual role reassignment option available
                     </Typography>
                   </Box>
                 </Box>
@@ -303,39 +336,39 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
                   </Grid>
                 </Grid>
                 <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 1.5, lineHeight: 1.6 }}>
-                  You can make <strong>ONE</strong> of the following two changes:
+                  Full flexibility except Captain. You can make <strong>ONE</strong> of the following two changes:
                 </Typography>
 
-                <Box sx={{ mb: 2 }}>
+                <Box sx={{ mb: 2, p: 1.5, bgcolor: 'action.hover', opacity: 0.1, borderRadius: 1, border: '1px solid', borderColor: 'success.main', color: 'white'}}>
                   <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5 }}>
                     A. Player Substitution
                   </Typography>
                   <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 3 }}>
                     <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
-                      Replace any player in your squad with another eligible player from the remaining pool
+                      Replace any player with a new player from the available pool
                     </Typography>
                     <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
                       <strong>Captain (C) and Vice-Captain (VC) cannot be removed</strong>
                     </Typography>
                     <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
-                      All team configuration rules must still be satisfied
-                    </Typography>
-                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
-                      <em>Example: Swap a bowler or batsman based on form, injuries, or match-ups</em>
+                      All squad composition rules must still be met
                     </Typography>
                   </Box>
                 </Box>
 
-                <Box>
+                <Box sx={{ p: 1.5, bgcolor: 'action.hover', opacity: 0.1, borderRadius: 1, border: '1px solid', borderColor: 'success.main', color: 'white'}}>
                   <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5 }}>
                     B. Reassign Vice-Captain or X-Factor
                   </Typography>
                   <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 3 }}>
                     <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
-                      Keep all players the same, but change your Vice-Captain or X-Factor
+                      Keep all players the same
                     </Typography>
                     <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
-                      Choose any player already in your team to become the new VC or X-Factor
+                      Reassign VC or X-Factor to any other player in your team
+                    </Typography>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                      Points multipliers apply only to future points earned after reassignment
                     </Typography>
                   </Box>
                 </Box>
@@ -344,46 +377,6 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
           </CardContent>
         </Card>
       )}
-
-      {/* Scoring & Additional Rules */}
-      <Card>
-        <CardContent sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: { xs: 1.5, sm: 2, md: 2.5 } }}>
-          <Box display="flex" alignItems="center" gap={{ xs: 0.5, sm: 1 }} mb={{ xs: 1.5, sm: 2 }}>
-            <Schedule color="primary" sx={{ fontSize: { xs: 20, sm: 24 } }} />
-            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-              Additional Rules
-            </Typography>
-          </Box>
-          <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Captain Points</Typography>
-              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                2x multiplier
-              </Typography>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Vice-Captain Points</Typography>
-              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                1.5x multiplier
-              </Typography>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>X-Factor Points</Typography>
-              <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                1.25x multiplier
-              </Typography>
-            </Grid>
-            {league.powerplayEnabled && (
-              <Grid size={12}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Powerplay Bonus</Typography>
-                <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                  Enabled - Select one match for bonus points
-                </Typography>
-              </Grid>
-            )}
-          </Grid>
-        </CardContent>
-      </Card>
     </Box>
   );
 };

@@ -34,6 +34,7 @@ import LeagueNav from '../components/common/LeagueNav';
 import TransferModal, { TransferData } from '../components/squad/TransferModal';
 import { playerPoolService, leagueService, squadService, squadPlayerUtils, leaderboardSnapshotService } from '../services/firestore';
 import type { League, Player, SquadPlayer, LeagueSquad } from '../types/database';
+import { deleteField } from 'firebase/firestore';
 
 interface SelectedPlayer extends Player {
   position: 'regular' | 'bench';
@@ -56,6 +57,8 @@ const SquadSelectionPage: React.FC = () => {
   const [existingSquad, setExistingSquad] = useState<LeagueSquad | null>(null);
   const [isDeadlinePassed, setIsDeadlinePassed] = useState(false);
   const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [isLeagueStarted, setIsLeagueStarted] = useState(false);
+  const [canMakeTransfer, setCanMakeTransfer] = useState(false);
 
   // Predictions state
   const [topRunScorer, setTopRunScorer] = useState('');
@@ -89,6 +92,25 @@ const SquadSelectionPage: React.FC = () => {
         // Check if deadline has passed
         const deadlinePassed = new Date() > new Date(league.squadDeadline);
         setIsDeadlinePassed(deadlinePassed);
+
+        // Check if league has started
+        const now = new Date();
+        const leagueStarted = league.status === 'active' ||
+                             league.tournamentStarted === true ||
+                             now >= new Date(league.startDate);
+        setIsLeagueStarted(leagueStarted);
+
+        // Check if transfers can be made
+        const isMidSeasonWindowOpen = !!(league.transferTypes?.midSeasonTransfers.enabled &&
+          now >= new Date(league.transferTypes.midSeasonTransfers.windowStartDate) &&
+          now <= new Date(league.transferTypes.midSeasonTransfers.windowEndDate));
+
+        const transfersEnabled = !!(leagueStarted && (
+          league.flexibleChangesEnabled === true ||
+          league.benchChangesEnabled === true ||
+          isMidSeasonWindowOpen
+        ));
+        setCanMakeTransfer(transfersEnabled);
 
         // Load existing squad if user has one
         if (user) {
@@ -239,7 +261,8 @@ const SquadSelectionPage: React.FC = () => {
     players: SquadPlayer[],
     captainId: string | null,
     viceCaptainId: string | null,
-    xFactorId: string | null
+    xFactorId: string | null,
+    bankedPoints: number = 0
   ): { totalPoints: number; captainPoints: number; viceCaptainPoints: number; xFactorPoints: number } => {
     let totalPoints = 0;
     let captainPoints = 0;
@@ -251,24 +274,52 @@ const SquadSelectionPage: React.FC = () => {
       const pointsAtJoining = player.pointsAtJoining ?? 0;
       const effectivePoints = Math.max(0, player.points - pointsAtJoining);
 
-      let playerPoints = effectivePoints;
+      let playerPoints = 0;
 
       if (captainId === player.playerId) {
         // Captain gets 2x points
-        captainPoints = effectivePoints * 2;
+        // Apply multiplier only to points earned AFTER becoming captain
+        const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
+        const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining); // Points before role
+        const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned); // Points after role
+
+        const baseContribution = basePoints * 1.0;
+        const bonusContribution = bonusPoints * 2.0;
+
+        captainPoints = baseContribution + bonusContribution;
         playerPoints = captainPoints;
       } else if (viceCaptainId === player.playerId) {
         // Vice-captain gets 1.5x points
-        viceCaptainPoints = effectivePoints * 1.5;
+        const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
+        const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
+        const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
+
+        const baseContribution = basePoints * 1.0;
+        const bonusContribution = bonusPoints * 1.5;
+
+        viceCaptainPoints = baseContribution + bonusContribution;
         playerPoints = viceCaptainPoints;
       } else if (xFactorId === player.playerId) {
         // X-Factor gets 1.25x points
-        xFactorPoints = effectivePoints * 1.25;
+        const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
+        const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
+        const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
+
+        const baseContribution = basePoints * 1.0;
+        const bonusContribution = bonusPoints * 1.25;
+
+        xFactorPoints = baseContribution + bonusContribution;
         playerPoints = xFactorPoints;
+      } else {
+        // Regular player (no multiplier)
+        playerPoints = effectivePoints;
       }
 
       totalPoints += playerPoints;
     });
+
+    // Add banked points from previous transfers
+    totalPoints += bankedPoints;
 
     return { totalPoints, captainPoints, viceCaptainPoints, xFactorPoints };
   };
@@ -297,6 +348,12 @@ const SquadSelectionPage: React.FC = () => {
           role: player.role,
           points: player.stats[league.format].recentForm || 0, // Use current points from stats
         });
+
+        // Set pointsWhenRoleAssigned for C/VC/X at squad creation
+        if (player.id === captainId || player.id === viceCaptainId || player.id === xFactorId) {
+          squadPlayer.pointsWhenRoleAssigned = squadPlayer.points;
+        }
+
         return squadPlayer;
       });
 
@@ -354,6 +411,7 @@ const SquadSelectionPage: React.FC = () => {
           matchPoints: {},
           transfersUsed: 0,
           transferHistory: [],
+          bankedPoints: 0, // Initialize banked points to 0
           isValid: true,
           validationErrors: [],
           captainId: captainId || undefined,
@@ -383,83 +441,226 @@ const SquadSelectionPage: React.FC = () => {
     }
   };
 
+  // Helper function to calculate a player's current contribution (including role multiplier)
+  const calculatePlayerContribution = (
+    player: SquadPlayer,
+    role: 'captain' | 'viceCaptain' | 'xFactor' | 'regular'
+  ): number => {
+    const pointsAtJoining = player.pointsAtJoining ?? 0;
+    const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
+
+    const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
+    const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
+
+    if (role === 'captain') {
+      return basePoints * 1.0 + bonusPoints * 2.0;
+    } else if (role === 'viceCaptain') {
+      return basePoints * 1.0 + bonusPoints * 1.5;
+    } else if (role === 'xFactor') {
+      return basePoints * 1.0 + bonusPoints * 1.25;
+    } else {
+      return Math.max(0, player.points - pointsAtJoining);
+    }
+  };
+
   const handleTransferSubmit = async (transferData: TransferData) => {
     if (!user || !league || !leagueId || !existingSquad) return;
 
     try {
       // Create a copy of the existing squad to modify
       let updatedPlayers = [...existingSquad.players];
+      let updatedCaptainId = existingSquad.captainId;
       let updatedViceCaptainId = existingSquad.viceCaptainId;
       let updatedXFactorId = existingSquad.xFactorId;
+      let additionalBankedPoints = 0; // Track points to bank from this transfer
 
       // Process the transfer based on change type
       if (transferData.changeType === 'playerSubstitution' && transferData.playerOut && transferData.playerIn) {
-        // Find the player to remove
-        const playerOutIndex = updatedPlayers.findIndex(p => p.playerId === transferData.playerOut);
-        if (playerOutIndex === -1) throw new Error('Player to remove not found');
+        if (transferData.transferType === 'bench') {
+          // BENCH TRANSFER: Swap a main squad player with a bench player
+          const playerOutIndex = updatedPlayers.findIndex(p => p.playerId === transferData.playerOut);
+          const playerInIndex = updatedPlayers.findIndex(p => p.playerId === transferData.playerIn);
 
-        // Get the full player data for the incoming player
-        const incomingPlayer = availablePlayers.find(p => p.id === transferData.playerIn);
-        if (!incomingPlayer) throw new Error('Incoming player not found');
+          if (playerOutIndex === -1) throw new Error('Player to remove not found');
+          if (playerInIndex === -1) throw new Error('Bench player not found');
 
-        // Create new squad player
-        const newSquadPlayer = squadPlayerUtils.createInitialSquadPlayer({
-          playerId: incomingPlayer.id,
-          playerName: incomingPlayer.name,
-          team: incomingPlayer.team,
-          role: incomingPlayer.role,
-          points: incomingPlayer.stats[league.format].recentForm || 0,
-        });
+          // Calculate points to bank from the player moving to bench
+          const playerMovingToBench = updatedPlayers[playerOutIndex];
+          let playerRole: 'captain' | 'viceCaptain' | 'xFactor' | 'regular' = 'regular';
+          if (playerMovingToBench.playerId === existingSquad.captainId) playerRole = 'captain';
+          else if (playerMovingToBench.playerId === existingSquad.viceCaptainId) playerRole = 'viceCaptain';
+          else if (playerMovingToBench.playerId === existingSquad.xFactorId) playerRole = 'xFactor';
 
-        // Replace the player
-        updatedPlayers[playerOutIndex] = newSquadPlayer;
+          additionalBankedPoints = calculatePlayerContribution(playerMovingToBench, playerRole);
 
-        // If removing VC in a bench transfer, the incoming player becomes the new VC
-        if (transferData.transferType === 'bench' && transferData.playerOut === existingSquad.viceCaptainId) {
-          updatedViceCaptainId = transferData.playerIn;
+          // Swap the players - simple array swap
+          const temp = updatedPlayers[playerOutIndex];
+          updatedPlayers[playerOutIndex] = updatedPlayers[playerInIndex];
+          updatedPlayers[playerInIndex] = temp;
+
+          // AUTO-ASSIGN roles to incoming player if swapping out C/VC/X
+          const incomingPlayerId = transferData.playerIn;
+
+          if (transferData.playerOut === existingSquad.captainId) {
+            // Incoming player becomes Captain
+            updatedCaptainId = incomingPlayerId;
+            const newCaptain = updatedPlayers.find(p => p.playerId === incomingPlayerId);
+            if (newCaptain) {
+              newCaptain.pointsWhenRoleAssigned = newCaptain.points;
+            }
+          }
+
+          if (transferData.playerOut === existingSquad.viceCaptainId) {
+            // Incoming player becomes Vice-Captain
+            updatedViceCaptainId = incomingPlayerId;
+            const newVC = updatedPlayers.find(p => p.playerId === incomingPlayerId);
+            if (newVC) {
+              newVC.pointsWhenRoleAssigned = newVC.points;
+            }
+          }
+
+          if (transferData.playerOut === existingSquad.xFactorId) {
+            // Incoming player becomes X-Factor
+            updatedXFactorId = incomingPlayerId;
+            const newX = updatedPlayers.find(p => p.playerId === incomingPlayerId);
+            if (newX) {
+              newX.pointsWhenRoleAssigned = newX.points;
+            }
+          }
+        } else {
+          // FLEXIBLE/MID-SEASON TRANSFER: Replace with a new player from outside the squad
+          const playerOutIndex = updatedPlayers.findIndex(p => p.playerId === transferData.playerOut);
+          if (playerOutIndex === -1) throw new Error('Player to remove not found');
+
+          // Calculate points to bank from the player leaving the squad
+          const playerLeaving = updatedPlayers[playerOutIndex];
+          let playerRole: 'captain' | 'viceCaptain' | 'xFactor' | 'regular' = 'regular';
+          if (playerLeaving.playerId === existingSquad.captainId) playerRole = 'captain';
+          else if (playerLeaving.playerId === existingSquad.viceCaptainId) playerRole = 'viceCaptain';
+          else if (playerLeaving.playerId === existingSquad.xFactorId) playerRole = 'xFactor';
+
+          additionalBankedPoints = calculatePlayerContribution(playerLeaving, playerRole);
+
+          // Get the full player data for the incoming player
+          const incomingPlayer = availablePlayers.find(p => p.id === transferData.playerIn);
+          if (!incomingPlayer) throw new Error('Incoming player not found');
+
+          // Create new squad player
+          const newSquadPlayer = squadPlayerUtils.createInitialSquadPlayer({
+            playerId: incomingPlayer.id,
+            playerName: incomingPlayer.name,
+            team: incomingPlayer.team,
+            role: incomingPlayer.role,
+            points: incomingPlayer.stats[league.format].recentForm || 0,
+          });
+
+          // Replace the player
+          updatedPlayers[playerOutIndex] = newSquadPlayer;
         }
       } else if (transferData.changeType === 'roleReassignment') {
-        // Update roles without changing players
-        if (transferData.newViceCaptainId) {
+        // ROLE REASSIGNMENT: Change VC or X-Factor
+
+        // Handle VC reassignment
+        if (transferData.newViceCaptainId && transferData.newViceCaptainId !== existingSquad.viceCaptainId) {
+          // Bank the multiplier bonus from the old VC
+          if (existingSquad.viceCaptainId) {
+            const oldVC = updatedPlayers.find(p => p.playerId === existingSquad.viceCaptainId);
+            if (oldVC) {
+              const pointsAtJoining = oldVC.pointsAtJoining ?? 0;
+              const effectivePoints = Math.max(0, oldVC.points - pointsAtJoining);
+              const multiplierBonus = effectivePoints * (1.5 - 1.0); // 0.5
+              additionalBankedPoints += multiplierBonus;
+            }
+          }
+
+          // Set pointsWhenRoleAssigned for the new VC
+          const newVC = updatedPlayers.find(p => p.playerId === transferData.newViceCaptainId);
+          if (newVC) {
+            newVC.pointsWhenRoleAssigned = newVC.points;
+          }
+
           updatedViceCaptainId = transferData.newViceCaptainId;
         }
-        if (transferData.newXFactorId) {
+
+        // Handle X-Factor reassignment
+        if (transferData.newXFactorId && transferData.newXFactorId !== existingSquad.xFactorId) {
+          // Bank the multiplier bonus from the old X
+          if (existingSquad.xFactorId) {
+            const oldX = updatedPlayers.find(p => p.playerId === existingSquad.xFactorId);
+            if (oldX) {
+              const pointsAtJoining = oldX.pointsAtJoining ?? 0;
+              const effectivePoints = Math.max(0, oldX.points - pointsAtJoining);
+              const multiplierBonus = effectivePoints * (1.25 - 1.0); // 0.25
+              additionalBankedPoints += multiplierBonus;
+            }
+          }
+
+          // Set pointsWhenRoleAssigned for the new X
+          const newX = updatedPlayers.find(p => p.playerId === transferData.newXFactorId);
+          if (newX) {
+            newX.pointsWhenRoleAssigned = newX.points;
+          }
+
           updatedXFactorId = transferData.newXFactorId;
         }
       }
 
-      // Calculate new points
+      // Calculate new banked points total
+      const newBankedPoints = (existingSquad.bankedPoints || 0) + additionalBankedPoints;
+
+      // Calculate new points (including banked points)
       const calculatedPoints = calculateSquadPoints(
         updatedPlayers,
-        existingSquad.captainId || null,
+        updatedCaptainId || null,
         updatedViceCaptainId || null,
-        updatedXFactorId || null
+        updatedXFactorId || null,
+        newBankedPoints
       );
 
-      // Create transfer history entry
-      const transferHistoryEntry = {
+      // Create transfer history entry (only include defined values)
+      const transferHistoryEntry: any = {
         timestamp: new Date(),
         transferType: transferData.transferType,
         changeType: transferData.changeType,
-        playerOut: transferData.playerOut,
-        playerIn: transferData.playerIn,
-        newViceCaptainId: transferData.newViceCaptainId,
-        newXFactorId: transferData.newXFactorId
       };
 
+      // Only add fields that have values (avoid undefined)
+      if (transferData.playerOut) transferHistoryEntry.playerOut = transferData.playerOut;
+      if (transferData.playerIn) transferHistoryEntry.playerIn = transferData.playerIn;
+      if (transferData.newViceCaptainId) transferHistoryEntry.newViceCaptainId = transferData.newViceCaptainId;
+      if (transferData.newXFactorId) transferHistoryEntry.newXFactorId = transferData.newXFactorId;
+
       // Update the squad
-      await squadService.update(existingSquad.id, {
+      const updatePayload: any = {
         players: updatedPlayers,
-        viceCaptainId: updatedViceCaptainId || undefined,
-        xFactorId: updatedXFactorId || undefined,
         totalPoints: calculatedPoints.totalPoints,
         captainPoints: calculatedPoints.captainPoints,
         viceCaptainPoints: calculatedPoints.viceCaptainPoints,
         xFactorPoints: calculatedPoints.xFactorPoints,
+        bankedPoints: newBankedPoints,
         transfersUsed: (existingSquad.transfersUsed || 0) + 1,
         transferHistory: [...(existingSquad.transferHistory || []), transferHistoryEntry],
         lastUpdated: new Date()
-      });
+      };
+
+      // Handle Captain, VC and X-Factor updates
+      if (updatedCaptainId) {
+        updatePayload.captainId = updatedCaptainId;
+      }
+
+      if (updatedViceCaptainId === 'DELETE') {
+        updatePayload.viceCaptainId = deleteField();
+      } else if (updatedViceCaptainId) {
+        updatePayload.viceCaptainId = updatedViceCaptainId;
+      }
+
+      if (updatedXFactorId === 'DELETE') {
+        updatePayload.xFactorId = deleteField();
+      } else if (updatedXFactorId) {
+        updatePayload.xFactorId = updatedXFactorId;
+      }
+
+      await squadService.update(existingSquad.id, updatePayload);
 
       // Reload the squad
       const updatedSquad = await squadService.getByUserAndLeague(user.uid, leagueId);
@@ -663,6 +864,7 @@ const SquadSelectionPage: React.FC = () => {
           color="primary"
           startIcon={<SwapHoriz />}
           onClick={() => setTransferModalOpen(true)}
+          disabled={!canMakeTransfer}
           sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1.5, sm: 2 }, py: { xs: 0.5, sm: 1 } }}
         >
           Make Transfer
@@ -724,9 +926,18 @@ const SquadSelectionPage: React.FC = () => {
 
         {isDeadlinePassed && (
           <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
-            <Alert severity="info" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 0.5, sm: 1 } }}>
-              Squad Deadline Passed. Your squad is locked. You can only make changes using available transfers.
-            </Alert>
+            {canMakeTransfer ? (
+              <Alert severity="info" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 0.5, sm: 1 } }}>
+                Squad Deadline Passed. Your squad is locked. You can only make changes using available transfers.
+              </Alert>
+            ) : (
+              <Alert severity="warning" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 0.5, sm: 1 } }}>
+                Transfers are currently disabled.
+                {!isLeagueStarted && ' The league has not started yet.'}
+                {isLeagueStarted && !league?.flexibleChangesEnabled && !league?.benchChangesEnabled && ' No transfer types are enabled by the league admin.'}
+                {isLeagueStarted && (league?.flexibleChangesEnabled || league?.benchChangesEnabled) && league?.transferTypes?.midSeasonTransfers.enabled && ' Mid-season transfer window is closed.'}
+              </Alert>
+            )}
           </Box>
         )}
 

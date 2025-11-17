@@ -147,6 +147,7 @@ export interface LeagueSquad {
   // Transfer Management
   transfersUsed: number;
   transferHistory: TransferHistoryEntry[];
+  bankedPoints: number; // Points accumulated from removed players or role changes
 
   // Predictions
   predictions?: {
@@ -184,6 +185,7 @@ export interface SquadPlayer {
   matchPerformances: { [matchId: string]: number };
   addedAt?: Date; // When this player was added to the squad (optional for backward compatibility)
   pointsAtJoining?: number; // Player's total points when they joined this squad (defaults to 0 for initial squad)
+  pointsWhenRoleAssigned?: number; // Snapshot of points when C/VC/X role was assigned (for future multiplier tracking)
 }
 
 export interface Transfer {

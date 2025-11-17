@@ -1180,7 +1180,7 @@ export const squadPlayerUtils = {
       points: player.points,
       matchPerformances: {},
       addedAt: new Date(),
-      pointsAtJoining: 0, // Start fresh - all future points will count
+      pointsAtJoining: player.points, // Set to current points so only FUTURE points count
     };
 
     // Only include price if it's defined

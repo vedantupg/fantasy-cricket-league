@@ -156,7 +156,7 @@ const TransferModal: React.FC<TransferModalProps> = ({
     const playerOutData = existingSquad.players.find(p => p.playerId === playerOut);
     if (!playerOutData) return 'Invalid player selection';
 
-    // Check if trying to remove Captain or Vice-Captain
+    // FLEXIBLE & MID-SEASON RULES: Cannot remove Captain or Vice-Captain
     if (selectedTransferType === 'flexible' || selectedTransferType === 'midSeason') {
       if (playerOut === existingSquad.captainId) {
         return 'Cannot remove the Captain in a Flexible/Mid-Season change';
@@ -166,15 +166,13 @@ const TransferModal: React.FC<TransferModalProps> = ({
       }
     }
 
-    // Check if trying to remove Captain in bench transfer
+    // BENCH TRANSFER RULES: Can replace any player including C/VC/X
     if (selectedTransferType === 'bench') {
-      if (playerOut === existingSquad.captainId) {
-        return 'Cannot remove the Captain in a Bench change';
-      }
-      // For bench transfers, must use bench player
-      const benchPlayer = existingSquad.players.find((p, index) => index >= league.squadSize);
-      if (playerIn !== benchPlayer?.playerId) {
-        return 'Bench transfer must use your designated bench player';
+      // For bench transfers, must use one of the bench players as the incoming player
+      const benchPlayers = existingSquad.players.filter((p, index) => index >= league.squadSize);
+      const benchPlayerIds = benchPlayers.map(p => p.playerId);
+      if (!benchPlayerIds.includes(playerIn)) {
+        return 'Bench transfer must use one of your bench players';
       }
     }
 
@@ -212,13 +210,12 @@ const TransferModal: React.FC<TransferModalProps> = ({
 
   const getAvailablePlayersForSelection = (): Player[] => {
     if (selectedTransferType === 'bench') {
-      // For bench transfers, only return the bench player
-      const benchPlayerSquad = existingSquad.players.find((p, index) => index >= league.squadSize);
-      if (benchPlayerSquad) {
-        const benchPlayer = availablePlayers.find(p => p.id === benchPlayerSquad.playerId);
-        return benchPlayer ? [benchPlayer] : [];
-      }
-      return [];
+      // For bench transfers, return ALL bench players
+      const benchPlayersSquad = existingSquad.players.filter((p, index) => index >= league.squadSize);
+      const benchPlayers = benchPlayersSquad.map(benchPlayer => {
+        return availablePlayers.find(p => p.id === benchPlayer.playerId);
+      }).filter((p): p is Player => p !== undefined);
+      return benchPlayers;
     }
 
     // For flexible/mid-season, return all available players not in squad
@@ -231,14 +228,14 @@ const TransferModal: React.FC<TransferModalProps> = ({
     const mainSquadPlayers = existingSquad.players.slice(0, league.squadSize);
 
     if (selectedTransferType === 'flexible' || selectedTransferType === 'midSeason') {
-      // Cannot remove Captain or Vice-Captain
+      // FLEXIBLE/MID-SEASON: Cannot remove Captain or Vice-Captain
       return mainSquadPlayers.filter(p =>
         p.playerId !== existingSquad.captainId &&
         p.playerId !== existingSquad.viceCaptainId
       );
     } else if (selectedTransferType === 'bench') {
-      // Cannot remove Captain
-      return mainSquadPlayers.filter(p => p.playerId !== existingSquad.captainId);
+      // BENCH: Can replace any player including C/VC/X
+      return mainSquadPlayers;
     }
 
     return mainSquadPlayers;
@@ -305,7 +302,7 @@ const TransferModal: React.FC<TransferModalProps> = ({
                               Bench Change
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                              Swap your bench player with a main squad player
+                              Replace any player including C/VC/X. Pure substitution. No VC/X changes.
                             </Typography>
                           </Box>
                         </Box>
@@ -343,7 +340,7 @@ const TransferModal: React.FC<TransferModalProps> = ({
                               Flexible Change
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                              Replace any player (except C & VC) or reassign roles
+                              Replace any player (except C & VC) or reassign VC/X. Full flexibility except C.
                             </Typography>
                           </Box>
                         </Box>
@@ -462,8 +459,14 @@ const TransferModal: React.FC<TransferModalProps> = ({
                                       {player.playerName.charAt(0)}
                                     </Avatar>
                                     <Typography variant="body2">{player.playerName}</Typography>
+                                    {player.playerId === existingSquad.captainId && (
+                                      <Chip label="C" size="small" color="warning" sx={{ height: 18, fontSize: '0.65rem' }} />
+                                    )}
                                     {player.playerId === existingSquad.viceCaptainId && (
                                       <Chip label="VC" size="small" color="info" sx={{ height: 18, fontSize: '0.65rem' }} />
+                                    )}
+                                    {player.playerId === existingSquad.xFactorId && (
+                                      <Chip label="X" size="small" color="secondary" sx={{ height: 18, fontSize: '0.65rem' }} />
                                     )}
                                   </Box>
                                 </MenuItem>
@@ -503,30 +506,32 @@ const TransferModal: React.FC<TransferModalProps> = ({
                   </CardContent>
                 </Card>
 
-                <Card
-                  sx={{
-                    cursor: 'pointer',
-                    border: selectedChangeType === 'roleReassignment' ? `2px solid ${theme.palette.primary.main}` : '1px solid rgba(255,255,255,0.12)',
-                    bgcolor: selectedChangeType === 'roleReassignment' ? alpha(theme.palette.primary.main, 0.1) : 'transparent'
-                  }}
-                  onClick={() => setSelectedChangeType('roleReassignment')}
-                >
-                  <CardContent>
-                    <Box display="flex" alignItems="center" gap={2}>
-                      <FormControlLabel
-                        value="roleReassignment"
-                        control={<Radio />}
-                        label=""
-                      />
-                      <Box flex={1}>
-                        <Typography variant="subtitle1" fontWeight="bold">
-                          Reassign Vice-Captain or X-Factor
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Change your VC or X-Factor without swapping players
-                        </Typography>
+                {/* Role Reassignment is NOT allowed for Bench transfers */}
+                {selectedTransferType !== 'bench' && (
+                  <Card
+                    sx={{
+                      cursor: 'pointer',
+                      border: selectedChangeType === 'roleReassignment' ? `2px solid ${theme.palette.primary.main}` : '1px solid rgba(255,255,255,0.12)',
+                      bgcolor: selectedChangeType === 'roleReassignment' ? alpha(theme.palette.primary.main, 0.1) : 'transparent'
+                    }}
+                    onClick={() => setSelectedChangeType('roleReassignment')}
+                  >
+                    <CardContent>
+                      <Box display="flex" alignItems="center" gap={2}>
+                        <FormControlLabel
+                          value="roleReassignment"
+                          control={<Radio />}
+                          label=""
+                        />
+                        <Box flex={1}>
+                          <Typography variant="subtitle1" fontWeight="bold">
+                            Reassign Vice-Captain or X-Factor
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Change your VC or X-Factor without swapping players
+                          </Typography>
+                        </Box>
                       </Box>
-                    </Box>
 
                     {selectedChangeType === 'roleReassignment' && (
                       <Box mt={2}>
@@ -597,6 +602,7 @@ const TransferModal: React.FC<TransferModalProps> = ({
                     )}
                   </CardContent>
                 </Card>
+                )}
               </RadioGroup>
             </FormControl>
           </Box>
