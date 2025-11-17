@@ -409,6 +409,51 @@ const SquadSelectionPage: React.FC = () => {
           setTimeout(() => setSubmitError(''), 3000);
           return prev; // Don't add, return unchanged state
         }
+
+        // Check if there's an available slot for this specific role
+        // This prevents the issue where players stack in the same slot
+        const mainSquadPlayers = prev.filter(p => p.position !== 'bench');
+
+        // Count players of each role
+        const roleCounts = {
+          batsman: mainSquadPlayers.filter(p => p.role === 'batsman').length,
+          bowler: mainSquadPlayers.filter(p => p.role === 'bowler').length,
+          allrounder: mainSquadPlayers.filter(p => p.role === 'allrounder').length,
+          wicketkeeper: mainSquadPlayers.filter(p => p.role === 'wicketkeeper').length
+        };
+
+        const role = player.role as 'batsman' | 'bowler' | 'allrounder' | 'wicketkeeper';
+        const minRequired = league.squadRules[
+          role === 'batsman' ? 'minBatsmen' :
+          role === 'bowler' ? 'minBowlers' :
+          role === 'allrounder' ? 'minAllrounders' :
+          'minWicketkeepers'
+        ];
+
+        // Check if there's space in required slots for this role
+        const hasRequiredSlot = roleCounts[role] < minRequired;
+
+        // Calculate how many flexible slots are available
+        const totalRequiredSlots = league.squadRules.minBatsmen + league.squadRules.minBowlers +
+                                   league.squadRules.minAllrounders + league.squadRules.minWicketkeepers;
+        const totalFlexibleSlots = league.squadSize - totalRequiredSlots;
+
+        // Count how many players are currently occupying flexible slots
+        const playersInFlexible =
+          Math.max(0, roleCounts.batsman - league.squadRules.minBatsmen) +
+          Math.max(0, roleCounts.bowler - league.squadRules.minBowlers) +
+          Math.max(0, roleCounts.allrounder - league.squadRules.minAllrounders) +
+          Math.max(0, roleCounts.wicketkeeper - league.squadRules.minWicketkeepers);
+
+        const hasFlexibleSlot = playersInFlexible < totalFlexibleSlots;
+
+        // Player must have either a required slot OR a flexible slot available
+        if (!hasRequiredSlot && !hasFlexibleSlot) {
+          const roleDisplayName = role === 'batsman' ? 'batter' : role;
+          setSubmitError(`No available slot for this ${roleDisplayName}. Fill required positions first or free up flexible slots.`);
+          setTimeout(() => setSubmitError(''), 3000);
+          return prev;
+        }
       }
 
       // All validations passed, add the player
@@ -722,21 +767,53 @@ const CricketPitchFormation: React.FC<{
   const mainSquadPlayers = selectedPlayers.filter(p => p.position !== 'bench');
   const benchPlayers = selectedPlayers.filter(p => p.position === 'bench');
 
-  const playersByRole = {
-    batsman: mainSquadPlayers.filter(p => p.role === 'batsman'),
-    bowler: mainSquadPlayers.filter(p => p.role === 'bowler'),
-    allrounder: mainSquadPlayers.filter(p => p.role === 'allrounder'),
-    wicketkeeper: mainSquadPlayers.filter(p => p.role === 'wicketkeeper')
+  // Assign players to slots preserving the order they were added
+  // This prevents players from "jumping" between slots when new players are added
+  const slotAssignments = {
+    batsman: [] as (SelectedPlayer | undefined)[],
+    bowler: [] as (SelectedPlayer | undefined)[],
+    allrounder: [] as (SelectedPlayer | undefined)[],
+    wicketkeeper: [] as (SelectedPlayer | undefined)[],
+    flexible: [] as SelectedPlayer[]
   };
 
-  // Calculate flexible players (those beyond minimum requirements)
-  // This ensures each player only appears once - either in required OR flexible slots
-  const flexiblePlayersList = [
-    ...playersByRole.batsman.slice(league.squadRules.minBatsmen),
-    ...playersByRole.bowler.slice(league.squadRules.minBowlers),
-    ...playersByRole.allrounder.slice(league.squadRules.minAllrounders),
-    ...playersByRole.wicketkeeper.slice(league.squadRules.minWicketkeepers)
-  ];
+  // Track how many players of each role we've assigned to required slots
+  const roleCounters = {
+    batsman: 0,
+    bowler: 0,
+    allrounder: 0,
+    wicketkeeper: 0
+  };
+
+  // Go through players in the order they were added
+  mainSquadPlayers.forEach(player => {
+    const role = player.role as 'batsman' | 'bowler' | 'allrounder' | 'wicketkeeper';
+    const minRequired = league.squadRules[
+      role === 'batsman' ? 'minBatsmen' :
+      role === 'bowler' ? 'minBowlers' :
+      role === 'allrounder' ? 'minAllrounders' :
+      'minWicketkeepers'
+    ];
+
+    // If this role still has required slots available, assign to required slot
+    if (roleCounters[role] < minRequired) {
+      slotAssignments[role][roleCounters[role]] = player;
+      roleCounters[role]++;
+    } else {
+      // Otherwise, assign to flexible slot (in order added)
+      slotAssignments.flexible.push(player);
+    }
+  });
+
+  // For backwards compatibility with existing slot rendering
+  const playersByRole = {
+    batsman: slotAssignments.batsman.filter((p): p is SelectedPlayer => p !== undefined),
+    bowler: slotAssignments.bowler.filter((p): p is SelectedPlayer => p !== undefined),
+    allrounder: slotAssignments.allrounder.filter((p): p is SelectedPlayer => p !== undefined),
+    wicketkeeper: slotAssignments.wicketkeeper.filter((p): p is SelectedPlayer => p !== undefined)
+  };
+
+  const flexiblePlayersList = slotAssignments.flexible;
 
   const getRoleDisplayText = (role?: string): string => {
     if (!role) return '';
