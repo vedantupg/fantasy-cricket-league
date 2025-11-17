@@ -4,11 +4,6 @@ import {
   Typography,
   Button,
   useTheme,
-  alpha,
-  Breadcrumbs,
-  Link,
-  Tabs,
-  Tab,
   useMediaQuery
 } from '@mui/material';
 import {
@@ -44,7 +39,6 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
 }) => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const handleBack = () => {
@@ -102,24 +96,24 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
   return (
     <Box
       sx={{
-        bgcolor: alpha(theme.palette.background.paper, 0.6),
-        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+        bgcolor: '#00e5ff',
+        borderBottom: '4px solid #000000',
         position: 'sticky',
-        top: 64, // Height of AppHeader
+        top: { xs: 72, sm: 82 }, // Height of AppHeader
         zIndex: 1000,
-        backdropFilter: 'blur(10px)'
+        boxShadow: '0px 4px 0px #000000'
       }}
     >
       {/* Top row - Back button and Breadcrumbs */}
       <Box
         sx={{
-          px: { xs: 2, sm: 3 },
-          py: { xs: 1, sm: 1.5 },
+          px: { xs: 2, sm: 3, md: 4 },
+          py: { xs: 1.5, sm: 2 },
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: { xs: 'wrap', sm: 'nowrap' },
-          gap: { xs: 1, sm: 0 }
+          gap: { xs: 1, sm: 2 }
         }}
       >
       {/* Left side - Back button and Breadcrumb */}
@@ -135,67 +129,51 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
         <Button
           startIcon={!isSmallMobile ? <ArrowBack /> : undefined}
           onClick={handleBack}
-          size="small"
+          variant="outlined"
           sx={{
-            textTransform: 'none',
-            color: 'text.secondary',
-            fontWeight: 500,
-            px: { xs: 1, sm: 2 },
-            py: 0.75,
+            px: { xs: 1.5, sm: 2 },
+            py: { xs: 0.5, sm: 0.75 },
             minWidth: { xs: 'auto', sm: 'auto' },
+            bgcolor: '#ffffff',
+            color: '#000000',
+            fontSize: { xs: '0.7rem', sm: '0.8rem' },
             '&:hover': {
-              backgroundColor: alpha(theme.palette.primary.main, 0.08),
-              color: theme.palette.primary.main,
+              bgcolor: '#ffffff',
             }
           }}
         >
-          {isSmallMobile ? <ArrowBack /> : 'Back'}
+          {isSmallMobile ? <ArrowBack /> : 'BACK'}
         </Button>
 
-        {/* Breadcrumb Navigation */}
+        {/* League Name and Current Page */}
         {!isSmallMobile && (
-          <Breadcrumbs
-            separator={<ChevronRight sx={{ fontSize: 18, color: 'text.disabled' }} />}
-            sx={{
-              '& .MuiBreadcrumbs-separator': {
-                mx: 1
-              },
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {/* League Name */}
-            <Link
-              component="button"
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography
               onClick={() => navigate(`/leagues/${leagueId}`)}
               sx={{
-                display: 'flex',
-                alignItems: 'center',
-                color: theme.palette.secondary.main,
-                textDecoration: 'none',
-                fontWeight: 600,
-                fontSize: { xs: '0.85rem', sm: '0.95rem' },
+                color: '#000000',
+                fontWeight: 800,
+                fontSize: { xs: '0.9rem', sm: '1.1rem', md: '1.2rem' },
                 cursor: 'pointer',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
-                maxWidth: { xs: '120px', md: 'none' },
+                maxWidth: { xs: '150px', md: '300px' },
                 '&:hover': {
                   textDecoration: 'underline',
-                  color: theme.palette.secondary.light
                 }
               }}
             >
               {leagueName}
-            </Link>
-
-            {/* Current Page */}
+            </Typography>
+            <ChevronRight sx={{ fontSize: 20, color: '#000000' }} />
             <Typography
               sx={{
-                color: 'text.primary',
-                fontWeight: 500,
-                fontSize: { xs: '0.85rem', sm: '0.95rem' },
+                color: '#000000',
+                fontWeight: 700,
+                fontSize: { xs: '0.85rem', sm: '1rem' },
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap'
@@ -203,18 +181,19 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
             >
               {currentPage}
             </Typography>
-          </Breadcrumbs>
+          </Box>
         )}
         {isSmallMobile && (
           <Typography
             sx={{
-              color: 'text.primary',
-              fontWeight: 600,
-              fontSize: '0.9rem',
+              color: '#000000',
+              fontWeight: 800,
+              fontSize: '0.95rem',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              flex: 1
+              flex: 1,
+              textTransform: 'uppercase',
             }}
           >
             {currentPage}
@@ -237,74 +216,133 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
 
       {/* Bottom row - Navigation Tabs */}
       <Box sx={{
-        px: { xs: 0, sm: 3 },
-        borderTop: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
+        px: { xs: 0, sm: 1, md: 3 },
+        borderTop: '3px solid #000000',
+        bgcolor: '#ffffff',
         overflowX: 'auto',
         '&::-webkit-scrollbar': {
-          display: 'none'
+          height: '4px',
+          bgcolor: '#f0f0f0',
         },
-        scrollbarWidth: 'none'
+        '&::-webkit-scrollbar-thumb': {
+          bgcolor: '#000000',
+        },
       }}>
-        <Tabs
-          value={getTabValue()}
-          onChange={handleTabChange}
-          textColor="primary"
-          indicatorColor="primary"
-          variant={isMobile ? 'scrollable' : 'standard'}
-          scrollButtons={isMobile ? 'auto' : false}
-          allowScrollButtonsMobile
-          sx={{
-            minHeight: { xs: 56, sm: 48 },
-            '& .MuiTab-root': {
-              minHeight: { xs: 56, sm: 48 },
-              textTransform: 'none',
-              fontSize: { xs: '0.8rem', sm: '0.9rem' },
-              fontWeight: 500,
-              color: 'text.secondary',
-              minWidth: { xs: 'auto', sm: 90 },
-              px: { xs: 2, sm: 2 },
-              '&.Mui-selected': {
-                color: 'primary.main'
+        <Box sx={{
+          display: 'flex',
+          gap: { xs: 0.5, sm: 1 },
+          p: { xs: 1, sm: 1.5 },
+          minWidth: 'fit-content',
+        }}>
+          <Button
+            variant={getTabValue() === 0 ? 'contained' : 'outlined'}
+            startIcon={<Dashboard />}
+            onClick={() => handleTabChange({} as React.SyntheticEvent, 0)}
+            sx={{
+              px: { xs: 1.5, sm: 2 },
+              py: { xs: 0.75, sm: 1 },
+              fontSize: { xs: '0.65rem', sm: '0.75rem' },
+              bgcolor: getTabValue() === 0 ? '#ff005d' : '#ffffff',
+              color: getTabValue() === 0 ? '#ffffff' : '#000000',
+              whiteSpace: 'nowrap',
+              '&:hover': {
+                bgcolor: getTabValue() === 0 ? '#ff005d' : '#ffffff',
               }
-            },
-            '& .MuiTabs-scrollButtons': {
-              '&.Mui-disabled': {
-                opacity: 0.3
+            }}
+          >
+            {isSmallMobile ? '' : (currentPage === 'Squad Selection' ? 'BACK' : 'OVERVIEW')}
+          </Button>
+          <Button
+            variant={getTabValue() === 1 ? 'contained' : 'outlined'}
+            startIcon={<People />}
+            onClick={() => handleTabChange({} as React.SyntheticEvent, 1)}
+            sx={{
+              px: { xs: 1.5, sm: 2 },
+              py: { xs: 0.75, sm: 1 },
+              fontSize: { xs: '0.65rem', sm: '0.75rem' },
+              bgcolor: getTabValue() === 1 ? '#ff005d' : '#ffffff',
+              color: getTabValue() === 1 ? '#ffffff' : '#000000',
+              whiteSpace: 'nowrap',
+              '&:hover': {
+                bgcolor: getTabValue() === 1 ? '#ff005d' : '#ffffff',
               }
-            }
-          }}
-        >
-          <Tab
-            icon={<Dashboard sx={{ fontSize: { xs: 20, sm: 20 } }} />}
-            iconPosition={isMobile ? 'top' : 'start'}
-            label={currentPage === 'Squad Selection' ? 'Back' : 'Overview'}
-          />
-          <Tab
-            icon={<People sx={{ fontSize: { xs: 20, sm: 20 } }} />}
-            iconPosition={isMobile ? 'top' : 'start'}
-            label={isMobile ? 'Squad' : 'Squad'}
-          />
-          <Tab
-            icon={<EmojiEvents sx={{ fontSize: { xs: 20, sm: 20 } }} />}
-            iconPosition={isMobile ? 'top' : 'start'}
-            label={isMobile ? 'Leaderboard' : 'Leaderboard'}
-          />
-          <Tab
-            icon={<Groups sx={{ fontSize: { xs: 20, sm: 20 } }} />}
-            iconPosition={isMobile ? 'top' : 'start'}
-            label={isMobile ? 'Teams' : 'Teams'}
-          />
-          <Tab
-            icon={<MenuBook sx={{ fontSize: { xs: 20, sm: 20 } }} />}
-            iconPosition={isMobile ? 'top' : 'start'}
-            label={isMobile ? 'Rules' : 'Rules'}
-          />
-          <Tab
-            icon={<BarChart sx={{ fontSize: { xs: 20, sm: 20 } }} />}
-            iconPosition={isMobile ? 'top' : 'start'}
-            label={isMobile ? 'Analytics' : 'Analytics'}
-          />
-        </Tabs>
+            }}
+          >
+            {!isSmallMobile && 'SQUAD'}
+          </Button>
+          <Button
+            variant={getTabValue() === 2 ? 'contained' : 'outlined'}
+            startIcon={<EmojiEvents />}
+            onClick={() => handleTabChange({} as React.SyntheticEvent, 2)}
+            sx={{
+              px: { xs: 1.5, sm: 2 },
+              py: { xs: 0.75, sm: 1 },
+              fontSize: { xs: '0.65rem', sm: '0.75rem' },
+              bgcolor: getTabValue() === 2 ? '#ff005d' : '#ffffff',
+              color: getTabValue() === 2 ? '#ffffff' : '#000000',
+              whiteSpace: 'nowrap',
+              '&:hover': {
+                bgcolor: getTabValue() === 2 ? '#ff005d' : '#ffffff',
+              }
+            }}
+          >
+            {!isSmallMobile && 'LEADERBOARD'}
+          </Button>
+          <Button
+            variant={getTabValue() === 3 ? 'contained' : 'outlined'}
+            startIcon={<Groups />}
+            onClick={() => handleTabChange({} as React.SyntheticEvent, 3)}
+            sx={{
+              px: { xs: 1.5, sm: 2 },
+              py: { xs: 0.75, sm: 1 },
+              fontSize: { xs: '0.65rem', sm: '0.75rem' },
+              bgcolor: getTabValue() === 3 ? '#ff005d' : '#ffffff',
+              color: getTabValue() === 3 ? '#ffffff' : '#000000',
+              whiteSpace: 'nowrap',
+              '&:hover': {
+                bgcolor: getTabValue() === 3 ? '#ff005d' : '#ffffff',
+              }
+            }}
+          >
+            {!isSmallMobile && 'TEAMS'}
+          </Button>
+          <Button
+            variant={getTabValue() === 4 ? 'contained' : 'outlined'}
+            startIcon={<MenuBook />}
+            onClick={() => handleTabChange({} as React.SyntheticEvent, 4)}
+            sx={{
+              px: { xs: 1.5, sm: 2 },
+              py: { xs: 0.75, sm: 1 },
+              fontSize: { xs: '0.65rem', sm: '0.75rem' },
+              bgcolor: getTabValue() === 4 ? '#ff005d' : '#ffffff',
+              color: getTabValue() === 4 ? '#ffffff' : '#000000',
+              whiteSpace: 'nowrap',
+              '&:hover': {
+                bgcolor: getTabValue() === 4 ? '#ff005d' : '#ffffff',
+              }
+            }}
+          >
+            {!isSmallMobile && 'RULES'}
+          </Button>
+          <Button
+            variant={getTabValue() === 5 ? 'contained' : 'outlined'}
+            startIcon={<BarChart />}
+            onClick={() => handleTabChange({} as React.SyntheticEvent, 5)}
+            sx={{
+              px: { xs: 1.5, sm: 2 },
+              py: { xs: 0.75, sm: 1 },
+              fontSize: { xs: '0.65rem', sm: '0.75rem' },
+              bgcolor: getTabValue() === 5 ? '#ff005d' : '#ffffff',
+              color: getTabValue() === 5 ? '#ffffff' : '#000000',
+              whiteSpace: 'nowrap',
+              '&:hover': {
+                bgcolor: getTabValue() === 5 ? '#ff005d' : '#ffffff',
+              }
+            }}
+          >
+            {!isSmallMobile && 'ANALYTICS'}
+          </Button>
+        </Box>
       </Box>
     </Box>
   );

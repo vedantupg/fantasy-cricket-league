@@ -4,9 +4,6 @@ import {
   Typography,
   Button,
   useTheme,
-  alpha,
-  Tabs,
-  Tab,
   useMediaQuery
 } from '@mui/material';
 import { Home, Dashboard } from '@mui/icons-material';
@@ -27,7 +24,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Determine current tab based on current route
@@ -42,84 +38,94 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
     <Box
       component="nav"
       sx={{
-        px: { xs: 2, sm: 3 },
-        py: { xs: 1.5, sm: 2 },
+        px: { xs: 2, sm: 3, md: 4 },
+        py: { xs: 2, sm: 2.5 },
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backdropFilter: 'blur(10px)',
-        borderBottom: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+        borderBottom: '4px solid #000000',
         position: 'sticky',
         top: 0,
         zIndex: 1100,
-        bgcolor: alpha(theme.palette.background.default, 0.95)
+        bgcolor: '#ffffff',
+        boxShadow: '0px 4px 0px #000000'
       }}
     >
       {/* Left side - Logo and Navigation */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, sm: 4 }, flex: 1, minWidth: 0 }}>
-        {/* Brand Logo */}
-        <Typography
-          variant={isSmallMobile ? 'h6' : 'h5'}
-          sx={{
-            fontWeight: 'bold',
-            background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            cursor: 'pointer',
-            letterSpacing: 1,
-            flexShrink: 0
-          }}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, sm: 3, md: 4 }, flex: 1, minWidth: 0 }}>
+        {/* Brand Logo - Neo-Brutalist Style */}
+        <Box
           onClick={() => navigate('/')}
+          sx={{
+            cursor: 'pointer',
+            px: { xs: 2, sm: 3 },
+            py: { xs: 1, sm: 1.5 },
+            bgcolor: '#ff005d',
+            border: '3px solid #000000',
+            boxShadow: '4px 4px 0px #000000',
+            transition: 'all 0.1s ease',
+            '&:hover': {
+              transform: 'translate(-2px, -2px)',
+              boxShadow: '6px 6px 0px #000000',
+            },
+            '&:active': {
+              transform: 'translate(0px, 0px)',
+              boxShadow: '2px 2px 0px #000000',
+            },
+          }}
         >
-          FCL
-        </Typography>
+          <Typography
+            variant={isSmallMobile ? 'h6' : 'h5'}
+            sx={{
+              fontWeight: 900,
+              color: '#ffffff',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' }
+            }}
+          >
+            FCL
+          </Typography>
+        </Box>
 
         {/* Global Navigation Tabs - Only show for authenticated users */}
         {user && !hideNavigation && (
-          <Tabs
-            value={getCurrentTab()}
-            onChange={(_, newValue) => {
-              if (newValue === 0) navigate('/');
-              if (newValue === 1) navigate('/dashboard');
-            }}
-            sx={{
-              minHeight: 'auto',
-              '& .MuiTabs-indicator': {
-                backgroundColor: theme.palette.primary.main,
-                height: 3,
-                borderRadius: '3px 3px 0 0'
-              },
-              '& .MuiTab-root': {
-                minHeight: 'auto',
-                py: { xs: 1, sm: 1.5 },
-                px: { xs: 1.5, sm: 3 },
-                minWidth: { xs: 'auto', sm: 90 },
-                textTransform: 'none',
-                fontWeight: 600,
-                fontSize: { xs: '0.75rem', sm: '0.95rem' },
-                color: alpha(theme.palette.text.primary, 0.6),
-                '&.Mui-selected': {
-                  color: theme.palette.primary.main,
-                },
+          <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, alignItems: 'center' }}>
+            <Button
+              variant={getCurrentTab() === 0 ? 'contained' : 'outlined'}
+              startIcon={<Home />}
+              onClick={() => navigate('/')}
+              sx={{
+                px: { xs: 1.5, sm: 2 },
+                py: { xs: 0.75, sm: 1 },
+                fontSize: { xs: '0.7rem', sm: '0.8rem' },
+                bgcolor: getCurrentTab() === 0 ? '#ff005d' : '#ffffff',
+                color: getCurrentTab() === 0 ? '#ffffff' : '#000000',
                 '&:hover': {
-                  color: theme.palette.primary.main,
-                  backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                  bgcolor: getCurrentTab() === 0 ? '#ff005d' : '#ffffff',
                 }
-              }
-            }}
-          >
-            <Tab
-              icon={<Home sx={{ fontSize: { xs: 18, sm: 20 } }} />}
-              label={isSmallMobile ? undefined : 'Home'}
-              iconPosition="start"
-            />
-            <Tab
-              icon={<Dashboard sx={{ fontSize: { xs: 18, sm: 20 } }} />}
-              label={isSmallMobile ? undefined : (isMobile ? 'Leagues' : 'My Leagues')}
-              iconPosition="start"
-            />
-          </Tabs>
+              }}
+            >
+              {!isSmallMobile && 'HOME'}
+            </Button>
+            <Button
+              variant={getCurrentTab() === 1 ? 'contained' : 'outlined'}
+              startIcon={<Dashboard />}
+              onClick={() => navigate('/dashboard')}
+              sx={{
+                px: { xs: 1.5, sm: 2 },
+                py: { xs: 0.75, sm: 1 },
+                fontSize: { xs: '0.7rem', sm: '0.8rem' },
+                bgcolor: getCurrentTab() === 1 ? '#ff005d' : '#ffffff',
+                color: getCurrentTab() === 1 ? '#ffffff' : '#000000',
+                '&:hover': {
+                  bgcolor: getCurrentTab() === 1 ? '#ff005d' : '#ffffff',
+                }
+              }}
+            >
+              {!isSmallMobile && 'LEAGUES'}
+            </Button>
+          </Box>
         )}
       </Box>
 
@@ -133,9 +139,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
               variant="outlined"
               onClick={() => navigate('/login')}
               sx={{
-                borderRadius: 2,
                 px: { xs: 2, sm: 3 },
-                fontSize: { xs: '0.8rem', sm: '0.875rem' }
+                py: { xs: 0.75, sm: 1 },
+                fontSize: { xs: '0.7rem', sm: '0.8rem' }
               }}
             >
               Login
@@ -145,9 +151,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
                 variant="contained"
                 onClick={() => navigate('/register')}
                 sx={{
-                  borderRadius: 2,
                   px: { xs: 2, sm: 3 },
-                  fontSize: { xs: '0.8rem', sm: '0.875rem' }
+                  py: { xs: 0.75, sm: 1 },
+                  fontSize: { xs: '0.7rem', sm: '0.8rem' },
+                  bgcolor: '#00e5ff',
+                  color: '#000000',
+                  '&:hover': {
+                    bgcolor: '#00e5ff',
+                  }
                 }}
               >
                 Sign Up

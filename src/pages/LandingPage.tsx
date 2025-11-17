@@ -66,10 +66,10 @@ const LandingPage: React.FC = () => {
   ];
 
   const stats = [
-    { number: "1M+", label: "Active Players" },
-    { number: "50K+", label: "Daily Contests" },
-    { number: "₹10Cr+", label: "Prizes Won" },
-    { number: "99.9%", label: "Uptime" }
+    { number: "100+", label: "Active Players" },
+    { number: "15+", label: "Leagues hosted" },
+    { number: "₹30000+", label: "Prizes Won" },
+    { number: "5+ yrs", label: "Established since 2020" }
   ];
 
   useEffect(() => {
@@ -433,7 +433,7 @@ const LandingPage: React.FC = () => {
                   />
                   <Chip
                     icon={<Star sx={{ fontSize: 18 }} />}
-                    label="Expert Tips & Insights"
+                    label="Live discussions in dedicated groups"
                     sx={{ bgcolor: alpha('#25D366', 0.2), fontWeight: 600 }}
                   />
                   <Chip
