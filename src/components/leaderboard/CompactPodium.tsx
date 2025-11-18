@@ -1,6 +1,10 @@
 import React from 'react';
-import { Box, Avatar, Typography, Paper, Chip } from '@mui/material';
-import { EmojiEvents as TrophyIcon, TrendingUp } from '@mui/icons-material';
+import { Box, Avatar, Typography, Paper } from '@mui/material';
+import {
+  ArrowUpward as ArrowUpIcon,
+  ArrowDownward as ArrowDownIcon,
+  Remove as NoChangeIcon,
+} from '@mui/icons-material';
 import type { StandingEntry } from '../../types/database';
 
 interface CompactPodiumProps {
@@ -26,13 +30,23 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topThree }) => {
     }
   };
 
-  const getPodiumHeight = (rank: number) => {
+  const getMedal = (rank: number) => {
     switch (rank) {
-      case 1: return { xs: 80, sm: 100 };
-      case 2: return { xs: 60, sm: 75 };
-      case 3: return { xs: 45, sm: 60 };
-      default: return { xs: 40, sm: 50 };
+      case 1: return '🥇';
+      case 2: return '🥈';
+      case 3: return '🥉';
+      default: return '';
     }
+  };
+
+  const getRankChangeIcon = (standing: StandingEntry) => {
+    if (!standing.rankChange || standing.rankChange === 0) {
+      return <NoChangeIcon sx={{ fontSize: { xs: 12, sm: 14 }, color: 'text.secondary' }} />;
+    }
+    if (standing.rankChange > 0) {
+      return <ArrowUpIcon sx={{ fontSize: { xs: 12, sm: 14 }, color: 'success.main' }} />;
+    }
+    return <ArrowDownIcon sx={{ fontSize: { xs: 12, sm: 14 }, color: 'error.main' }} />;
   };
 
   return (
@@ -40,9 +54,9 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topThree }) => {
       sx={{
         display: 'flex',
         justifyContent: 'center',
-        alignItems: 'flex-end',
-        gap: { xs: 1, sm: 2 },
-        mb: { xs: 3, sm: 4 },
+        alignItems: 'stretch',
+        gap: { xs: 2, sm: 3, md: 4 },
+        mb: { xs: 2, sm: 3 },
         px: { xs: 1, sm: 2 },
       }}
     >
@@ -51,164 +65,147 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topThree }) => {
 
         const rank = standing.rank;
         const rankColor = getRankColor(rank);
-        const height = getPodiumHeight(rank);
+        const medal = getMedal(rank);
 
         return (
-          <Box
+          <Paper
             key={standing.userId}
+            elevation={rank === 1 ? 4 : 2}
             sx={{
+              flex: 1,
+              maxWidth: { xs: 140, sm: 190, md: 220 },
+              p: { xs: 1.5, sm: 2, md: 2.5 },
+              background: rank === 1
+                ? `linear-gradient(135deg, ${rankColor}20 0%, ${rankColor}10 100%)`
+                : 'background.paper',
+              border: `2px solid ${rankColor}`,
+              borderRadius: 2,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              flex: 1,
-              maxWidth: { xs: 110, sm: 140 },
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 4,
+              },
             }}
           >
-            {/* Trophy for 1st */}
-            {rank === 1 && (
-              <TrophyIcon
-                sx={{
-                  fontSize: { xs: 20, sm: 28 },
-                  color: rankColor,
-                  mb: 0.5,
-                }}
-              />
-            )}
+            {/* Medal */}
+            <Typography
+              sx={{
+                fontSize: { xs: '2.2rem', sm: '2.8rem', md: '3.5rem' },
+                lineHeight: 1,
+                mb: 0.5,
+              }}
+            >
+              {medal}
+            </Typography>
 
-            {/* Avatar with rank badge */}
-            <Box sx={{ position: 'relative', mb: 0.5 }}>
-              <Avatar
-                src={standing.profilePicUrl}
-                alt={standing.displayName}
-                sx={{
-                  width: { xs: rank === 1 ? 56 : 48, sm: rank === 1 ? 70 : 60 },
-                  height: { xs: rank === 1 ? 56 : 48, sm: rank === 1 ? 70 : 60 },
-                  border: `3px solid ${rankColor}`,
-                  boxShadow: rank === 1 ? `0 0 12px ${rankColor}40` : 2,
-                }}
-              />
-              <Chip
-                label={rank}
-                size="small"
-                sx={{
-                  position: 'absolute',
-                  bottom: -6,
-                  right: -6,
-                  backgroundColor: rankColor,
-                  color: 'white',
-                  fontWeight: 'bold',
-                  minWidth: { xs: 22, sm: 26 },
-                  height: { xs: 22, sm: 26 },
-                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                  '& .MuiChip-label': { px: 0.5 },
-                }}
-              />
-            </Box>
+            {/* Avatar */}
+            <Avatar
+              src={standing.profilePicUrl}
+              alt={standing.displayName}
+              sx={{
+                width: { xs: 52, sm: 68, md: 80 },
+                height: { xs: 52, sm: 68, md: 80 },
+                border: `2px solid ${rankColor}`,
+                mb: 0.5,
+              }}
+            />
 
             {/* Name */}
             <Typography
               variant="subtitle2"
               sx={{
-                fontWeight: rank === 1 ? 700 : 600,
+                fontWeight: 600,
                 textAlign: 'center',
-                fontSize: { xs: '0.7rem', sm: '0.85rem' },
+                fontSize: { xs: '0.8rem', sm: '0.9rem', md: '1rem' },
                 lineHeight: 1.2,
-                mb: 0.5,
+                mb: 0.75,
               }}
               noWrap
             >
               {standing.displayName}
             </Typography>
 
-            {/* Points */}
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 'bold',
-                color: rankColor,
-                fontSize: { xs: '0.95rem', sm: '1.15rem' },
-                lineHeight: 1,
-              }}
-            >
-              {standing.totalPoints.toFixed(1)}
-            </Typography>
+            {/* Points Row: Rank Change | Points | Points Gained */}
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: { xs: 0.75, sm: 1, md: 1.25 },
+              width: '100%',
+              py: { xs: 0.5, sm: 0.75 },
+              bgcolor: 'action.hover',
+              borderRadius: 1.5,
+              mb: 0.5
+            }}>
+              {/* Rank change on left */}
+              {standing.rankChange !== undefined && standing.rankChange !== 0 && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
+                  {getRankChangeIcon(standing)}
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontWeight: 600,
+                      color: (standing.rankChange || 0) > 0 ? 'success.main' : 'error.main',
+                      fontSize: { xs: '0.65rem', sm: '0.7rem', md: '0.75rem' },
+                    }}
+                  >
+                    {Math.abs(standing.rankChange || 0)}
+                  </Typography>
+                </Box>
+              )}
 
-            {/* Points gained */}
-            {standing.pointsGainedToday > 0 && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, mt: 0.3 }}>
-                <TrendingUp sx={{ fontSize: { xs: 10, sm: 12 }, color: 'success.main' }} />
-                <Typography variant="caption" sx={{ color: 'success.main', fontSize: { xs: '0.6rem', sm: '0.7rem' } }}>
-                  +{standing.pointsGainedToday.toFixed(1)}
+              {/* Total points in center */}
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 'bold',
+                  color: rankColor,
+                  fontSize: { xs: '1.05rem', sm: '1.2rem', md: '1.35rem' },
+                  lineHeight: 1,
+                }}
+              >
+                {standing.totalPoints.toFixed(1)}
+              </Typography>
+
+              {/* Points gained on right */}
+              {standing.pointsGainedToday > 0 && (
+                <Typography variant="caption" sx={{ color: 'success.main', fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem' } }}>
+                  (+{standing.pointsGainedToday.toFixed(1)})
                 </Typography>
-              </Box>
-            )}
+              )}
+            </Box>
 
             {/* C/VC/X Breakdown */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0.5, mt: 0.5, width: '100%' }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0.5, width: '100%', mt: 'auto' }}>
               <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.55rem', sm: '0.6rem' } }}>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' } }}>
                   C
                 </Typography>
-                <Typography variant="body2" fontWeight="bold" color="primary.main" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, lineHeight: 1 }}>
+                <Typography variant="body2" fontWeight="bold" color="primary.main" sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' }, lineHeight: 1 }}>
                   {standing.captainPoints.toFixed(1)}
                 </Typography>
               </Box>
               <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.55rem', sm: '0.6rem' } }}>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' } }}>
                   VC
                 </Typography>
-                <Typography variant="body2" fontWeight="bold" color="secondary.main" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, lineHeight: 1 }}>
+                <Typography variant="body2" fontWeight="bold" color="secondary.main" sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' }, lineHeight: 1 }}>
                   {standing.viceCaptainPoints.toFixed(1)}
                 </Typography>
               </Box>
               <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.55rem', sm: '0.6rem' } }}>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' } }}>
                   X
                 </Typography>
-                <Typography variant="body2" fontWeight="bold" sx={{ color: '#9C27B0', fontSize: { xs: '0.65rem', sm: '0.75rem' }, lineHeight: 1 }}>
+                <Typography variant="body2" fontWeight="bold" sx={{ color: '#9C27B0', fontSize: { xs: '0.65rem', sm: '0.7rem' }, lineHeight: 1 }}>
                   {standing.xFactorPoints.toFixed(1)}
                 </Typography>
               </Box>
             </Box>
-
-            {/* Podium base */}
-            <Paper
-              elevation={rank === 1 ? 4 : 2}
-              sx={{
-                width: '100%',
-                height,
-                mt: 1,
-                background: `linear-gradient(135deg, ${rankColor}30 0%, ${rankColor}10 100%)`,
-                border: `2px solid ${rankColor}60`,
-                borderRadius: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: '3px',
-                  background: rankColor,
-                },
-              }}
-            >
-              <Typography
-                variant="h2"
-                sx={{
-                  fontWeight: 'bold',
-                  color: rankColor,
-                  opacity: 0.25,
-                  fontSize: { xs: '2rem', sm: '2.5rem' },
-                }}
-              >
-                {rank}
-              </Typography>
-            </Paper>
-          </Box>
+          </Paper>
         );
       })}
     </Box>

@@ -572,8 +572,8 @@ const SquadSelectionPage: React.FC = () => {
           const incomingPlayer = availablePlayers.find(p => p.id === transferData.playerIn);
           if (!incomingPlayer) throw new Error('Incoming player not found');
 
-          // Create new squad player
-          const newSquadPlayer = squadPlayerUtils.createInitialSquadPlayer({
+          // Create new squad player using transfer method (snapshots current points)
+          const newSquadPlayer = squadPlayerUtils.createTransferSquadPlayer({
             playerId: incomingPlayer.id,
             playerName: incomingPlayer.name,
             team: incomingPlayer.team,

@@ -18,165 +18,168 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
       const colors = ['#FFD700', '#C0C0C0', '#CD7F32'];
       return colors[rank - 1];
     }
-    if (rank <= 5) return '#4CAF50';
-    if (rank <= 10) return '#2196F3';
-    return '#757575';
+    return 'text.primary'; // Use theme text color for all other ranks
   };
 
   const rankColor = getRankColor(standing.rank);
+  const borderColor = standing.rank <= 3 ? rankColor : 'divider';
 
   const getRankChangeIcon = () => {
     if (!standing.rankChange || standing.rankChange === 0) {
-      return <NoChangeIcon sx={{ fontSize: 14, color: 'text.secondary' }} />;
+      return <NoChangeIcon sx={{ fontSize: 12, color: 'text.secondary' }} />;
     }
     if (standing.rankChange > 0) {
-      return <ArrowUpIcon sx={{ fontSize: 14, color: 'success.main' }} />;
+      return <ArrowUpIcon sx={{ fontSize: 12, color: 'success.main' }} />;
     }
-    return <ArrowDownIcon sx={{ fontSize: 14, color: 'error.main' }} />;
+    return <ArrowDownIcon sx={{ fontSize: 12, color: 'error.main' }} />;
   };
 
   return (
     <Paper
       elevation={isCurrentUser ? 6 : 2}
       sx={{
-        p: { xs: 1.25, sm: 1.5 },
+        p: { xs: 1, sm: 1.25 },
         background: isCurrentUser
           ? 'linear-gradient(135deg, rgba(63, 81, 181, 0.1) 0%, rgba(33, 150, 243, 0.05) 100%)'
           : 'background.paper',
         border: isCurrentUser ? '2px solid' : '1px solid',
         borderColor: isCurrentUser ? 'primary.main' : 'divider',
-        borderLeft: `4px solid ${rankColor}`,
-        height: '100%',
+        borderLeft: `4px solid`,
+        borderLeftColor: borderColor,
+        borderRadius: 2,
         display: 'flex',
         flexDirection: 'column',
+        gap: { xs: 0.75, sm: 1 },
         transition: 'all 0.2s ease',
         '&:hover': {
-          transform: 'translateY(-4px)',
+          transform: 'translateY(-2px)',
           boxShadow: 4,
         },
       }}
     >
-      {/* Header - Rank & Change */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
-        <Typography
-          variant="h5"
-          sx={{
-            fontWeight: 'bold',
-            color: rankColor,
-            fontSize: { xs: '1.25rem', sm: '1.5rem' },
-          }}
-        >
-          #{standing.rank}
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          {getRankChangeIcon()}
-          {standing.rankChange !== undefined && standing.rankChange !== 0 && (
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 600,
-                color: (standing.rankChange || 0) > 0 ? 'success.main' : 'error.main',
-                fontSize: { xs: '0.7rem', sm: '0.75rem' },
-              }}
-            >
-              {Math.abs(standing.rankChange || 0)}
-            </Typography>
-          )}
+      {/* Top Row: Rank, Avatar, Name, You chip */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.75, sm: 1 } }}>
+        {/* Rank */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: { xs: 28, sm: 32 } }}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 'bold',
+              color: rankColor,
+              fontSize: { xs: '1rem', sm: '1.1rem' },
+              lineHeight: 1,
+            }}
+          >
+            #{standing.rank}
+          </Typography>
         </Box>
-      </Box>
 
-      {/* Avatar & Name */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        {/* Avatar */}
         <Avatar
           src={standing.profilePicUrl}
           alt={standing.displayName}
           sx={{
-            width: { xs: 36, sm: 42 },
-            height: { xs: 36, sm: 42 },
-            border: `2px solid ${rankColor}`,
+            width: { xs: 32, sm: 36 },
+            height: { xs: 32, sm: 36 },
+            border: `2px solid`,
+            borderColor: borderColor,
           }}
         />
+
+        {/* Name */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography
-            variant="subtitle1"
+            variant="subtitle2"
             sx={{
               fontWeight: 600,
-              fontSize: { xs: '0.85rem', sm: '0.95rem' },
+              fontSize: { xs: '0.75rem', sm: '0.85rem' },
               lineHeight: 1.2,
             }}
             noWrap
           >
             {standing.displayName}
           </Typography>
-          {standing.leadFromNext !== undefined && standing.leadFromNext > 0 && (
-            <Typography
-              variant="caption"
-              sx={{
-                fontSize: { xs: '0.65rem', sm: '0.7rem' },
-                color: 'success.main',
-                fontWeight: 600,
-              }}
-            >
-              +{standing.leadFromNext.toFixed(1)} ahead
-            </Typography>
-          )}
         </Box>
+
+        {/* You chip */}
         {isCurrentUser && (
           <Chip
             label="You"
             size="small"
             color="primary"
-            sx={{ height: 20, fontSize: '0.65rem' }}
+            sx={{ height: 18, fontSize: '0.6rem' }}
           />
         )}
       </Box>
 
-      {/* Total Points */}
-      <Box sx={{ textAlign: 'center', mb: 1, py: 0.5, bgcolor: 'action.hover', borderRadius: 1 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.6rem', sm: '0.65rem' }, display: 'block', mb: 0.25 }}>
-          TOTAL POINTS
-        </Typography>
-        <Typography
-          variant="h5"
-          sx={{
-            fontWeight: 'bold',
-            color: rankColor,
-            fontSize: { xs: '1.25rem', sm: '1.4rem' },
-            lineHeight: 1.1,
-          }}
-        >
-          {standing.totalPoints.toFixed(2)}
-        </Typography>
+      {/* Total Points Row: Rank Change | Points | Points Gained */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: { xs: 0.75, sm: 1 }, py: 0.5, bgcolor: 'action.hover', borderRadius: 1.5 }}>
+        {/* Rank change on left */}
+        {standing.rankChange !== undefined && standing.rankChange !== 0 && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
+            {getRankChangeIcon()}
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 600,
+                color: (standing.rankChange || 0) > 0 ? 'success.main' : 'error.main',
+                fontSize: { xs: '0.6rem', sm: '0.65rem' },
+              }}
+            >
+              {Math.abs(standing.rankChange || 0)}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Total points in center */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' } }}>
+            TOTAL
+          </Typography>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 'bold',
+              color: rankColor,
+              fontSize: { xs: '1rem', sm: '1.1rem' },
+              lineHeight: 1,
+            }}
+          >
+            {standing.totalPoints.toFixed(1)}
+          </Typography>
+        </Box>
+
+        {/* Points gained on right */}
         {standing.pointsGainedToday > 0 && (
-          <Typography variant="caption" sx={{ color: 'success.main', fontSize: { xs: '0.6rem', sm: '0.65rem' }, display: 'block', mt: 0.25 }}>
-            +{standing.pointsGainedToday.toFixed(2)} today
+          <Typography variant="caption" sx={{ color: 'success.main', fontSize: { xs: '0.6rem', sm: '0.65rem' } }}>
+            (+{standing.pointsGainedToday.toFixed(1)})
           </Typography>
         )}
       </Box>
 
-      {/* Points Breakdown */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0.5, fontSize: { xs: '0.6rem', sm: '0.65rem' } }}>
+      {/* Points Breakdown - Compact */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0.5 }}>
         <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: 'inherit', mb: 0.25 }}>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' } }}>
             C
           </Typography>
-          <Typography variant="body2" fontWeight="bold" color="primary.main" sx={{ fontSize: { xs: '0.7rem', sm: '0.8rem' } }}>
+          <Typography variant="body2" fontWeight="bold" color="primary.main" sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' }, lineHeight: 1 }}>
             {standing.captainPoints.toFixed(1)}
           </Typography>
         </Box>
         <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: 'inherit', mb: 0.25 }}>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' } }}>
             VC
           </Typography>
-          <Typography variant="body2" fontWeight="bold" color="secondary.main" sx={{ fontSize: { xs: '0.7rem', sm: '0.8rem' } }}>
+          <Typography variant="body2" fontWeight="bold" color="secondary.main" sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' }, lineHeight: 1 }}>
             {standing.viceCaptainPoints.toFixed(1)}
           </Typography>
         </Box>
         <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: 'inherit', mb: 0.25 }}>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' } }}>
             X
           </Typography>
-          <Typography variant="body2" fontWeight="bold" sx={{ color: '#9C27B0', fontSize: { xs: '0.7rem', sm: '0.8rem' } }}>
+          <Typography variant="body2" fontWeight="bold" sx={{ color: '#9C27B0', fontSize: { xs: '0.65rem', sm: '0.7rem' }, lineHeight: 1 }}>
             {standing.xFactorPoints.toFixed(1)}
           </Typography>
         </Box>

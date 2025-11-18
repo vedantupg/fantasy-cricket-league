@@ -278,54 +278,9 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
               </Box>
             )}
 
-            {/* Mid-Season Transfers Details */}
-            {league.transferTypes.midSeasonTransfers.enabled && (
-              <Box sx={{ mb: { xs: 2, sm: 3 } }}>
-                <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, mb: 1 }}>
-                  Mid-Season Change
-                </Typography>
-                <Grid container spacing={{ xs: 1.5, sm: 2 }} sx={{ mb: 1 }}>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Window Opens</Typography>
-                    <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                      {new Date(league.transferTypes.midSeasonTransfers.windowStartDate).toLocaleString()}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Window Closes</Typography>
-                    <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                      {new Date(league.transferTypes.midSeasonTransfers.windowEndDate).toLocaleString()}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Max Transfers</Typography>
-                    <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                      {league.transferTypes.midSeasonTransfers.maxAllowed}
-                    </Typography>
-                  </Grid>
-                </Grid>
-                <Box sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
-                  <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 1.5, lineHeight: 1.6, color: 'white' }}>
-                    A Mid-Season Change works exactly like a Flexible Change, but with a timing restriction.
-                  </Typography>
-                  <Box component="ul" sx={{ mt: 1, mb: 0, pl: 3 }}>
-                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
-                      Follows all the same rules as a Flexible Change (see below)
-                    </Typography>
-                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
-                      <strong>Timing restriction:</strong> Only allowed during the specific mid-season window announced by the league
-                    </Typography>
-                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
-                      Helps teams rebalance mid-tournament based on player form and injuries
-                    </Typography>
-                  </Box>
-                </Box>
-              </Box>
-            )}
-
             {/* Flexible Transfers Details */}
             {league.transferTypes.flexibleTransfers.enabled && (
-              <Box>
+              <Box sx={{ mb: { xs: 2, sm: 3 } }}>
                 <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, mb: 1 }}>
                   Flexible Change
                 </Typography>
@@ -371,6 +326,51 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
                     </Typography>
                     <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
                       Points multipliers apply only to future points earned after reassignment
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            )}
+
+            {/* Mid-Season Transfers Details */}
+            {league.transferTypes.midSeasonTransfers.enabled && (
+              <Box>
+                <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, mb: 1 }}>
+                  Mid-Season Change
+                </Typography>
+                <Grid container spacing={{ xs: 1.5, sm: 2 }} sx={{ mb: 1 }}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Window Opens</Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                      {new Date(league.transferTypes.midSeasonTransfers.windowStartDate).toLocaleString()}
+                    </Typography>
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Window Closes</Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                      {new Date(league.transferTypes.midSeasonTransfers.windowEndDate).toLocaleString()}
+                    </Typography>
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Max Transfers</Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                      {league.transferTypes.midSeasonTransfers.maxAllowed}
+                    </Typography>
+                  </Grid>
+                </Grid>
+                <Box sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                  <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 1.5, lineHeight: 1.6, color: 'white' }}>
+                    A Mid-Season Change works exactly like a Flexible Change, but with a timing restriction.
+                  </Typography>
+                  <Box component="ul" sx={{ mt: 1, mb: 0, pl: 3 }}>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
+                      Follows all the same rules as a Flexible Change (see above)
+                    </Typography>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
+                      <strong>Timing restriction:</strong> Only allowed during the specific mid-season window announced by the league
+                    </Typography>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
+                      Helps teams rebalance mid-tournament based on player form and injuries
                     </Typography>
                   </Box>
                 </Box>

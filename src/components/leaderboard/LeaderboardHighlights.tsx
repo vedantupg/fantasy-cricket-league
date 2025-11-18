@@ -70,202 +70,158 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
   }
 
   return (
-    <Box sx={{ mt: { xs: 2, sm: 3, md: 4 }, mb: { xs: 2, sm: 3 } }}>
-      <Box sx={{ display: 'flex', gap: { xs: 2, sm: 3 }, flexWrap: 'wrap' }}>
+    <Box sx={{ mt: { xs: 2, sm: 3 }, mb: { xs: 2, sm: 3 } }}>
+      <Box sx={{ display: 'flex', gap: { xs: 1.5, sm: 2 }, flexWrap: 'wrap' }}>
         {/* Best Performer */}
         {bestPerformer && (
-          <Box sx={{ flex: '1 1 calc(50% - 12px)', minWidth: { xs: '100%', sm: 280, md: 300 } }}>
+          <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: { xs: '100%', sm: 280, md: 300 } }}>
             <Paper
-              elevation={4}
+              elevation={2}
               sx={{
-                px: { xs: 2, sm: 3 },
-                py: { xs: 2, sm: 3 },
-                background: 'linear-gradient(135deg, rgba(33, 150, 243, 0.15) 0%, rgba(33, 150, 243, 0.05) 100%)',
+                px: { xs: 1.25, sm: 1.5 },
+                py: { xs: 1, sm: 1.25 },
+                background: 'linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(33, 150, 243, 0.03) 100%)',
                 border: '2px solid',
                 borderColor: 'primary.main',
                 borderRadius: 2,
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, sm: 2 }, gap: { xs: 0.5, sm: 1 } }}>
-                <TrophyIcon sx={{ fontSize: { xs: 24, sm: 32 }, color: 'primary.main' }} />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 } }}>
+                <TrophyIcon sx={{ fontSize: { xs: 18, sm: 20 }, color: 'primary.main' }} />
                 <Typography
-                  variant="h6"
+                  variant="subtitle2"
                   sx={{
                     fontWeight: 'bold',
                     color: 'primary.main',
                     textTransform: 'uppercase',
-                    letterSpacing: 1,
-                    fontSize: { xs: '0.9rem', sm: '1.25rem' },
+                    letterSpacing: 0.5,
+                    fontSize: { xs: '0.7rem', sm: '0.8rem' },
                   }}
                 >
                   Best Performer
                 </Typography>
               </Box>
 
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.25 }, mt: { xs: 0.75, sm: 1 } }}>
                 <Avatar
                   src={bestPerformer.profilePicUrl}
                   alt={bestPerformer.displayName}
                   sx={{
-                    width: { xs: 60, sm: 80 },
-                    height: { xs: 60, sm: 80 },
-                    border: '3px solid',
+                    width: { xs: 36, sm: 42 },
+                    height: { xs: 36, sm: 42 },
+                    border: '2px solid',
                     borderColor: 'primary.main',
                   }}
                 />
 
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="h5" fontWeight="bold" sx={{ fontSize: { xs: '1.1rem', sm: '1.5rem' } }} noWrap>
+                  <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: { xs: '0.8rem', sm: '0.9rem' }, lineHeight: 1.2 }} noWrap>
                     {bestPerformer.displayName}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }} noWrap>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' }, display: 'block' }} noWrap>
                     {bestPerformer.squadName}
                   </Typography>
+                </Box>
 
-                  <Box
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    px: { xs: 1, sm: 1.25 },
+                    py: { xs: 0.4, sm: 0.5 },
+                    backgroundColor: 'primary.main',
+                    borderRadius: 1.5,
+                  }}
+                >
+                  <Typography
+                    variant="caption"
                     sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      mt: { xs: 0.5, sm: 1 },
-                      px: { xs: 1.5, sm: 2 },
-                      py: { xs: 0.4, sm: 0.5 },
-                      backgroundColor: 'primary.main',
-                      borderRadius: 2,
+                      color: 'white',
+                      fontWeight: 'bold',
+                      fontSize: { xs: '0.7rem', sm: '0.8rem' },
                     }}
                   >
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        color: 'white',
-                        fontWeight: 'bold',
-                        fontSize: { xs: '0.875rem', sm: '1.25rem' },
-                      }}
-                    >
-                      +{bestPerformer.pointsGained.toFixed(2)} points
-                    </Typography>
-                  </Box>
+                    +{bestPerformer.pointsGained.toFixed(1)}
+                  </Typography>
                 </Box>
               </Box>
-
-              {bestPerformer.matchNumber && (
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ display: 'block', mt: { xs: 1.5, sm: 2 }, textAlign: 'center', fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
-                >
-                  from Match #{bestPerformer.matchNumber}
-                </Typography>
-              )}
-
-              <Typography
-                variant="body2"
-                sx={{
-                  mt: { xs: 1.5, sm: 2 },
-                  pt: { xs: 1.5, sm: 2 },
-                  borderTop: '1px solid',
-                  borderColor: 'divider',
-                  textAlign: 'center',
-                  fontStyle: 'italic',
-                  color: 'text.secondary',
-                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                }}
-              >
-                {bestPerformer.displayName} scored {bestPerformer.pointsGained.toFixed(2)} points since the last updated leaderboard!
-              </Typography>
             </Paper>
           </Box>
         )}
 
         {/* Rapid Riser */}
         {rapidRiser && (
-          <Box sx={{ flex: '1 1 calc(50% - 12px)', minWidth: { xs: '100%', sm: 280, md: 300 } }}>
+          <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: { xs: '100%', sm: 280, md: 300 } }}>
             <Paper
-              elevation={4}
+              elevation={2}
               sx={{
-                px: { xs: 2, sm: 3 },
-                py: { xs: 2, sm: 3 },
-                background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(76, 175, 80, 0.05) 100%)',
+                px: { xs: 1.25, sm: 1.5 },
+                py: { xs: 1, sm: 1.25 },
+                background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.03) 100%)',
                 border: '2px solid',
                 borderColor: 'success.main',
                 borderRadius: 2,
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, sm: 2 }, gap: { xs: 0.5, sm: 1 } }}>
-                <TrendingUpIcon sx={{ fontSize: { xs: 24, sm: 32 }, color: 'success.main' }} />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 } }}>
+                <TrendingUpIcon sx={{ fontSize: { xs: 18, sm: 20 }, color: 'success.main' }} />
                 <Typography
-                  variant="h6"
+                  variant="subtitle2"
                   sx={{
                     fontWeight: 'bold',
                     color: 'success.main',
                     textTransform: 'uppercase',
-                    letterSpacing: 1,
-                    fontSize: { xs: '0.9rem', sm: '1.25rem' },
+                    letterSpacing: 0.5,
+                    fontSize: { xs: '0.7rem', sm: '0.8rem' },
                   }}
                 >
                   Rapid Riser
                 </Typography>
               </Box>
 
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.25 }, mt: { xs: 0.75, sm: 1 } }}>
                 <Avatar
                   src={rapidRiser.profilePicUrl}
                   alt={rapidRiser.displayName}
                   sx={{
-                    width: { xs: 60, sm: 80 },
-                    height: { xs: 60, sm: 80 },
-                    border: '3px solid',
+                    width: { xs: 36, sm: 42 },
+                    height: { xs: 36, sm: 42 },
+                    border: '2px solid',
                     borderColor: 'success.main',
                   }}
                 />
 
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="h5" fontWeight="bold" sx={{ fontSize: { xs: '1.1rem', sm: '1.5rem' } }} noWrap>
+                  <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: { xs: '0.8rem', sm: '0.9rem' }, lineHeight: 1.2 }} noWrap>
                     {rapidRiser.displayName}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }} noWrap>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' }, display: 'block' }} noWrap>
                     {rapidRiser.squadName}
                   </Typography>
+                </Box>
 
-                  <Box
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    px: { xs: 1, sm: 1.25 },
+                    py: { xs: 0.4, sm: 0.5 },
+                    backgroundColor: 'success.main',
+                    borderRadius: 1.5,
+                  }}
+                >
+                  <Typography
+                    variant="caption"
                     sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      mt: { xs: 0.5, sm: 1 },
-                      px: { xs: 1.5, sm: 2 },
-                      py: { xs: 0.4, sm: 0.5 },
-                      backgroundColor: 'success.main',
-                      borderRadius: 2,
+                      color: 'white',
+                      fontWeight: 'bold',
+                      fontSize: { xs: '0.7rem', sm: '0.8rem' },
                     }}
                   >
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        color: 'white',
-                        fontWeight: 'bold',
-                        fontSize: { xs: '0.875rem', sm: '1.25rem' },
-                      }}
-                    >
-                      +{rapidRiser.ranksGained} ranks
-                    </Typography>
-                  </Box>
+                    +{rapidRiser.ranksGained}
+                  </Typography>
                 </Box>
               </Box>
-
-              <Typography
-                variant="body2"
-                sx={{
-                  mt: { xs: 1.5, sm: 2 },
-                  pt: { xs: 1.5, sm: 2 },
-                  borderTop: '1px solid',
-                  borderColor: 'divider',
-                  textAlign: 'center',
-                  fontStyle: 'italic',
-                  color: 'text.secondary',
-                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                }}
-              >
-                {rapidRiser.displayName} jumped {rapidRiser.ranksGained} rank{rapidRiser.ranksGained > 1 ? 's' : ''}!
-              </Typography>
             </Paper>
           </Box>
         )}

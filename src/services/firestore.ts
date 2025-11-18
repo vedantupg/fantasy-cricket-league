@@ -1160,7 +1160,7 @@ export const batchService = {
 export const squadPlayerUtils = {
   /**
    * Create a SquadPlayer for initial squad creation
-   * Points start counting from squad submission (pointsAtJoining = 0)
+   * All current points count from the start (pointsAtJoining = 0)
    */
   createInitialSquadPlayer(
     player: {
@@ -1180,7 +1180,7 @@ export const squadPlayerUtils = {
       points: player.points,
       matchPerformances: {},
       addedAt: new Date(),
-      pointsAtJoining: player.points, // Set to current points so only FUTURE points count
+      pointsAtJoining: 0, // Set to 0 so ALL current points count - robust for testing & flexible deadlines
     };
 
     // Only include price if it's defined
