@@ -201,15 +201,18 @@ const PlayerPoolManagementPage: React.FC = () => {
                       players: updatedPool.players || []
                     };
 
-                    // Update in Firestore using updatePlayerPoints to trigger automatic recalculation
-                    // This will update all squads and leaderboards that use this player pool
-                    const pointsUpdates = poolToUpdate.players.map(player => ({
-                      playerId: player.playerId,
-                      points: player.points
-                    }));
+                    console.log('Updating player pool with', poolToUpdate.players.length, 'players...');
 
-                    console.log('Updating player pool and recalculating all leagues...');
-                    await playerPoolService.updatePlayerPoints(poolToUpdate.id, pointsUpdates);
+                    // Directly update the entire players array in Firestore
+                    // This handles both adding new players and updating existing ones
+                    await playerPoolService.update(poolToUpdate.id, {
+                      players: poolToUpdate.players,
+                      updatedAt: new Date()
+                    });
+
+                    // Then trigger recalculation for all leagues using this pool
+                    await playerPoolService.recalculateLeaguesUsingPool(poolToUpdate.id);
+
                     console.log('Player pool updated and leagues recalculated successfully');
 
                     // Update local state

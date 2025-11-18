@@ -174,6 +174,9 @@ const SquadSelectionPage: React.FC = () => {
   useEffect(() => {
     if (!existingSquad || !availablePlayers.length || !league) return;
 
+    console.log('Loading existing squad:', existingSquad.id);
+    console.log('Squad predictions:', existingSquad.predictions);
+
     // Restore captain, vice-captain, and X-factor IDs
     setCaptainId(existingSquad.captainId || null);
     setViceCaptainId(existingSquad.viceCaptainId || null);
@@ -184,6 +187,13 @@ const SquadSelectionPage: React.FC = () => {
       setTopRunScorer(existingSquad.predictions.topRunScorer || '');
       setTopWicketTaker(existingSquad.predictions.topWicketTaker || '');
       setSeriesScoreline(existingSquad.predictions.seriesScoreline || '');
+      console.log('Predictions loaded:', {
+        topRunScorer: existingSquad.predictions.topRunScorer,
+        topWicketTaker: existingSquad.predictions.topWicketTaker,
+        seriesScoreline: existingSquad.predictions.seriesScoreline
+      });
+    } else {
+      console.log('No predictions found in existing squad');
     }
 
     // Convert SquadPlayer[] to SelectedPlayer[]
@@ -375,9 +385,9 @@ const SquadSelectionPage: React.FC = () => {
           viceCaptainPoints: calculatedPoints.viceCaptainPoints,
           xFactorPoints: calculatedPoints.xFactorPoints,
           predictions: {
-            topRunScorer: topRunScorer || undefined,
-            topWicketTaker: topWicketTaker || undefined,
-            seriesScoreline: seriesScoreline || undefined,
+            topRunScorer: topRunScorer.trim(),
+            topWicketTaker: topWicketTaker.trim(),
+            seriesScoreline: seriesScoreline.trim(),
           },
           isSubmitted: true,
           lastUpdated: new Date(),
@@ -388,7 +398,15 @@ const SquadSelectionPage: React.FC = () => {
           updateData.submittedAt = new Date();
         }
 
+        console.log('Updating squad with predictions:', updateData.predictions);
         await squadService.update(existingSquad.id, updateData);
+        console.log('Squad updated successfully');
+
+        // Update local state to reflect the changes
+        setExistingSquad({
+          ...existingSquad,
+          ...updateData
+        });
       } else {
         // Create new squad
         const squadData: any = {
@@ -403,9 +421,9 @@ const SquadSelectionPage: React.FC = () => {
           viceCaptainPoints: calculatedPoints.viceCaptainPoints,
           xFactorPoints: calculatedPoints.xFactorPoints,
           predictions: {
-            topRunScorer: topRunScorer || undefined,
-            topWicketTaker: topWicketTaker || undefined,
-            seriesScoreline: seriesScoreline || undefined,
+            topRunScorer: topRunScorer.trim(),
+            topWicketTaker: topWicketTaker.trim(),
+            seriesScoreline: seriesScoreline.trim(),
           },
           rank: 0,
           matchPoints: {},
@@ -419,7 +437,16 @@ const SquadSelectionPage: React.FC = () => {
           xFactorId: xFactorId || undefined,
         };
 
-        await squadService.create(squadData);
+        console.log('Creating new squad with predictions:', squadData.predictions);
+        const squadId = await squadService.create(squadData);
+        console.log('Squad created successfully with ID:', squadId);
+
+        // Update local state with the newly created squad
+        setExistingSquad({
+          ...squadData,
+          id: squadId,
+          createdAt: new Date()
+        });
       }
 
       // Create/update leaderboard snapshot for this league

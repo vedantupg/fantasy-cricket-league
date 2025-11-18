@@ -228,7 +228,7 @@ const LandingPage: React.FC = () => {
                     }
                   }}
                 >
-                  Fantasy Cricket Made Simple
+                  Fantasy Community League
                 </Typography>
               </Slide>
 
