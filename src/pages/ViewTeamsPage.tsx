@@ -25,6 +25,7 @@ import {
   Groups
 } from '@mui/icons-material';
 import { useParams } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { leagueService, squadService, userService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
@@ -36,6 +37,7 @@ interface SquadWithUser extends LeagueSquad {
 
 const ViewTeamsPage: React.FC = () => {
   const { leagueId } = useParams<{ leagueId: string }>();
+  const { user } = useAuth();
   const [league, setLeague] = useState<League | null>(null);
   const [squads, setSquads] = useState<SquadWithUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,12 +59,11 @@ const ViewTeamsPage: React.FC = () => {
         if (leagueData) {
           setLeague(leagueData);
 
-          // Check if squad deadline has passed
-          const now = new Date();
-          const deadlinePassed = now > new Date(leagueData.squadDeadline);
+          // Check if current user has submitted their squad
+          const currentUserSquad = squadsData.find(squad => squad.userId === user?.uid);
 
-          if (!deadlinePassed) {
-            setError('Squad teams are not visible until the squad deadline.');
+          if (!currentUserSquad || !currentUserSquad.isSubmitted) {
+            setError('You must submit your squad before viewing other participants.');
             return;
           }
 
@@ -70,8 +71,9 @@ const ViewTeamsPage: React.FC = () => {
           const squadsWithUsers = await Promise.all(
             squadsData.map(async (squad) => {
               try {
-                const user = await userService.getById(squad.userId);
-                return { ...squad, user: user || undefined };
+                const userData = await userService.getById(squad.userId);
+                console.log('User data for', squad.userId, ':', userData);
+                return { ...squad, user: userData || undefined };
               } catch (err) {
                 console.error(`Error fetching user ${squad.userId}:`, err);
                 return { ...squad, user: undefined };
@@ -79,6 +81,7 @@ const ViewTeamsPage: React.FC = () => {
             })
           );
 
+          console.log('Squads with users:', squadsWithUsers);
           setSquads(squadsWithUsers);
         } else {
           setError('League not found');
@@ -91,10 +94,10 @@ const ViewTeamsPage: React.FC = () => {
       }
     };
 
-    if (leagueId) {
+    if (leagueId && user) {
       loadData();
     }
-  }, [leagueId]);
+  }, [leagueId, user]);
 
   const getRoleIcon = (role: string) => {
     switch (role) {
