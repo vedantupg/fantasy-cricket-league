@@ -26,7 +26,8 @@ import {
   Settings,
   Dashboard,
   WhatsApp,
-  KeyboardArrowDown
+  KeyboardArrowDown,
+  GroupAdd
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -358,6 +359,14 @@ const LandingPage: React.FC = () => {
                   sx={{ borderRadius: 2 }}
                 >
                   Go to My Leagues
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<GroupAdd />}
+                  onClick={() => navigate('/leagues/join')}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Join League
                 </Button>
                 <Button
                   variant="outlined"

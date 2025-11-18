@@ -304,19 +304,21 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
                     </Typography>
                   </Grid>
                 </Grid>
-                <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 1.5, lineHeight: 1.6 }}>
-                  A Mid-Season Change works exactly like a Flexible Change, but with a timing restriction.
-                </Typography>
-                <Box component="ul" sx={{ mt: 1, mb: 0, pl: 3 }}>
-                  <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
-                    Follows all the same rules as a Flexible Change (see below)
+                <Box sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                  <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 1.5, lineHeight: 1.6, color: 'white' }}>
+                    A Mid-Season Change works exactly like a Flexible Change, but with a timing restriction.
                   </Typography>
-                  <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
-                    <strong>Timing restriction:</strong> Only allowed during the specific mid-season window announced by the league
-                  </Typography>
-                  <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
-                    Helps teams rebalance mid-tournament based on player form and injuries
-                  </Typography>
+                  <Box component="ul" sx={{ mt: 1, mb: 0, pl: 3 }}>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
+                      Follows all the same rules as a Flexible Change (see below)
+                    </Typography>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
+                      <strong>Timing restriction:</strong> Only allowed during the specific mid-season window announced by the league
+                    </Typography>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
+                      Helps teams rebalance mid-tournament based on player form and injuries
+                    </Typography>
+                  </Box>
                 </Box>
               </Box>
             )}
@@ -335,39 +337,39 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
                     </Typography>
                   </Grid>
                 </Grid>
-                <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 1.5, lineHeight: 1.6 }}>
+                <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 1.5, lineHeight: 1.6, color: 'white' }}>
                   Full flexibility except Captain. You can make <strong>ONE</strong> of the following two changes:
                 </Typography>
 
-                <Box sx={{ mb: 2, p: 1.5, bgcolor: 'action.hover', opacity: 0.1, borderRadius: 1, border: '1px solid', borderColor: 'success.main', color: 'white'}}>
-                  <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5 }}>
+                <Box sx={{ mb: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 1, border: '1px solid', borderColor: 'success.main' }}>
+                  <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5, color: 'white' }}>
                     A. Player Substitution
                   </Typography>
                   <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 3 }}>
-                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
                       Replace any player with a new player from the available pool
                     </Typography>
-                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
                       <strong>Captain (C) and Vice-Captain (VC) cannot be removed</strong>
                     </Typography>
-                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
                       All squad composition rules must still be met
                     </Typography>
                   </Box>
                 </Box>
 
-                <Box sx={{ p: 1.5, bgcolor: 'action.hover', opacity: 0.1, borderRadius: 1, border: '1px solid', borderColor: 'success.main', color: 'white'}}>
-                  <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5 }}>
+                <Box sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 1, border: '1px solid', borderColor: 'success.main' }}>
+                  <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5, color: 'white' }}>
                     B. Reassign Vice-Captain or X-Factor
                   </Typography>
                   <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 3 }}>
-                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
                       Keep all players the same
                     </Typography>
-                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
                       Reassign VC or X-Factor to any other player in your team
                     </Typography>
-                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
                       Points multipliers apply only to future points earned after reassignment
                     </Typography>
                   </Box>

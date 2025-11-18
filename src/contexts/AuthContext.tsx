@@ -12,6 +12,7 @@ import {
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 
+// User data stored in Firestore
 interface UserData {
   uid: string;
   email: string | null;
@@ -21,6 +22,10 @@ interface UserData {
   leagues: string[];
   createdAt: Date;
   profileSetupCompleted?: boolean;
+  favoriteBatter?: string;
+  favoriteBowler?: string;
+  favoriteFielder?: string;
+  favoriteIPLTeam?: string;
 }
 
 interface AuthContextType {
