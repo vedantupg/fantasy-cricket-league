@@ -57,10 +57,12 @@ const ViewTeamsPage: React.FC = () => {
         if (leagueData) {
           setLeague(leagueData);
 
-          // Check if league has started
-          const leagueStarted = new Date() > new Date(leagueData.startDate);
-          if (!leagueStarted) {
-            setError('Squad teams are not visible until the league starts.');
+          // Check if squad deadline has passed
+          const now = new Date();
+          const deadlinePassed = now > new Date(leagueData.squadDeadline);
+
+          if (!deadlinePassed) {
+            setError('Squad teams are not visible until the squad deadline.');
             return;
           }
 
@@ -101,16 +103,6 @@ const ViewTeamsPage: React.FC = () => {
       case 'allrounder': return '🌟';
       case 'wicketkeeper': return '🥅';
       default: return '👤';
-    }
-  };
-
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'batsman': return 'primary';
-      case 'bowler': return 'secondary';
-      case 'allrounder': return 'success';
-      case 'wicketkeeper': return 'warning';
-      default: return 'default';
     }
   };
 
@@ -162,6 +154,9 @@ const ViewTeamsPage: React.FC = () => {
     );
   }
 
+  // Check if league has started
+  const leagueStarted = league ? new Date() > new Date(league.startDate) : false;
+
   return (
     <Box>
       <AppHeader />
@@ -172,7 +167,7 @@ const ViewTeamsPage: React.FC = () => {
           currentPage="Teams"
         />
       )}
-      
+
       <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3, md: 4 }, px: { xs: 2, sm: 3 } }}>
         {/* League Info */}
         <Card sx={{ mb: { xs: 2, sm: 3, md: 4 } }}>
@@ -193,6 +188,11 @@ const ViewTeamsPage: React.FC = () => {
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
               {league?.tournamentName} • Squad deadline: {new Date(league?.squadDeadline || '').toLocaleString()}
             </Typography>
+            {!leagueStarted && (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                Team details will be visible once the league starts on {new Date(league?.startDate || '').toLocaleString()}
+              </Alert>
+            )}
           </CardContent>
         </Card>
 
@@ -209,7 +209,58 @@ const ViewTeamsPage: React.FC = () => {
               </Typography>
             </CardContent>
           </Card>
+        ) : !leagueStarted ? (
+          // Before league starts: Show only participant names and profile pictures
+          <Grid container spacing={{ xs: 2, sm: 3 }}>
+            {squads.map((squad, index) => (
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={squad.id}>
+                <Card>
+                  <CardContent sx={{ p: { xs: 2, sm: 2, md: 3 } }}>
+                    <Box display="flex" alignItems="center" gap={{ xs: 1.5, sm: 2 }}>
+                      <Avatar
+                        src={squad.user?.profilePicUrl}
+                        sx={{
+                          bgcolor: 'primary.main',
+                          width: { xs: 48, sm: 56 },
+                          height: { xs: 48, sm: 56 }
+                        }}
+                      >
+                        {squad.user?.displayName?.charAt(0) || squad.squadName.charAt(0)}
+                      </Avatar>
+                      <Box flex={1} minWidth={0}>
+                        <Typography variant="h6" fontWeight="bold" sx={{
+                          fontSize: { xs: '1rem', sm: '1.1rem' },
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {squad.user?.displayName || 'Unknown Player'}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{
+                          fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {squad.squadName}
+                        </Typography>
+                      </Box>
+                      {squad.isSubmitted && (
+                        <Chip
+                          label="Submitted"
+                          color="success"
+                          size="small"
+                          sx={{ flexShrink: 0 }}
+                        />
+                      )}
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
         ) : (
+          // After league starts: Show full team details
           <Grid container spacing={{ xs: 2, sm: 3 }}>
             {squads.map((squad, index) => {
               const squadSize = league?.squadSize || 11;
