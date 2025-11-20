@@ -73,18 +73,20 @@ const TransferModal: React.FC<TransferModalProps> = ({
 
   const steps = ['Select Transfer Type', 'Choose Change', 'Confirm'];
 
-  // Calculate remaining transfers
-  const transfersUsed = existingSquad.transfersUsed || 0;
+  // Calculate remaining transfers for each type
   const getAvailableTransfers = () => {
     const transfers = league.transferTypes;
     if (!transfers) return { bench: 0, flexible: 0, midSeason: 0 };
 
-    // For now, assume all transfers use the same counter
-    // In a more complex system, you'd track each type separately
+    // Track each transfer type separately
+    const benchUsed = existingSquad.benchTransfersUsed || 0;
+    const flexibleUsed = existingSquad.flexibleTransfersUsed || 0;
+    const midSeasonUsed = existingSquad.midSeasonTransfersUsed || 0;
+
     return {
-      bench: transfers.benchTransfers.enabled ? Math.max(0, transfers.benchTransfers.maxAllowed - transfersUsed) : 0,
-      flexible: transfers.flexibleTransfers.enabled ? Math.max(0, transfers.flexibleTransfers.maxAllowed - transfersUsed) : 0,
-      midSeason: transfers.midSeasonTransfers.enabled ? Math.max(0, transfers.midSeasonTransfers.maxAllowed - transfersUsed) : 0
+      bench: transfers.benchTransfers.enabled ? Math.max(0, transfers.benchTransfers.maxAllowed - benchUsed) : 0,
+      flexible: transfers.flexibleTransfers.enabled ? Math.max(0, transfers.flexibleTransfers.maxAllowed - flexibleUsed) : 0,
+      midSeason: transfers.midSeasonTransfers.enabled ? Math.max(0, transfers.midSeasonTransfers.maxAllowed - midSeasonUsed) : 0
     };
   };
 
@@ -278,7 +280,7 @@ const TransferModal: React.FC<TransferModalProps> = ({
                 value={selectedTransferType || ''}
                 onChange={(e) => setSelectedTransferType(e.target.value as any)}
               >
-                {league.transferTypes?.benchTransfers.enabled && (
+                {league.transferTypes?.benchTransfers.enabled && league.benchChangesEnabled && (
                   <Card
                     sx={{
                       mb: 2,
@@ -316,7 +318,7 @@ const TransferModal: React.FC<TransferModalProps> = ({
                   </Card>
                 )}
 
-                {league.transferTypes?.flexibleTransfers.enabled && (
+                {league.transferTypes?.flexibleTransfers.enabled && league.flexibleChangesEnabled && (
                   <Card
                     sx={{
                       mb: 2,

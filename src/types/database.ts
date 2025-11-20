@@ -145,7 +145,10 @@ export interface LeagueSquad {
   matchPoints: { [matchId: string]: number };
 
   // Transfer Management
-  transfersUsed: number;
+  transfersUsed: number; // Legacy: total transfers used (kept for backward compatibility)
+  benchTransfersUsed: number; // Bench transfers used
+  flexibleTransfersUsed: number; // Flexible transfers used
+  midSeasonTransfersUsed: number; // Mid-season transfers used
   transferHistory: TransferHistoryEntry[];
   bankedPoints: number; // Points accumulated from removed players or role changes
 

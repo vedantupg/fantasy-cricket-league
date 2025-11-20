@@ -429,6 +429,9 @@ const SquadSelectionPage: React.FC = () => {
           rank: 0,
           matchPoints: {},
           transfersUsed: 0,
+          benchTransfersUsed: 0,
+          flexibleTransfersUsed: 0,
+          midSeasonTransfersUsed: 0,
           transferHistory: [],
           bankedPoints: 0, // Initialize banked points to 0
           isValid: true,
@@ -672,6 +675,16 @@ const SquadSelectionPage: React.FC = () => {
         xFactorPoints: calculatedPoints.xFactorPoints,
         bankedPoints: newBankedPoints,
         transfersUsed: (existingSquad.transfersUsed || 0) + 1,
+        // Increment the specific transfer counter based on type
+        benchTransfersUsed: transferData.transferType === 'bench'
+          ? (existingSquad.benchTransfersUsed || 0) + 1
+          : (existingSquad.benchTransfersUsed || 0),
+        flexibleTransfersUsed: transferData.transferType === 'flexible'
+          ? (existingSquad.flexibleTransfersUsed || 0) + 1
+          : (existingSquad.flexibleTransfersUsed || 0),
+        midSeasonTransfersUsed: transferData.transferType === 'midSeason'
+          ? (existingSquad.midSeasonTransfersUsed || 0) + 1
+          : (existingSquad.midSeasonTransfersUsed || 0),
         transferHistory: [...(existingSquad.transferHistory || []), transferHistoryEntry],
         lastUpdated: new Date()
       };
@@ -864,7 +877,7 @@ const SquadSelectionPage: React.FC = () => {
         <Box display="flex" gap={{ xs: 0.5, sm: 1 }} flexWrap="wrap">
           {league.transferTypes.benchTransfers.enabled && (
             <Chip
-              label={`${league.transferTypes.benchTransfers.maxAllowed - (existingSquad?.transfersUsed || 0)} Bench Available`}
+              label={`${league.transferTypes.benchTransfers.maxAllowed - (existingSquad?.benchTransfersUsed || 0)} Bench Available`}
               size="small"
               color="primary"
               variant="outlined"
@@ -1020,7 +1033,7 @@ const SquadSelectionPage: React.FC = () => {
                 <Chip
                   label={
                     isDeadlinePassed
-                      ? `${league.transferTypes.benchTransfers.maxAllowed - (existingSquad?.transfersUsed || 0)} Bench Transfer${league.transferTypes.benchTransfers.maxAllowed - (existingSquad?.transfersUsed || 0) === 1 ? '' : 's'} Available`
+                      ? `${league.transferTypes.benchTransfers.maxAllowed - (existingSquad?.benchTransfersUsed || 0)} Bench Transfer${league.transferTypes.benchTransfers.maxAllowed - (existingSquad?.benchTransfersUsed || 0) === 1 ? '' : 's'} Available`
                       : `Bench: ${selectedPlayers.filter(p => p.position === 'bench').length}/${league.transferTypes.benchTransfers.benchSlots}`
                   }
                   variant="outlined"
