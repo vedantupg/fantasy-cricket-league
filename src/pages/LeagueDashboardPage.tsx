@@ -13,7 +13,13 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions
+  DialogActions,
+  Avatar,
+  Chip,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText
 } from '@mui/material';
 import {
   People,
@@ -24,9 +30,15 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { leagueService } from '../services/firestore';
+import { leagueService, userService, squadService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
-import type { League } from '../types/database';
+import type { League, User } from '../types/database';
+
+interface ParticipantInfo {
+  userId: string;
+  userData: User | null;
+  hasSubmittedSquad: boolean;
+}
 
 const LeagueDashboardPage: React.FC = () => {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -35,6 +47,8 @@ const LeagueDashboardPage: React.FC = () => {
   const [error, setError] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [participants, setParticipants] = useState<ParticipantInfo[]>([]);
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -68,6 +82,50 @@ const LeagueDashboardPage: React.FC = () => {
       loadLeague();
     }
   }, [leagueId]);
+
+  // Load participant details for admin
+  useEffect(() => {
+    const loadParticipants = async () => {
+      if (!league || !isAdmin || !leagueId) return;
+
+      try {
+        setLoadingParticipants(true);
+
+        // Fetch all squads for this league
+        const squads = await squadService.getByLeague(leagueId);
+
+        // Fetch user data for each participant
+        const participantData = await Promise.all(
+          league.participants.map(async (userId) => {
+            try {
+              const userData = await userService.getById(userId);
+              const hasSubmittedSquad = squads.some(squad => squad.userId === userId && squad.isSubmitted);
+              return {
+                userId,
+                userData,
+                hasSubmittedSquad
+              };
+            } catch (err) {
+              console.error(`Error fetching user ${userId}:`, err);
+              return {
+                userId,
+                userData: null,
+                hasSubmittedSquad: false
+              };
+            }
+          })
+        );
+
+        setParticipants(participantData);
+      } catch (err: any) {
+        console.error('Error loading participants:', err);
+      } finally {
+        setLoadingParticipants(false);
+      }
+    };
+
+    loadParticipants();
+  }, [league, isAdmin, leagueId]);
 
   const handleEditLeague = () => {
     navigate(`/leagues/${leagueId}/edit`);
@@ -241,6 +299,59 @@ const LeagueDashboardPage: React.FC = () => {
           )}
         </Grid>
       </Grid>
+
+      {/* Participants List - Admin Only */}
+      {isAdmin && (
+        <Card sx={{ mt: 3 }}>
+          <CardContent>
+            <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+              <Typography variant="h6">
+                Participants ({league.participants.length}/{league.maxParticipants})
+              </Typography>
+              {loadingParticipants && <CircularProgress size={20} />}
+            </Box>
+
+            {participants.length === 0 && !loadingParticipants ? (
+              <Typography variant="body2" color="text.secondary">
+                No participants have joined yet.
+              </Typography>
+            ) : (
+              <List sx={{ p: 0 }}>
+                {participants.map((participant, index) => (
+                  <ListItem
+                    key={participant.userId}
+                    sx={{
+                      borderBottom: index < participants.length - 1 ? '1px solid' : 'none',
+                      borderColor: 'divider',
+                      px: 0,
+                      py: 1.5
+                    }}
+                  >
+                    <ListItemAvatar>
+                      <Avatar
+                        src={participant.userData?.profilePicUrl}
+                        sx={{ bgcolor: 'primary.main' }}
+                      >
+                        {participant.userData?.displayName?.charAt(0) || '?'}
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={participant.userData?.displayName || 'Unknown User'}
+                      secondary={participant.userData?.email || participant.userId}
+                      primaryTypographyProps={{ fontWeight: 500 }}
+                    />
+                    <Chip
+                      label={participant.hasSubmittedSquad ? 'Squad Submitted' : 'Not Submitted'}
+                      color={participant.hasSubmittedSquad ? 'success' : 'default'}
+                      size="small"
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog
