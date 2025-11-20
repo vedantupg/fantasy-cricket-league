@@ -225,6 +225,9 @@ export interface PlayerPool {
   // Players in this pool with their current points
   players: PlayerPoolEntry[];
 
+  // Update Message (optional commit message for points updates)
+  lastUpdateMessage?: string; // e.g., "Test 1 - Day 1"
+
   // Metadata
   createdAt: Date;
   updatedAt: Date;
@@ -362,6 +365,10 @@ export interface LeaderboardSnapshot {
 
   // Snapshot Data
   standings: StandingEntry[];
+
+  // Player Pool Version Info
+  playerPoolVersion?: string; // e.g., "Test 1 - Day 1" - captured from PlayerPool.lastUpdateMessage
+  pointsUpdatedAt?: Date; // When the player pool was last updated
 
   // Best Performer (most points gained since last snapshot)
   bestPerformer?: {

@@ -255,36 +255,61 @@ const LeaderboardPage: React.FC = () => {
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3, md: 4 } }}>
         {/* League Info */}
         <Card sx={{ mb: { xs: 2, sm: 3, md: 4 } }}>
-          <CardContent sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: { xs: 1.5, sm: 2, md: 2.5 } }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: { xs: 1.5, sm: 2 } }}>
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} noWrap>
-                  {league?.tournamentName || 'Tournament'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                  {snapshot?.standings.length || 0} participants
-                  {snapshot ? ` • Last updated: ${snapshot.snapshotDate.toLocaleString()}` : ''}
-                </Typography>
+          <CardContent sx={{ px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 2.5, md: 3 } }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, sm: 3 }, justifyContent: 'space-between' }}>
+              {/* Left: FCL Logo + League Name and Version Chip */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, sm: 3 }, flex: 1, minWidth: 0 }}>
+                {/* FCL Logo */}
+                <Box
+                  component="img"
+                  src="/logo192.png"
+                  alt="FCL Logo"
+                  sx={{
+                    width: { xs: 50, sm: 60, md: 70 },
+                    height: { xs: 50, sm: 60, md: 70 },
+                    borderRadius: '50%',
+                    flexShrink: 0,
+                  }}
+                />
+
+                {/* League Name and Version Chip */}
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography
+                    variant="h5"
+                    fontWeight="bold"
+                    sx={{
+                      fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' },
+                      mb: 0.5,
+                    }}
+                  >
+                    {league?.name || 'League'}
+                  </Typography>
+                  {snapshot?.playerPoolVersion && (
+                    <Chip
+                      label={snapshot.playerPoolVersion}
+                      color="primary"
+                      variant="outlined"
+                      size="small"
+                      sx={{
+                        fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                        fontWeight: 600,
+                      }}
+                    />
+                  )}
+                </Box>
               </Box>
-              {!hasLeagueStarted && timeUntilStart ? (
-                <Box sx={{ textAlign: 'right' }}>
-                  <Chip
-                    icon={<AccessTime />}
-                    label={`Starts in ${timeUntilStart}`}
-                    color="primary"
-                    sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
-                  />
-                </Box>
-              ) : userStanding ? (
-                <Box sx={{ textAlign: 'right', minWidth: { xs: 70, sm: 'auto' } }}>
-                  <Typography variant="h4" fontWeight="bold" color="primary" sx={{ fontSize: { xs: '1.75rem', sm: '2.125rem' } }}>
-                    #{userStanding.rank}
-                  </Typography>
+
+              {/* Right: Last Updated Time */}
+              {snapshot && (
+                <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
                   <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
-                    Your Rank
+                    Last updated
+                  </Typography>
+                  <Typography variant="body2" fontWeight="500" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
+                    {snapshot.snapshotDate.toLocaleString()}
                   </Typography>
                 </Box>
-              ) : null}
+              )}
             </Box>
           </CardContent>
         </Card>
@@ -315,10 +340,6 @@ const LeaderboardPage: React.FC = () => {
         {/* Full Leaderboard - Grid layout */}
         {snapshot && snapshot.standings.length > 3 && hasLeagueStarted && (
           <Box sx={{ mt: { xs: 3, sm: 4 } }}>
-            <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ mb: 3, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
-              Full Standings
-            </Typography>
-
             {/* Responsive grid: 1-2-4-5 columns based on screen size */}
             <Box
               sx={{

@@ -207,6 +207,7 @@ const PlayerPoolManagementPage: React.FC = () => {
                     // This handles both adding new players and updating existing ones
                     await playerPoolService.update(poolToUpdate.id, {
                       players: poolToUpdate.players,
+                      lastUpdateMessage: poolToUpdate.lastUpdateMessage,
                       updatedAt: new Date()
                     });
 
@@ -340,6 +341,7 @@ const PlayerPoolDetails: React.FC<{
   };
 
   const [editedPlayers, setEditedPlayers] = useState<PlayerPoolEntry[]>(getPlayersArray(pool.players));
+  const [updateMessage, setUpdateMessage] = useState(pool.lastUpdateMessage || '');
   const [addPlayerDialogOpen, setAddPlayerDialogOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -348,12 +350,14 @@ const PlayerPoolDetails: React.FC<{
   useEffect(() => {
     const playersArray = getPlayersArray(pool.players);
     setEditedPlayers(playersArray);
+    setUpdateMessage(pool.lastUpdateMessage || '');
   }, [pool]);
 
   const handleSavePoints = () => {
     const updatedPool = {
       ...pool,
       players: editedPlayers,
+      lastUpdateMessage: updateMessage.trim() || undefined,
       updatedAt: new Date()
     };
     onUpdate(updatedPool);
@@ -442,6 +446,21 @@ const PlayerPoolDetails: React.FC<{
             )}
           </Box>
         </Box>
+
+        {/* Update Message Field - Only visible in edit mode */}
+        {editMode && (
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              label="Update Message (Optional)"
+              placeholder="e.g., Test 1 - Day 1"
+              value={updateMessage}
+              onChange={(e) => setUpdateMessage(e.target.value)}
+              fullWidth
+              helperText="Add a version label for this points update. This will be displayed on the leaderboard."
+              variant="outlined"
+            />
+          </Box>
+        )}
 
         {/* Players Table */}
         <TableContainer component={Paper} variant="outlined">

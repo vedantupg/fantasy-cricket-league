@@ -38,7 +38,7 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
     <Paper
       elevation={isCurrentUser ? 6 : 2}
       sx={{
-        p: { xs: 1, sm: 1.25 },
+        p: { xs: 0.75, sm: 1 },
         background: isCurrentUser
           ? 'linear-gradient(135deg, rgba(63, 81, 181, 0.1) 0%, rgba(33, 150, 243, 0.05) 100%)'
           : 'background.paper',

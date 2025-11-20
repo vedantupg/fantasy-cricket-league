@@ -678,6 +678,20 @@ export const leaderboardSnapshotService = {
     try {
       console.log(`Creating leaderboard snapshot for league: ${leagueId}`);
 
+      // Get league data to find player pool
+      const league = await leagueService.getById(leagueId);
+
+      // Get player pool version if league uses a player pool
+      let playerPoolVersion: string | undefined;
+      let pointsUpdatedAt: Date | undefined;
+      if (league?.playerPoolId) {
+        const playerPool = await playerPoolService.getById(league.playerPoolId);
+        if (playerPool) {
+          playerPoolVersion = playerPool.lastUpdateMessage;
+          pointsUpdatedAt = playerPool.updatedAt;
+        }
+      }
+
       // Get all squads for this league
       const squads = await squadService.getByLeague(leagueId);
       console.log(`Found ${squads.length} squads in league`);
@@ -806,6 +820,8 @@ export const leaderboardSnapshotService = {
       createdAt: new Date(),
       ...(bestPerformer && { bestPerformer }),
       ...(rapidRiser && { rapidRiser }),
+      ...(playerPoolVersion && { playerPoolVersion }),
+      ...(pointsUpdatedAt && { pointsUpdatedAt }),
     };
 
     const docRef = await addDoc(collection(db, COLLECTIONS.LEADERBOARD_SNAPSHOTS), snapshot);

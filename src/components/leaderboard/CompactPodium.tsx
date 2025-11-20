@@ -74,7 +74,7 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topThree }) => {
             sx={{
               flex: 1,
               maxWidth: { xs: 140, sm: 190, md: 220 },
-              p: { xs: 1.5, sm: 2, md: 2.5 },
+              p: { xs: 1, sm: 1.5, md: 2 },
               background: rank === 1
                 ? `linear-gradient(135deg, ${rankColor}20 0%, ${rankColor}10 100%)`
                 : 'background.paper',
