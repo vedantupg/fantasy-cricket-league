@@ -35,6 +35,7 @@ import TransferModal, { TransferData } from '../components/squad/TransferModal';
 import { playerPoolService, leagueService, squadService, squadPlayerUtils, leaderboardSnapshotService } from '../services/firestore';
 import type { League, Player, SquadPlayer, LeagueSquad } from '../types/database';
 import { deleteField } from 'firebase/firestore';
+import { performAutoSlot } from '../utils/slotManagement';
 
 interface SelectedPlayer extends Player {
   position: 'regular' | 'bench';
@@ -581,8 +582,13 @@ const SquadSelectionPage: React.FC = () => {
             points: incomingPlayer.stats[league.format].recentForm || 0,
           });
 
-          // Replace the player
-          updatedPlayers[playerOutIndex] = newSquadPlayer;
+          // Use auto-slotting algorithm to intelligently place the new player
+          updatedPlayers = performAutoSlot(
+            updatedPlayers,
+            transferData.playerOut,
+            newSquadPlayer,
+            league
+          );
         }
       } else if (transferData.changeType === 'roleReassignment') {
         // ROLE REASSIGNMENT: Change VC or X-Factor

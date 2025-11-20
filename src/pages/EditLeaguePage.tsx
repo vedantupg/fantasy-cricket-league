@@ -155,7 +155,16 @@ const EditLeaguePage: React.FC = () => {
         setSquadRules(leagueData.squadRules);
         setSquadSize(leagueData.squadSize);
         if (leagueData.transferTypes) {
-          setTransferTypes(leagueData.transferTypes);
+          // Ensure dates are properly converted for mid-season window
+          const loadedTransferTypes = { ...leagueData.transferTypes };
+          if (loadedTransferTypes.midSeasonTransfers) {
+            loadedTransferTypes.midSeasonTransfers = {
+              ...loadedTransferTypes.midSeasonTransfers,
+              windowStartDate: new Date(loadedTransferTypes.midSeasonTransfers.windowStartDate),
+              windowEndDate: new Date(loadedTransferTypes.midSeasonTransfers.windowEndDate)
+            };
+          }
+          setTransferTypes(loadedTransferTypes);
         }
 
         // Load admin control values
@@ -529,7 +538,7 @@ const EditLeaguePage: React.FC = () => {
                   label="Enable Mid-Season Transfers"
                 />
                 {transferTypes.midSeasonTransfers.enabled && (
-                  <Box sx={{ ml: 4, mt: 1 }}>
+                  <Box sx={{ ml: 4, mt: 1, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                     <TextField
                       type="number"
                       label="Max Allowed"
@@ -541,6 +550,30 @@ const EditLeaguePage: React.FC = () => {
                       size="small"
                       inputProps={{ min: 0, max: 10 }}
                       sx={{ width: 120 }}
+                    />
+                    <TextField
+                      type="datetime-local"
+                      label="Window Start Date"
+                      value={formatDateTimeLocal(transferTypes.midSeasonTransfers.windowStartDate)}
+                      onChange={(e) => setTransferTypes(prev => ({
+                        ...prev,
+                        midSeasonTransfers: { ...prev.midSeasonTransfers, windowStartDate: new Date(e.target.value) }
+                      }))}
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
+                      sx={{ width: 220 }}
+                    />
+                    <TextField
+                      type="datetime-local"
+                      label="Window End Date"
+                      value={formatDateTimeLocal(transferTypes.midSeasonTransfers.windowEndDate)}
+                      onChange={(e) => setTransferTypes(prev => ({
+                        ...prev,
+                        midSeasonTransfers: { ...prev.midSeasonTransfers, windowEndDate: new Date(e.target.value) }
+                      }))}
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
+                      sx={{ width: 220 }}
                     />
                   </Box>
                 )}
