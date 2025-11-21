@@ -8,17 +8,19 @@ import {
 import type { StandingEntry } from '../../types/database';
 
 interface CompactPodiumProps {
-  topThree: StandingEntry[];
+  topFive: StandingEntry[];
 }
 
-const CompactPodium: React.FC<CompactPodiumProps> = ({ topThree }) => {
-  if (topThree.length === 0) return null;
+const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive }) => {
+  if (topFive.length === 0) return null;
 
-  // Reorder for podium display: 2nd, 1st, 3rd
+  // Display in sequential order: 1st, 2nd, 3rd, 4th, 5th
   const podiumOrder = [
-    topThree[1], // 2nd place
-    topThree[0], // 1st place
-    topThree[2], // 3rd place
+    topFive[0], // 1st place
+    topFive[1], // 2nd place
+    topFive[2], // 3rd place
+    topFive[3], // 4th place
+    topFive[4], // 5th place
   ].filter(Boolean);
 
   const getRankColor = (rank: number) => {
@@ -26,6 +28,8 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topThree }) => {
       case 1: return '#FFD700'; // Gold
       case 2: return '#C0C0C0'; // Silver
       case 3: return '#CD7F32'; // Bronze
+      case 4: return '#FFFFFF'; // Copper
+      case 5: return '#FFFFFF'; // Brass
       default: return '#757575';
     }
   };
@@ -35,6 +39,8 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topThree }) => {
       case 1: return '🥇';
       case 2: return '🥈';
       case 3: return '🥉';
+      case 4: return '🏅';
+      case 5: return '🎖️';
       default: return '';
     }
   };
@@ -55,9 +61,10 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topThree }) => {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'stretch',
-        gap: { xs: 2, sm: 3, md: 4 },
+        gap: { xs: 1.5, sm: 2, md: 2.5 },
         mb: { xs: 2, sm: 3 },
         px: { xs: 1, sm: 2 },
+        flexWrap: 'wrap',
       }}
     >
       {podiumOrder.map((standing) => {
@@ -73,7 +80,8 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topThree }) => {
             elevation={rank === 1 ? 4 : 2}
             sx={{
               flex: 1,
-              maxWidth: { xs: 140, sm: 190, md: 220 },
+              minWidth: { xs: 130, sm: 150, md: 160 },
+              maxWidth: { xs: 140, sm: 170, md: 190 },
               p: { xs: 1, sm: 1.5, md: 2 },
               background: rank === 1
                 ? `linear-gradient(135deg, ${rankColor}20 0%, ${rankColor}10 100%)`

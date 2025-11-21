@@ -237,7 +237,7 @@ const LeaderboardPage: React.FC = () => {
   }
 
   // At this point, league is guaranteed to be non-null
-  const topThree = snapshot?.standings.slice(0, 3) || [];
+  const topFive = snapshot?.standings.slice(0, 5) || [];
   const userStanding = snapshot?.standings.find((s) => s.userId === userData?.uid);
 
   return (
@@ -334,26 +334,26 @@ const LeaderboardPage: React.FC = () => {
           </Card>
         )}
 
-        {/* Podium for Top 3 */}
-        {topThree.length > 0 && hasLeagueStarted && <CompactPodium topThree={topThree} />}
+        {/* Podium for Top 5 */}
+        {topFive.length > 0 && hasLeagueStarted && <CompactPodium topFive={topFive} />}
 
         {/* Full Leaderboard - Grid layout */}
-        {snapshot && snapshot.standings.length > 3 && hasLeagueStarted && (
+        {snapshot && snapshot.standings.length > 5 && hasLeagueStarted && (
           <Box sx={{ mt: { xs: 3, sm: 4 } }}>
-            {/* Responsive grid: 1-2-4-5 columns based on screen size */}
+            {/* Responsive grid: 6 columns per row (configurable on line below) */}
             <Box
               sx={{
                 display: 'grid',
                 gridTemplateColumns: {
                   xs: '1fr',
                   sm: 'repeat(2, 1fr)',
-                  md: 'repeat(4, 1fr)',
-                  lg: 'repeat(5, 1fr)',
+                  md: 'repeat(3, 1fr)',
+                  lg: 'repeat(6, 1fr)', // <-- Change this number to modify cards per row
                 },
                 gap: { xs: 2, sm: 2.5, md: 3 },
               }}
             >
-              {snapshot.standings.slice(3).map((standing) => (
+              {snapshot.standings.slice(5).map((standing) => (
                 <CompactLeaderboardCard
                   key={standing.userId}
                   standing={standing}
