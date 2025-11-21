@@ -348,7 +348,7 @@ const LeaderboardPage: React.FC = () => {
                   xs: '1fr',
                   sm: 'repeat(2, 1fr)',
                   md: 'repeat(3, 1fr)',
-                  lg: 'repeat(6, 1fr)', // <-- Change this number to modify cards per row
+                  lg: 'repeat(5, 1fr)', // <-- Change this number to modify cards per row
                 },
                 gap: { xs: 2, sm: 2.5, md: 3 },
               }}
