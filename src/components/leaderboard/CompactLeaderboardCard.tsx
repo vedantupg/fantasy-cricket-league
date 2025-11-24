@@ -13,6 +13,7 @@ interface CompactLeaderboardCardProps {
 }
 
 const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standing, isCurrentUser = false }) => {
+  // 🎨 COLOR CUSTOMIZATION ZONE - LEADERBOARD CARD COLORS
   const getRankColor = (rank: number) => {
     if (rank <= 3) {
       const colors = ['#FFD700', '#C0C0C0', '#CD7F32'];
@@ -22,7 +23,7 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
   };
 
   const rankColor = getRankColor(standing.rank);
-  const borderColor = standing.rank <= 3 ? rankColor : 'divider';
+  const borderColor = standing.rank <= 3 ? rankColor : 'rgba(255, 255, 255, 0.12)'; // 🎨 Border for non-podium (try: rgba(99,110,250,0.3))
 
   const getRankChangeIcon = () => {
     if (!standing.rankChange || standing.rankChange === 0) {
@@ -38,29 +39,36 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
     <Paper
       elevation={isCurrentUser ? 6 : 2}
       sx={{
-        p: { xs: 0.75, sm: 1 },
+        p: { xs: 1, sm: 1.25 },
+        // 🎨 CARD BACKGROUND - Current user vs regular
         background: isCurrentUser
-          ? 'linear-gradient(135deg, rgba(63, 81, 181, 0.1) 0%, rgba(33, 150, 243, 0.05) 100%)'
-          : 'background.paper',
+          ? 'linear-gradient(135deg, rgba(63, 81, 181, 0.12) 0%, rgba(33, 150, 243, 0.06) 100%)' // 🎨 Current user bg
+          : 'rgba(255, 255, 255, 0.03)', // 🎨 Regular card bg (try: rgba(30,30,30,0.4), rgba(99,110,250,0.05))
         border: isCurrentUser ? '2px solid' : '1px solid',
-        borderColor: isCurrentUser ? 'primary.main' : 'divider',
+        borderColor: isCurrentUser ? 'primary.main' : borderColor,
         borderLeft: `4px solid`,
         borderLeftColor: borderColor,
-        borderRadius: 2,
+        borderRadius: 2.5,
         display: 'flex',
         flexDirection: 'column',
         gap: { xs: 0.75, sm: 1 },
-        transition: 'all 0.2s ease',
+        width: '100%', // Fixed width - all cards same width
+        height: '100%', // Fixed height for consistent card sizes
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': {
-          transform: 'translateY(-2px)',
-          boxShadow: 4,
+          transform: 'translateY(-4px)',
+          boxShadow: 6,
+          // 🎨 HOVER BACKGROUND (try different rgba values)
+          background: isCurrentUser
+            ? 'linear-gradient(135deg, rgba(63, 81, 181, 0.15) 0%, rgba(33, 150, 243, 0.08) 100%)'
+            : 'rgba(255, 255, 255, 0.06)',
         },
       }}
     >
       {/* Top Row: Rank, Avatar, Name, You chip */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.75, sm: 1 } }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.75, sm: 1 }, minWidth: 0 }}>
         {/* Rank */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: { xs: 28, sm: 32 } }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: { xs: 28, sm: 32 }, flexShrink: 0 }}>
           <Typography
             variant="h6"
             sx={{
@@ -79,23 +87,27 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
           src={standing.profilePicUrl}
           alt={standing.displayName}
           sx={{
-            width: { xs: 32, sm: 36 },
-            height: { xs: 32, sm: 36 },
-            border: `2px solid`,
+            width: { xs: 36, sm: 40 },
+            height: { xs: 36, sm: 40 },
+            border: `2.5px solid`,
             borderColor: borderColor,
+            boxShadow: `0 2px 8px ${typeof borderColor === 'string' && borderColor.includes('rgba') ? borderColor : `${borderColor}30`}`,
+            flexShrink: 0,
           }}
         />
 
-        {/* Name */}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
+        {/* Name - Fixed to prevent card stretching */}
+        <Box sx={{ flex: '1 1 auto', minWidth: 0 }}>
           <Typography
             variant="subtitle2"
             sx={{
-              fontWeight: 600,
-              fontSize: { xs: '0.75rem', sm: '0.85rem' },
-              lineHeight: 1.2,
+              fontWeight: 700,
+              fontSize: { xs: '0.8rem', sm: '0.9rem' },
+              lineHeight: 1.3,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
-            noWrap
           >
             {standing.displayName}
           </Typography>
@@ -107,13 +119,23 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
             label="You"
             size="small"
             color="primary"
-            sx={{ height: 18, fontSize: '0.6rem' }}
+            sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, flexShrink: 0 }}
           />
         )}
       </Box>
 
       {/* Total Points Row: Rank Change | Points | Points Gained */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: { xs: 0.75, sm: 1 }, py: 0.5, bgcolor: 'action.hover', borderRadius: 1.5 }}>
+      <Box sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: { xs: 0.75, sm: 1 },
+        py: { xs: 0.57, sm: 0.67 },
+        // 🎨 POINTS BAR BACKGROUND (try: rgba(0,0,0,0.15), rgba(99,110,250,0.12))
+        bgcolor: 'rgba(99,110,250, 0.1)',
+        borderRadius: 2,
+        minWidth: 0
+      }}>
         {/* Rank change on left */}
         {standing.rankChange !== undefined && standing.rankChange !== 0 && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
@@ -132,22 +154,17 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
         )}
 
         {/* Total points in center */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' } }}>
-            TOTAL
-          </Typography>
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 'bold',
-              color: rankColor,
-              fontSize: { xs: '1rem', sm: '1.1rem' },
-              lineHeight: 1,
-            }}
-          >
-            {standing.totalPoints.toFixed(1)}
-          </Typography>
-        </Box>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 'bold',
+            color: rankColor,
+            fontSize: { xs: '1rem', sm: '1.1rem' },
+            lineHeight: 1,
+          }}
+        >
+          {standing.totalPoints.toFixed(1)}
+        </Typography>
 
         {/* Points gained on right */}
         {standing.pointsGainedToday > 0 && (
@@ -158,7 +175,7 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
       </Box>
 
       {/* Points Breakdown - Compact */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0.5 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0.5, minWidth: 0 }}>
         <Box sx={{ textAlign: 'center' }}>
           <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' } }}>
             C

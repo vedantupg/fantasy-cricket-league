@@ -23,25 +23,16 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive }) => {
     topFive[4], // 5th place
   ].filter(Boolean);
 
+  // 🎨 COLOR CUSTOMIZATION ZONE - PODIUM RANK COLORS
+  // Change these hex values to customize the color scheme for different ranks
   const getRankColor = (rank: number) => {
     switch (rank) {
-      case 1: return '#FFD700'; // Gold
-      case 2: return '#C0C0C0'; // Silver
-      case 3: return '#CD7F32'; // Bronze
-      case 4: return '#FFFFFF'; // Copper
-      case 5: return '#FFFFFF'; // Brass
+      case 1: return '#FFD700'; // 🎨 1st Place - Gold (try: #F7B731, #FFC312, #FFDD59)
+      case 2: return '#C0C0C0'; // 🎨 2nd Place - Silver (try: #A6ACAF, #BDC3C7, #95A5A6)
+      case 3: return '#CD7F32'; // 🎨 3rd Place - Bronze (try: #E67E22, #D68910, #B87333)
+      case 4: return '#3f51b5'; // 🎨 4th Place - Pink/Primary (MUI primary.main)
+      case 5: return '#3f51b5'; // 🎨 5th Place - Pink/Primary (MUI primary.main)
       default: return '#757575';
-    }
-  };
-
-  const getMedal = (rank: number) => {
-    switch (rank) {
-      case 1: return '🥇';
-      case 2: return '🥈';
-      case 3: return '🥉';
-      case 4: return '🏅';
-      case 5: return '🎖️';
-      default: return '';
     }
   };
 
@@ -72,52 +63,78 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive }) => {
 
         const rank = standing.rank;
         const rankColor = getRankColor(rank);
-        const medal = getMedal(rank);
 
         return (
           <Paper
             key={standing.userId}
-            elevation={rank === 1 ? 4 : 2}
+            elevation={rank === 1 ? 8 : rank === 2 ? 6 : rank === 3 ? 4 : 2}
             sx={{
-              flex: 1,
-              minWidth: { xs: 130, sm: 150, md: 160 },
-              maxWidth: { xs: 140, sm: 170, md: 190 },
-              p: { xs: 1, sm: 1.5, md: 2 },
+              // 🎨 CARD WIDTH - Fixed width to prevent username length issues
+              width: { xs: 145, sm: 165, md: 185 }, // All cards same width
+              p: { xs: 1.5, sm: 1.75, md: 2 },
+              // 🎨 BACKGROUND GRADIENT - Customize card backgrounds
               background: rank === 1
-                ? `linear-gradient(135deg, ${rankColor}20 0%, ${rankColor}10 100%)`
-                : 'background.paper',
+                ? `linear-gradient(135deg, ${rankColor}25 0%, ${rankColor}08 100%)` // 🎨 1st place gradient
+                : rank === 2
+                ? `linear-gradient(135deg, ${rankColor}20 0%, ${rankColor}05 100%)` // 🎨 2nd place gradient
+                : rank === 3
+                ? `linear-gradient(135deg, ${rankColor}18 0%, ${rankColor}05 100%)` // 🎨 3rd place gradient
+                : 'rgba(255, 255, 255, 0.03)', // 🎨 4th & 5th place bg - same as leaderboard cards
               border: `2px solid ${rankColor}`,
-              borderRadius: 2,
+              borderRadius: 3,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              transition: 'all 0.2s ease',
+              position: 'relative',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: 4,
+                transform: 'translateY(-6px)',
+                boxShadow: rank === 1 ? 10 : 6,
               },
             }}
           >
-            {/* Medal */}
-            <Typography
+            {/* Classy Rank Badge */}
+            <Box
               sx={{
-                fontSize: { xs: '2.2rem', sm: '2.8rem', md: '3.5rem' },
-                lineHeight: 1,
-                mb: 0.5,
+                position: 'absolute',
+                top: -12,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: { xs: 36, sm: 42, md: 48 },
+                height: { xs: 36, sm: 42, md: 48 },
+                borderRadius: '50%',
+                background: `linear-gradient(135deg, ${rankColor} 0%, ${rankColor}CC 100%)`,
+                border: `3px solid white`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: `0 4px 12px ${rankColor}40`,
+                zIndex: 1,
               }}
             >
-              {medal}
-            </Typography>
+              <Typography
+                sx={{
+                  fontSize: { xs: '0.9rem', sm: '1.05rem', md: '1.2rem' },
+                  fontWeight: 900,
+                  color: 'white',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                }}
+              >
+                #{rank}
+              </Typography>
+            </Box>
 
             {/* Avatar */}
             <Avatar
               src={standing.profilePicUrl}
               alt={standing.displayName}
               sx={{
-                width: { xs: 52, sm: 68, md: 80 },
-                height: { xs: 52, sm: 68, md: 80 },
-                border: `2px solid ${rankColor}`,
-                mb: 0.5,
+                width: { xs: 56, sm: 72, md: 84 },
+                height: { xs: 56, sm: 72, md: 84 },
+                border: `3px solid ${rankColor}`,
+                boxShadow: `0 4px 12px ${rankColor}30`,
+                mt: { xs: 2, sm: 2.5 },
+                mb: 1,
               }}
             />
 
@@ -125,13 +142,19 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive }) => {
             <Typography
               variant="subtitle2"
               sx={{
-                fontWeight: 600,
+                fontWeight: 700,
                 textAlign: 'center',
-                fontSize: { xs: '0.8rem', sm: '0.9rem', md: '1rem' },
-                lineHeight: 1.2,
-                mb: 0.75,
+                fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1.05rem' },
+                lineHeight: 1.3,
+                mb: 0.4,
+                px: 0.5,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                minHeight: { xs: '2.2em', sm: '2.4em' }, // Fixed height for name
               }}
-              noWrap
             >
               {standing.displayName}
             </Typography>
@@ -143,10 +166,11 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive }) => {
               justifyContent: 'center',
               gap: { xs: 0.75, sm: 1, md: 1.25 },
               width: '100%',
-              py: { xs: 0.5, sm: 0.75 },
-              bgcolor: 'action.hover',
-              borderRadius: 1.5,
-              mb: 0.5
+              py: { xs: 0.67, sm: 0.77 },
+              // 🎨 POINTS BAR BACKGROUND (try: rgba(0,0,0,0.15), rgba(99,110,250,0.12))
+              bgcolor: 'rgba(99,110,250,0.05)',
+              borderRadius: 2,
+              mb: 0.75
             }}>
               {/* Rank change on left */}
               {standing.rankChange !== undefined && standing.rankChange !== 0 && (
@@ -173,6 +197,7 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive }) => {
                   color: rankColor,
                   fontSize: { xs: '1.05rem', sm: '1.2rem', md: '1.35rem' },
                   lineHeight: 1,
+                  textAlign: 'center',
                 }}
               >
                 {standing.totalPoints.toFixed(1)}

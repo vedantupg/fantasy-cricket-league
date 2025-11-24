@@ -351,6 +351,9 @@ const LeaderboardPage: React.FC = () => {
                   lg: 'repeat(5, 1fr)', // <-- Change this number to modify cards per row
                 },
                 gap: { xs: 2, sm: 2.5, md: 3 },
+                '& > *': {
+                  minWidth: 0, // Prevent grid items from expanding beyond column width
+                },
               }}
             >
               {snapshot.standings.slice(5).map((standing) => (
