@@ -254,8 +254,17 @@ const LeaderboardPage: React.FC = () => {
 
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3, md: 4 } }}>
         {/* League Info */}
-        <Card sx={{ mb: { xs: 2, sm: 3, md: 4 } }}>
-          <CardContent sx={{ px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 2.5, md: 3 } }}>
+        {/* 🎨 CUSTOMIZATION ZONE - LEAGUE INFO CARD */}
+        <Card sx={{
+          mb: { xs: 2, sm: 3, md: 4 },
+          // 🎨 Card Background - Remove grey, make transparent
+          bgcolor: 'rgba(99,110,250,0.05)', // Try: 'rgba(0,0,0,0.2)', 'rgba(99,110,250,0.05)', or any color
+          boxShadow: 'none', // Remove shadow for cleaner look
+        }}>
+          <CardContent sx={{
+            px: { xs: 2, sm: 3, md: 4 },
+            py: { xs: 1.25, sm: 1.5, md: 1.75 }, // 🎨 Reduced from { xs: 2, sm: 2.5, md: 3 } for shorter height
+          }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, sm: 3 }, justifyContent: 'space-between' }}>
               {/* Left: FCL Logo + League Name and Version Chip */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, sm: 3 }, flex: 1, minWidth: 0 }}>
@@ -288,11 +297,17 @@ const LeaderboardPage: React.FC = () => {
                     <Chip
                       label={snapshot.playerPoolVersion}
                       color="primary"
-                      variant="outlined"
+                      variant="filled" // 🎨 Changed from "outlined" to "filled" for darker chip
                       size="small"
                       sx={{
                         fontSize: { xs: '0.7rem', sm: '0.75rem' },
                         fontWeight: 600,
+                        // 🎨 CHIP CUSTOMIZATION - Make it darker
+                        bgcolor: 'rgba(63,81,181,0.8)', // Try: '#3f51b5', '#1976d2', 'rgba(63,81,181,0.8)'
+                        color: 'white', // Text color
+                        '&:hover': {
+                          bgcolor: 'primary.dark', // Darker on hover
+                        }
                       }}
                     />
                   )}

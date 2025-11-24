@@ -584,16 +584,23 @@ const SquadSelectionPage: React.FC = () => {
             // Get the bench player to be promoted
             const benchPlayer = updatedPlayers[playerInIndex];
 
-            // Remove the bench player from the bench position first
-            updatedPlayers = updatedPlayers.filter((p, index) => index !== playerInIndex);
+            // Separate main squad and bench
+            const mainSquad = updatedPlayers.slice(0, league.squadSize);
+            const benchSection = updatedPlayers.slice(league.squadSize);
 
-            // Now use auto-slotting algorithm to intelligently place the bench player
-            updatedPlayers = performAutoSlot(
-              updatedPlayers,
+            // Remove the promoted player from bench
+            const updatedBench = benchSection.filter(p => p.playerId !== transferData.playerIn);
+
+            // Use auto-slotting algorithm on main squad only
+            const updatedMainSquad = performAutoSlot(
+              mainSquad,
               transferData.playerOut,
               benchPlayer,
               league
             );
+
+            // Combine updated main squad with updated bench
+            updatedPlayers = [...updatedMainSquad, ...updatedBench];
           } else {
             // POOL PLAYER: Replace with a new player from outside the squad
             // Calculate points to bank from the player leaving the squad

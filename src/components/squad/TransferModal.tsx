@@ -577,7 +577,11 @@ const TransferModal: React.FC<TransferModalProps> = ({
                                 <MenuItem
                                   key={player.playerId}
                                   value={player.playerId}
-                                  disabled={player.playerId === existingSquad.captainId}
+                                  disabled={
+                                    player.playerId === existingSquad.captainId ||
+                                    player.playerId === existingSquad.viceCaptainId ||
+                                    player.playerId === existingSquad.xFactorId
+                                  }
                                 >
                                   <Box display="flex" alignItems="center" gap={1}>
                                     <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem' }}>
@@ -588,7 +592,10 @@ const TransferModal: React.FC<TransferModalProps> = ({
                                       <Chip label="C" size="small" color="warning" sx={{ height: 18, fontSize: '0.65rem' }} />
                                     )}
                                     {player.playerId === existingSquad.viceCaptainId && (
-                                      <Chip label="Current VC" size="small" color="info" sx={{ height: 18, fontSize: '0.65rem' }} />
+                                      <Chip label="VC" size="small" color="info" sx={{ height: 18, fontSize: '0.65rem' }} />
+                                    )}
+                                    {player.playerId === existingSquad.xFactorId && (
+                                      <Chip label="X" size="small" color="secondary" sx={{ height: 18, fontSize: '0.65rem' }} />
                                     )}
                                   </Box>
                                 </MenuItem>
@@ -612,14 +619,28 @@ const TransferModal: React.FC<TransferModalProps> = ({
                             >
                               <MenuItem value="">No change</MenuItem>
                               {existingSquad.players.slice(0, league.squadSize).map(player => (
-                                <MenuItem key={player.playerId} value={player.playerId}>
+                                <MenuItem
+                                  key={player.playerId}
+                                  value={player.playerId}
+                                  disabled={
+                                    player.playerId === existingSquad.captainId ||
+                                    player.playerId === existingSquad.viceCaptainId ||
+                                    player.playerId === existingSquad.xFactorId
+                                  }
+                                >
                                   <Box display="flex" alignItems="center" gap={1}>
                                     <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem' }}>
                                       {player.playerName.charAt(0)}
                                     </Avatar>
                                     <Typography variant="body2">{player.playerName}</Typography>
+                                    {player.playerId === existingSquad.captainId && (
+                                      <Chip label="C" size="small" color="warning" sx={{ height: 18, fontSize: '0.65rem' }} />
+                                    )}
+                                    {player.playerId === existingSquad.viceCaptainId && (
+                                      <Chip label="VC" size="small" color="info" sx={{ height: 18, fontSize: '0.65rem' }} />
+                                    )}
                                     {player.playerId === existingSquad.xFactorId && (
-                                      <Chip label="Current X" size="small" color="secondary" sx={{ height: 18, fontSize: '0.65rem' }} />
+                                      <Chip label="X" size="small" color="secondary" sx={{ height: 18, fontSize: '0.65rem' }} />
                                     )}
                                   </Box>
                                 </MenuItem>
