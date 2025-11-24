@@ -132,6 +132,11 @@ const TransferModal: React.FC<TransferModalProps> = ({
           setError('Please select a new Vice-Captain or X-Factor');
           return;
         }
+        // Ensure only ONE role is being reassigned
+        if (newViceCaptain && newXFactor) {
+          setError('You can only reassign either Vice-Captain OR X-Factor, not both');
+          return;
+        }
       }
     }
 
@@ -220,9 +225,20 @@ const TransferModal: React.FC<TransferModalProps> = ({
       return benchPlayers;
     }
 
-    // For flexible/mid-season, return all available players not in squad
+    // For flexible/mid-season, return available players not in squad + bench players
     const squadPlayerIds = existingSquad.players.map(p => p.playerId);
-    return availablePlayers.filter(p => !squadPlayerIds.includes(p.id));
+
+    // Get bench players
+    const benchPlayersSquad = existingSquad.players.filter((p, index) => index >= league.squadSize);
+    const benchPlayers = benchPlayersSquad.map(benchPlayer => {
+      return availablePlayers.find(p => p.id === benchPlayer.playerId);
+    }).filter((p): p is Player => p !== undefined);
+
+    // Get pool players not in squad at all
+    const poolPlayers = availablePlayers.filter(p => !squadPlayerIds.includes(p.id));
+
+    // Combine bench players and pool players
+    return [...benchPlayers, ...poolPlayers];
   };
 
   const getPlayersForRemoval = (): SquadPlayer[] => {
@@ -530,7 +546,7 @@ const TransferModal: React.FC<TransferModalProps> = ({
                             Reassign Vice-Captain or X-Factor
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            Change your VC or X-Factor without swapping players
+                            Change either your VC or X-Factor (only one per change)
                           </Typography>
                         </Box>
                       </Box>
@@ -538,6 +554,9 @@ const TransferModal: React.FC<TransferModalProps> = ({
                     {selectedChangeType === 'roleReassignment' && (
                       <Box mt={2}>
                         <Divider sx={{ mb: 2 }} />
+                        <Alert severity="info" sx={{ mb: 2 }}>
+                          You can reassign either Vice-Captain OR X-Factor with one change (not both)
+                        </Alert>
                         <Box display="flex" gap={2} flexWrap="wrap">
                           <Box flex={1} minWidth={200}>
                             <Typography variant="body2" gutterBottom fontWeight="bold">
@@ -546,8 +565,12 @@ const TransferModal: React.FC<TransferModalProps> = ({
                             <Select
                               fullWidth
                               value={newViceCaptain}
-                              onChange={(e) => setNewViceCaptain(e.target.value)}
+                              onChange={(e) => {
+                                setNewViceCaptain(e.target.value);
+                                if (e.target.value) setNewXFactor(''); // Clear X-Factor when VC is selected
+                              }}
                               size="small"
+                              disabled={!!newXFactor} // Disable if X-Factor is selected
                             >
                               <MenuItem value="">No change</MenuItem>
                               {existingSquad.players.slice(0, league.squadSize).map(player => (
@@ -580,8 +603,12 @@ const TransferModal: React.FC<TransferModalProps> = ({
                             <Select
                               fullWidth
                               value={newXFactor}
-                              onChange={(e) => setNewXFactor(e.target.value)}
+                              onChange={(e) => {
+                                setNewXFactor(e.target.value);
+                                if (e.target.value) setNewViceCaptain(''); // Clear VC when X-Factor is selected
+                              }}
                               size="small"
+                              disabled={!!newViceCaptain} // Disable if VC is selected
                             >
                               <MenuItem value="">No change</MenuItem>
                               {existingSquad.players.slice(0, league.squadSize).map(player => (

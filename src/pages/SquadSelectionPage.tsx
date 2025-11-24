@@ -559,39 +559,73 @@ const SquadSelectionPage: React.FC = () => {
             }
           }
         } else {
-          // FLEXIBLE/MID-SEASON TRANSFER: Replace with a new player from outside the squad
+          // FLEXIBLE/MID-SEASON TRANSFER: Replace with a player from pool OR bench
           const playerOutIndex = updatedPlayers.findIndex(p => p.playerId === transferData.playerOut);
           if (playerOutIndex === -1) throw new Error('Player to remove not found');
 
-          // Calculate points to bank from the player leaving the squad
-          const playerLeaving = updatedPlayers[playerOutIndex];
-          let playerRole: 'captain' | 'viceCaptain' | 'xFactor' | 'regular' = 'regular';
-          if (playerLeaving.playerId === existingSquad.captainId) playerRole = 'captain';
-          else if (playerLeaving.playerId === existingSquad.viceCaptainId) playerRole = 'viceCaptain';
-          else if (playerLeaving.playerId === existingSquad.xFactorId) playerRole = 'xFactor';
+          // Check if incoming player is from bench
+          const benchPlayerIds = updatedPlayers.slice(league.squadSize).map(p => p.playerId);
+          const isIncomingPlayerFromBench = benchPlayerIds.includes(transferData.playerIn);
 
-          additionalBankedPoints = calculatePlayerContribution(playerLeaving, playerRole);
+          if (isIncomingPlayerFromBench) {
+            // BENCH PLAYER TO MAIN SQUAD: Use auto-slotting to place bench player, remove from bench
+            const playerInIndex = updatedPlayers.findIndex(p => p.playerId === transferData.playerIn);
+            if (playerInIndex === -1) throw new Error('Bench player not found');
 
-          // Get the full player data for the incoming player
-          const incomingPlayer = availablePlayers.find(p => p.id === transferData.playerIn);
-          if (!incomingPlayer) throw new Error('Incoming player not found');
+            // Calculate points to bank from the player leaving the squad
+            const playerLeaving = updatedPlayers[playerOutIndex];
+            let playerRole: 'captain' | 'viceCaptain' | 'xFactor' | 'regular' = 'regular';
+            if (playerLeaving.playerId === existingSquad.captainId) playerRole = 'captain';
+            else if (playerLeaving.playerId === existingSquad.viceCaptainId) playerRole = 'viceCaptain';
+            else if (playerLeaving.playerId === existingSquad.xFactorId) playerRole = 'xFactor';
 
-          // Create new squad player using transfer method (snapshots current points)
-          const newSquadPlayer = squadPlayerUtils.createTransferSquadPlayer({
-            playerId: incomingPlayer.id,
-            playerName: incomingPlayer.name,
-            team: incomingPlayer.team,
-            role: incomingPlayer.role,
-            points: incomingPlayer.stats[league.format].recentForm || 0,
-          });
+            additionalBankedPoints = calculatePlayerContribution(playerLeaving, playerRole);
 
-          // Use auto-slotting algorithm to intelligently place the new player
-          updatedPlayers = performAutoSlot(
-            updatedPlayers,
-            transferData.playerOut,
-            newSquadPlayer,
-            league
-          );
+            // Get the bench player to be promoted
+            const benchPlayer = updatedPlayers[playerInIndex];
+
+            // Remove the bench player from the bench position first
+            updatedPlayers = updatedPlayers.filter((p, index) => index !== playerInIndex);
+
+            // Now use auto-slotting algorithm to intelligently place the bench player
+            updatedPlayers = performAutoSlot(
+              updatedPlayers,
+              transferData.playerOut,
+              benchPlayer,
+              league
+            );
+          } else {
+            // POOL PLAYER: Replace with a new player from outside the squad
+            // Calculate points to bank from the player leaving the squad
+            const playerLeaving = updatedPlayers[playerOutIndex];
+            let playerRole: 'captain' | 'viceCaptain' | 'xFactor' | 'regular' = 'regular';
+            if (playerLeaving.playerId === existingSquad.captainId) playerRole = 'captain';
+            else if (playerLeaving.playerId === existingSquad.viceCaptainId) playerRole = 'viceCaptain';
+            else if (playerLeaving.playerId === existingSquad.xFactorId) playerRole = 'xFactor';
+
+            additionalBankedPoints = calculatePlayerContribution(playerLeaving, playerRole);
+
+            // Get the full player data for the incoming player
+            const incomingPlayer = availablePlayers.find(p => p.id === transferData.playerIn);
+            if (!incomingPlayer) throw new Error('Incoming player not found');
+
+            // Create new squad player using transfer method (snapshots current points)
+            const newSquadPlayer = squadPlayerUtils.createTransferSquadPlayer({
+              playerId: incomingPlayer.id,
+              playerName: incomingPlayer.name,
+              team: incomingPlayer.team,
+              role: incomingPlayer.role,
+              points: incomingPlayer.stats[league.format].recentForm || 0,
+            });
+
+            // Use auto-slotting algorithm to intelligently place the new player
+            updatedPlayers = performAutoSlot(
+              updatedPlayers,
+              transferData.playerOut,
+              newSquadPlayer,
+              league
+            );
+          }
         }
       } else if (transferData.changeType === 'roleReassignment') {
         // ROLE REASSIGNMENT: Change VC or X-Factor
