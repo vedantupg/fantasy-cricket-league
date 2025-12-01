@@ -682,6 +682,37 @@ const SquadSelectionPage: React.FC = () => {
         }
       }
 
+      // VALIDATION: Check if the transfer maintains minimum squad requirements
+      // Only validate for player substitutions (not role reassignments)
+      if (transferData.changeType === 'playerSubstitution') {
+        const mainSquad = updatedPlayers.slice(0, league.squadSize);
+        const roleCounts = {
+          batsman: mainSquad.filter(p => p.role === 'batsman').length,
+          bowler: mainSquad.filter(p => p.role === 'bowler').length,
+          allrounder: mainSquad.filter(p => p.role === 'allrounder').length,
+          wicketkeeper: mainSquad.filter(p => p.role === 'wicketkeeper').length
+        };
+
+        const violations: string[] = [];
+
+        if (roleCounts.batsman < league.squadRules.minBatsmen) {
+          violations.push(`This transfer would leave you with only ${roleCounts.batsman} batsman${roleCounts.batsman !== 1 ? 's' : ''} (minimum ${league.squadRules.minBatsmen} required)`);
+        }
+        if (roleCounts.bowler < league.squadRules.minBowlers) {
+          violations.push(`This transfer would leave you with only ${roleCounts.bowler} bowler${roleCounts.bowler !== 1 ? 's' : ''} (minimum ${league.squadRules.minBowlers} required)`);
+        }
+        if (roleCounts.allrounder < league.squadRules.minAllrounders) {
+          violations.push(`This transfer would leave you with only ${roleCounts.allrounder} allrounder${roleCounts.allrounder !== 1 ? 's' : ''} (minimum ${league.squadRules.minAllrounders} required)`);
+        }
+        if (roleCounts.wicketkeeper < league.squadRules.minWicketkeepers) {
+          violations.push(`This transfer would leave you with only ${roleCounts.wicketkeeper} wicketkeeper${roleCounts.wicketkeeper !== 1 ? 's' : ''} (minimum ${league.squadRules.minWicketkeepers} required)`);
+        }
+
+        if (violations.length > 0) {
+          throw new Error(violations.join('. '));
+        }
+      }
+
       // Calculate new banked points total
       const newBankedPoints = (existingSquad.bankedPoints || 0) + additionalBankedPoints;
 
