@@ -126,19 +126,19 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot }) => {
         <StatCard
           icon={<EmojiEvents sx={{ fontSize: 24, color: 'warning.main' }} />}
           label="Highest Score"
-          value={highestScore.toFixed(1)}
+          value={highestScore.toFixed(2)}
           color="#FFD700"
         />
         <StatCard
           icon={<TrendingUp sx={{ fontSize: 24, color: 'success.main' }} />}
           label="Average"
-          value={avgPoints.toFixed(1)}
+          value={avgPoints.toFixed(2)}
           color="#4CAF50"
         />
         <StatCard
           icon={<Timer sx={{ fontSize: 24, color: 'secondary.main' }} />}
           label="Points Range"
-          value={pointsRange.toFixed(1)}
+          value={pointsRange.toFixed(2)}
           color="#9C27B0"
         />
       </Box>
@@ -157,7 +157,7 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot }) => {
               <Box sx={{ mb: 3 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                   <Typography variant="body2" fontWeight="600" color="primary.main">Captain (2x)</Typography>
-                  <Typography variant="body2" fontWeight="bold">{avgCaptainPercent.toFixed(1)}%</Typography>
+                  <Typography variant="body2" fontWeight="bold">{avgCaptainPercent.toFixed(2)}%</Typography>
                 </Box>
                 <LinearProgress
                   variant="determinate"
@@ -169,7 +169,7 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot }) => {
               <Box sx={{ mb: 3 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                   <Typography variant="body2" fontWeight="600" color="secondary.main">Vice-Captain (1.5x)</Typography>
-                  <Typography variant="body2" fontWeight="bold">{avgVCPercent.toFixed(1)}%</Typography>
+                  <Typography variant="body2" fontWeight="bold">{avgVCPercent.toFixed(2)}%</Typography>
                 </Box>
                 <LinearProgress
                   variant="determinate"
@@ -181,7 +181,7 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot }) => {
               <Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                   <Typography variant="body2" fontWeight="600" sx={{ color: '#9C27B0' }}>X-Factor (1.25x)</Typography>
-                  <Typography variant="body2" fontWeight="bold">{avgXFactorPercent.toFixed(1)}%</Typography>
+                  <Typography variant="body2" fontWeight="bold">{avgXFactorPercent.toFixed(2)}%</Typography>
                 </Box>
                 <LinearProgress
                   variant="determinate"
@@ -218,7 +218,7 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot }) => {
                       sx={{ fontSize: '0.7rem' }}
                     />
                     <Chip
-                      label={`Avg: ${(mostPopularCaptain.points / mostPopularCaptain.count).toFixed(1)} pts`}
+                      label={`Avg: ${(mostPopularCaptain.points / mostPopularCaptain.count).toFixed(2)} pts`}
                       size="small"
                       variant="outlined"
                       sx={{ fontSize: '0.7rem' }}
@@ -243,7 +243,7 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot }) => {
                       sx={{ fontSize: '0.7rem' }}
                     />
                     <Chip
-                      label={`Avg: ${(mostPopularViceCaptain.points / mostPopularViceCaptain.count).toFixed(1)} pts`}
+                      label={`Avg: ${(mostPopularViceCaptain.points / mostPopularViceCaptain.count).toFixed(2)} pts`}
                       size="small"
                       variant="outlined"
                       sx={{ fontSize: '0.7rem' }}
@@ -267,7 +267,7 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot }) => {
                       sx={{ bgcolor: '#9C27B0', color: 'white', fontSize: '0.7rem' }}
                     />
                     <Chip
-                      label={`Total: ${mostPopularXFactor.points.toFixed(1)} pts`}
+                      label={`Total: ${mostPopularXFactor.points.toFixed(2)} pts`}
                       size="small"
                       variant="outlined"
                       sx={{ fontSize: '0.7rem', borderColor: '#9C27B0' }}
@@ -319,7 +319,7 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot }) => {
                       </Typography>
                     </Box>
                     <Typography variant="h6" sx={{ color: 'success.main', fontWeight: 'bold', fontSize: '1rem' }}>
-                      +{standing.pointsGainedToday.toFixed(1)}
+                      +{standing.pointsGainedToday.toFixed(2)}
                     </Typography>
                   </Box>
                 ))}

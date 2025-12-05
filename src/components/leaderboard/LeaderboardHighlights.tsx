@@ -141,7 +141,7 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
                       fontSize: { xs: '0.7rem', sm: '0.8rem' },
                     }}
                   >
-                    +{bestPerformer.pointsGained.toFixed(1)}
+                    +{bestPerformer.pointsGained.toFixed(2)}
                   </Typography>
                 </Box>
               </Box>

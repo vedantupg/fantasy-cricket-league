@@ -112,7 +112,7 @@ const TeamPage: React.FC = () => {
                     Budget Used
                   </Typography>
                   <Typography variant="h6" color={usedBudget > budget * 0.8 ? 'error.main' : 'success.main'}>
-                    ${usedBudget.toFixed(1)} / ${budget}
+                    ${usedBudget.toFixed(2)} / ${budget}
                   </Typography>
                 </Box>
               </Box>

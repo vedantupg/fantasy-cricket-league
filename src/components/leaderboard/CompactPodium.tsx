@@ -200,13 +200,13 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive }) => {
                   textAlign: 'center',
                 }}
               >
-                {standing.totalPoints.toFixed(1)}
+                {standing.totalPoints.toFixed(2)}
               </Typography>
 
               {/* Points gained on right */}
               {standing.pointsGainedToday > 0 && (
                 <Typography variant="caption" sx={{ color: 'success.main', fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem' } }}>
-                  (+{standing.pointsGainedToday.toFixed(1)})
+                  (+{standing.pointsGainedToday.toFixed(2)})
                 </Typography>
               )}
             </Box>
@@ -218,7 +218,7 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive }) => {
                   C
                 </Typography>
                 <Typography variant="body2" fontWeight="bold" color="primary.main" sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' }, lineHeight: 1 }}>
-                  {standing.captainPoints.toFixed(1)}
+                  {standing.captainPoints.toFixed(2)}
                 </Typography>
               </Box>
               <Box sx={{ textAlign: 'center' }}>
@@ -226,7 +226,7 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive }) => {
                   VC
                 </Typography>
                 <Typography variant="body2" fontWeight="bold" color="secondary.main" sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' }, lineHeight: 1 }}>
-                  {standing.viceCaptainPoints.toFixed(1)}
+                  {standing.viceCaptainPoints.toFixed(2)}
                 </Typography>
               </Box>
               <Box sx={{ textAlign: 'center' }}>
@@ -234,7 +234,7 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive }) => {
                   X
                 </Typography>
                 <Typography variant="body2" fontWeight="bold" sx={{ color: '#9C27B0', fontSize: { xs: '0.65rem', sm: '0.7rem' }, lineHeight: 1 }}>
-                  {standing.xFactorPoints.toFixed(1)}
+                  {standing.xFactorPoints.toFixed(2)}
                 </Typography>
               </Box>
             </Box>

@@ -1084,11 +1084,11 @@ const AdminPage: React.FC = () => {
                               return (
                                 <TableRow key={result.squadName}>
                                   <TableCell>{result.squadName}</TableCell>
-                                  <TableCell align="right">{result.oldPoints.toFixed(1)}</TableCell>
-                                  <TableCell align="right">{result.newPoints.toFixed(1)}</TableCell>
+                                  <TableCell align="right">{result.oldPoints.toFixed(2)}</TableCell>
+                                  <TableCell align="right">{result.newPoints.toFixed(2)}</TableCell>
                                   <TableCell align="right">
                                     <Chip
-                                      label={diff >= 0 ? `+${diff.toFixed(1)}` : diff.toFixed(1)}
+                                      label={diff >= 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2)}
                                       size="small"
                                       color={diff === 0 ? 'default' : diff > 0 ? 'success' : 'error'}
                                     />
