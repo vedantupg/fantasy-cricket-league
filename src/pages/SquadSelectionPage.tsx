@@ -529,6 +529,11 @@ const SquadSelectionPage: React.FC = () => {
           updatedPlayers[playerOutIndex] = updatedPlayers[playerInIndex];
           updatedPlayers[playerInIndex] = temp;
 
+          // CRITICAL FIX: Reset pointsAtJoining for bench player moving to main squad
+          // This ensures their contribution starts at 0, preventing immediate point changes
+          const playerMovingToMain = updatedPlayers[playerOutIndex];
+          playerMovingToMain.pointsAtJoining = playerMovingToMain.points;
+
           // AUTO-ASSIGN roles to incoming player if swapping out C/VC/X
           const incomingPlayerId = transferData.playerIn;
 
@@ -583,6 +588,10 @@ const SquadSelectionPage: React.FC = () => {
 
             // Get the bench player to be promoted
             const benchPlayer = updatedPlayers[playerInIndex];
+
+            // CRITICAL FIX: Reset pointsAtJoining for bench player being promoted
+            // This ensures their contribution starts at 0, preventing immediate point changes
+            benchPlayer.pointsAtJoining = benchPlayer.points;
 
             // Separate main squad and bench
             const mainSquad = updatedPlayers.slice(0, league.squadSize);
