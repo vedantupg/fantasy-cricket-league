@@ -1197,7 +1197,7 @@ const SquadSelectionPage: React.FC = () => {
 
         <Grid container spacing={{ xs: 2, sm: 3 }}>
           {/* Left Panel - Squad Formation */}
-          <Grid size={{ xs: 12, lg: 8 }}>
+          <Grid size={{ xs: 12, lg: (isDeadlinePassed && !canMakeTransfer) ? 12 : 8 }}>
             <CricketPitchFormation
               league={league}
               selectedPlayers={selectedPlayers}
@@ -1210,20 +1210,25 @@ const SquadSelectionPage: React.FC = () => {
               viceCaptainId={viceCaptainId}
               xFactorId={xFactorId}
               onSetSpecialRole={setPlayerAsSpecialRole}
+              existingSquad={existingSquad}
+              calculatePlayerContribution={calculatePlayerContribution}
+              readOnly={isDeadlinePassed && !canMakeTransfer}
             />
           </Grid>
 
           {/* Right Panel - Player Selection */}
-          <Grid size={{ xs: 12, lg: 4 }}>
-            <PlayerSelectionPanel
-              availablePlayers={availablePlayers}
-              selectedPlayers={selectedPlayers}
-              onAddPlayer={addPlayerToSquad}
-              filterRole={filterRole}
-              setFilterRole={setFilterRole}
-              league={league}
-            />
-          </Grid>
+          {!(isDeadlinePassed && !canMakeTransfer) && (
+            <Grid size={{ xs: 12, lg: 4 }}>
+              <PlayerSelectionPanel
+                availablePlayers={availablePlayers}
+                selectedPlayers={selectedPlayers}
+                onAddPlayer={addPlayerToSquad}
+                filterRole={filterRole}
+                setFilterRole={setFilterRole}
+                league={league}
+              />
+            </Grid>
+          )}
         </Grid>
 
         {/* Predictions Section */}
@@ -1333,7 +1338,39 @@ const CricketPitchFormation: React.FC<{
   viceCaptainId: string | null;
   xFactorId: string | null;
   onSetSpecialRole: (playerId: string, role: 'captain' | 'vice_captain' | 'x_factor' | null) => void;
-}> = ({ league, selectedPlayers, onRemovePlayer, onUpdatePosition, powerplayMatch, setPowerplayMatch, powerplayMatches, captainId, viceCaptainId, xFactorId, onSetSpecialRole }) => {
+  existingSquad: LeagueSquad | null;
+  calculatePlayerContribution: (player: SquadPlayer, role: 'captain' | 'viceCaptain' | 'xFactor' | 'regular') => number;
+  readOnly: boolean;
+}> = ({ league, selectedPlayers, onRemovePlayer, onUpdatePosition, powerplayMatch, setPowerplayMatch, powerplayMatches, captainId, viceCaptainId, xFactorId, onSetSpecialRole, existingSquad, calculatePlayerContribution, readOnly }) => {
+
+  // Helper function to get player points for display
+  const getPlayerPointsDisplay = (player: SelectedPlayer, slotType: 'required' | 'flexible' | 'bench') => {
+    // Get raw points from player stats (points are stored in recentForm)
+    const rawPoints = player.stats?.[league.format]?.recentForm || 0;
+
+    if (!existingSquad || slotType === 'bench') {
+      // No existing squad or bench players - show raw points
+      return { points: rawPoints, label: 'pts' };
+    }
+
+    // Main squad player - check if they exist in the existing squad
+    const squadPlayer = existingSquad.players.find((p: SquadPlayer) => p.playerId === player.id);
+
+    if (!squadPlayer) {
+      // New player being added - show raw points
+      return { points: rawPoints, label: 'pts' };
+    }
+
+    // Existing squad player - calculate contribution based on their role
+    const isCaptain = captainId === player.id;
+    const isViceCaptain = viceCaptainId === player.id;
+    const isXFactor = xFactorId === player.id;
+
+    const role = isCaptain ? 'captain' : isViceCaptain ? 'viceCaptain' : isXFactor ? 'xFactor' : 'regular';
+    const contribution = calculatePlayerContribution(squadPlayer, role);
+
+    return { points: contribution, label: 'contrib' };
+  };
 
   const getRequiredSlots = () => {
     const { squadRules } = league;
@@ -1441,7 +1478,7 @@ const CricketPitchFormation: React.FC<{
     const isCaptain = player && captainId === player.id;
     const isViceCaptain = player && viceCaptainId === player.id;
     const isXFactor = player && xFactorId === player.id;
-    const canAssignRoles = player && slotType !== 'bench';
+    const canAssignRoles = player && slotType !== 'bench' && !readOnly;
 
     const handleMouseEnter = () => {
       if (canAssignRoles) {
@@ -1490,16 +1527,18 @@ const CricketPitchFormation: React.FC<{
       >
         {player ? (
           <>
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemovePlayer(player.id);
-              }}
-              sx={{ position: 'absolute', top: { xs: -6, sm: -8 }, right: { xs: -6, sm: -8 }, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, zIndex: 10, width: { xs: 20, sm: 24 }, height: { xs: 20, sm: 24 } }}
-            >
-              <Close sx={{ fontSize: { xs: 14, sm: 18 } }} />
-            </IconButton>
+            {!readOnly && (
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemovePlayer(player.id);
+                }}
+                sx={{ position: 'absolute', top: { xs: -6, sm: -8 }, right: { xs: -6, sm: -8 }, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, zIndex: 10, width: { xs: 20, sm: 24 }, height: { xs: 20, sm: 24 } }}
+              >
+                <Close sx={{ fontSize: { xs: 14, sm: 18 } }} />
+              </IconButton>
+            )}
 
             <Avatar sx={{ width: { xs: 24, sm: 28, md: 32 }, height: { xs: 24, sm: 28, md: 32 }, mb: 0.5, bgcolor: 'primary.main', fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
               {player.name.charAt(0)}
@@ -1514,6 +1553,25 @@ const CricketPitchFormation: React.FC<{
               label={player.team}
               sx={{ fontSize: { xs: '0.55rem', sm: '0.6rem' }, height: { xs: 14, sm: 16 }, mt: 0.5 }}
             />
+
+            {/* Points Display */}
+            {(() => {
+              const pointsData = getPlayerPointsDisplay(player, slotType);
+              return (
+                <Typography
+                  variant="caption"
+                  fontWeight="bold"
+                  textAlign="center"
+                  sx={{
+                    fontSize: { xs: '0.6rem', sm: '0.65rem', md: '0.7rem' },
+                    mt: 0.5,
+                    color: pointsData.label === 'contrib' ? 'success.main' : 'primary.main'
+                  }}
+                >
+                  {pointsData.points.toFixed(2)}
+                </Typography>
+              );
+            })()}
 
             {/* Captain/Vice Captain/X-Factor badges */}
             {isCaptain && (
