@@ -191,6 +191,17 @@ export const squadService = {
     return docRef.id;
   },
 
+  // Get squad by ID
+  async getById(squadId: string): Promise<LeagueSquad | null> {
+    const docRef = doc(db, COLLECTIONS.SQUADS, squadId);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      return convertTimestamps({ id: docSnap.id, ...docSnap.data() }) as LeagueSquad;
+    }
+    return null;
+  },
+
   // Get squad by user and league
   async getByUserAndLeague(userId: string, leagueId: string): Promise<LeagueSquad | null> {
     const q = query(
@@ -199,7 +210,7 @@ export const squadService = {
       where('leagueId', '==', leagueId)
     );
     const querySnapshot = await getDocs(q);
-    
+
     if (!querySnapshot.empty) {
       const doc = querySnapshot.docs[0];
       return convertTimestamps({ id: doc.id, ...doc.data() }) as LeagueSquad;
