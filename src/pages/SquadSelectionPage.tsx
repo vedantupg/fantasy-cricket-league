@@ -610,6 +610,12 @@ const SquadSelectionPage: React.FC = () => {
 
             // Combine updated main squad with updated bench
             updatedPlayers = [...updatedMainSquad, ...updatedBench];
+
+            // AUTO-ASSIGN role if the outgoing player had X-Factor
+            if (playerRole === 'xFactor') {
+              updatedXFactorId = benchPlayer.playerId;
+              benchPlayer.pointsWhenRoleAssigned = benchPlayer.points;
+            }
           } else {
             // POOL PLAYER: Replace with a new player from outside the squad
             // Calculate points to bank from the player leaving the squad
@@ -641,6 +647,12 @@ const SquadSelectionPage: React.FC = () => {
               newSquadPlayer,
               league
             );
+
+            // AUTO-ASSIGN role if the outgoing player had X-Factor
+            if (playerRole === 'xFactor') {
+              updatedXFactorId = newSquadPlayer.playerId;
+              newSquadPlayer.pointsWhenRoleAssigned = newSquadPlayer.points;
+            }
           }
         }
       } else if (transferData.changeType === 'roleReassignment') {
