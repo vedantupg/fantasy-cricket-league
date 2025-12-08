@@ -14,14 +14,15 @@ import { Refresh as RefreshIcon } from '@mui/icons-material';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
 import LeagueAnalytics from '../components/leaderboard/LeagueAnalytics';
-import { leaderboardSnapshotService, leagueService } from '../services/firestore';
-import type { LeaderboardSnapshot, League } from '../types/database';
+import { leaderboardSnapshotService, leagueService, squadService } from '../services/firestore';
+import type { LeaderboardSnapshot, League, LeagueSquad } from '../types/database';
 
 const AnalyticsPage: React.FC = () => {
   const { leagueId } = useParams<{ leagueId: string }>();
 
   const [snapshot, setSnapshot] = useState<LeaderboardSnapshot | null>(null);
   const [league, setLeague] = useState<League | null>(null);
+  const [squads, setSquads] = useState<LeagueSquad[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +49,10 @@ const AnalyticsPage: React.FC = () => {
       // Fetch latest snapshot
       const latestSnapshot = await leaderboardSnapshotService.getLatest(leagueId);
       setSnapshot(latestSnapshot);
+
+      // Fetch all squads for advanced analytics
+      const squadsData = await squadService.getByLeague(leagueId);
+      setSquads(squadsData);
     } catch (err) {
       console.error('Error loading analytics:', err);
       setError('Failed to load analytics data. Please try again.');
@@ -188,7 +193,7 @@ const AnalyticsPage: React.FC = () => {
         )}
 
         {hasLeagueStarted && snapshot && snapshot.standings.length > 0 ? (
-          <LeagueAnalytics snapshot={snapshot} />
+          <LeagueAnalytics snapshot={snapshot} league={league} squads={squads} />
         ) : hasLeagueStarted ? (
           <Card>
             <CardContent sx={{ textAlign: 'center', py: { xs: 4, sm: 6 }, px: { xs: 2, sm: 3 } }}>
