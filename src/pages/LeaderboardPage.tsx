@@ -21,6 +21,7 @@ import CompactLeaderboardCard from '../components/leaderboard/CompactLeaderboard
 import LeaderboardHighlights from '../components/leaderboard/LeaderboardHighlights';
 import { leaderboardSnapshotService, leagueService, squadService } from '../services/firestore';
 import type { LeaderboardSnapshot, League, StandingEntry } from '../types/database';
+import { calculateRankStreaks, attachStreaksToStandings } from '../utils/streakCalculator';
 
 const LeaderboardPage: React.FC = () => {
   const { userData } = useAuth();
@@ -94,7 +95,31 @@ const LeaderboardPage: React.FC = () => {
             });
           }
         } else {
-          setSnapshot(latestSnapshot);
+          // Fetch recent snapshots to calculate streaks
+          try {
+            const recentSnapshots = await leaderboardSnapshotService.getRecent(leagueId, 15);
+            console.log('🔍 DEBUG: Recent snapshots fetched:', recentSnapshots.length);
+            console.log('🔍 DEBUG: Snapshot dates:', recentSnapshots.map(s => s.snapshotDate));
+
+            const streaks = calculateRankStreaks(recentSnapshots);
+            console.log('🔍 DEBUG: Calculated streaks:', Object.fromEntries(streaks));
+
+            const standingsWithStreaks = attachStreaksToStandings(latestSnapshot.standings, streaks);
+            console.log('🔍 DEBUG: Standings with streaks:', standingsWithStreaks.map(s => ({
+              name: s.displayName,
+              rank: s.rank,
+              rankStreak: s.rankStreak
+            })));
+
+            setSnapshot({
+              ...latestSnapshot,
+              standings: standingsWithStreaks,
+            });
+          } catch (streakErr) {
+            console.error('Error calculating streaks:', streakErr);
+            // Fallback to snapshot without streaks
+            setSnapshot(latestSnapshot);
+          }
         }
       } catch (snapshotErr) {
         console.error('Error fetching snapshot:', snapshotErr);

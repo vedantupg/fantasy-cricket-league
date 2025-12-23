@@ -409,6 +409,7 @@ export interface StandingEntry {
   rank: number;
   previousRank?: number;
   rankChange?: number; // Positive for improvement, negative for decline
+  rankStreak?: number; // Consecutive updates at the same rank
 
   // Daily Stats
   pointsGainedToday: number;

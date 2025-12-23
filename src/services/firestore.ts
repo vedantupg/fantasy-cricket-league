@@ -619,20 +619,47 @@ export const playerPoolService = {
 
             if (squad.captainId === player.playerId) {
               // Captain gets 2x points
-              captainPoints = effectivePoints * 2;
+              // Apply multiplier only to points earned AFTER becoming captain
+              const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
+              const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining); // Points before role
+              const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned); // Points after role
+
+              const baseContribution = basePoints * 1.0;
+              const bonusContribution = bonusPoints * 2.0;
+
+              captainPoints = baseContribution + bonusContribution;
               playerPoints = captainPoints;
             } else if (squad.viceCaptainId === player.playerId) {
               // Vice-captain gets 1.5x points
-              viceCaptainPoints = effectivePoints * 1.5;
+              const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
+              const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
+              const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
+
+              const baseContribution = basePoints * 1.0;
+              const bonusContribution = bonusPoints * 1.5;
+
+              viceCaptainPoints = baseContribution + bonusContribution;
               playerPoints = viceCaptainPoints;
             } else if (squad.xFactorId === player.playerId) {
               // X-Factor gets 1.25x points
-              xFactorPoints = effectivePoints * 1.25;
+              const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
+              const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
+              const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
+
+              const baseContribution = basePoints * 1.0;
+              const bonusContribution = bonusPoints * 1.25;
+
+              xFactorPoints = baseContribution + bonusContribution;
               playerPoints = xFactorPoints;
             }
 
             totalPoints += playerPoints;
           });
+
+          // CRITICAL: Add banked points to total
+          // Banked points are accumulated from transferred-out players
+          const bankedPoints = squad.bankedPoints || 0;
+          totalPoints += bankedPoints;
 
           // Always update every squad on each player pool save
           const squadRef = doc(db, COLLECTIONS.SQUADS, squad.id);
@@ -897,6 +924,21 @@ export const leaderboardSnapshotService = {
       collection(db, COLLECTIONS.LEADERBOARD_SNAPSHOTS),
       where('leagueId', '==', leagueId),
       orderBy('snapshotDate', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+
+    return querySnapshot.docs.map(doc =>
+      convertTimestamps({ id: doc.id, ...doc.data() }) as LeaderboardSnapshot
+    );
+  },
+
+  // Get recent snapshots for a league (for streak calculation)
+  async getRecent(leagueId: string, limitCount: number = 15): Promise<LeaderboardSnapshot[]> {
+    const q = query(
+      collection(db, COLLECTIONS.LEADERBOARD_SNAPSHOTS),
+      where('leagueId', '==', leagueId),
+      orderBy('snapshotDate', 'desc'),
+      limit(limitCount)
     );
     const querySnapshot = await getDocs(q);
 

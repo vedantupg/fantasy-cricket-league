@@ -4,6 +4,7 @@ import {
   ArrowUpward as ArrowUpIcon,
   ArrowDownward as ArrowDownIcon,
   Remove as NoChangeIcon,
+  Whatshot as FireIcon,
 } from '@mui/icons-material';
 import type { StandingEntry } from '../../types/database';
 
@@ -26,6 +27,18 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
   const borderColor = standing.rank <= 3 ? rankColor : 'rgba(255, 255, 255, 0.12)'; // 🎨 Border for non-podium (try: rgba(99,110,250,0.3))
 
   const getRankChangeIcon = () => {
+    // Show fire icon if user has a streak of 1 or more
+    if (standing.rankStreak && standing.rankStreak >= 1) {
+      return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+          <FireIcon sx={{ fontSize: 12, color: '#FF9800' }} />
+          <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#FF9800' }}>
+            {standing.rankStreak}
+          </Typography>
+        </Box>
+      );
+    }
+
     if (!standing.rankChange || standing.rankChange === 0) {
       return <NoChangeIcon sx={{ fontSize: 12, color: 'text.secondary' }} />;
     }

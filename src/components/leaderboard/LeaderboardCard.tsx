@@ -4,6 +4,7 @@ import {
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
   Remove as NoChangeIcon,
+  Whatshot as FireIcon,
 } from '@mui/icons-material';
 import type { StandingEntry } from '../../types/database';
 
@@ -24,6 +25,18 @@ const LeaderboardCard: React.FC<LeaderboardCardProps> = ({ standing, isCurrentUs
   const rankColor = getRankColor(standing.rank);
 
   const getRankChangeIndicator = () => {
+    // Show fire icon if user has a streak of 1 or more
+    if (standing.rankStreak && standing.rankStreak >= 1) {
+      return (
+        <Box sx={{ display: 'flex', alignItems: 'center', color: '#FF9800' }}>
+          <FireIcon sx={{ fontSize: 16, mr: 0.5 }} />
+          <Typography variant="caption" fontWeight="bold">
+            {standing.rankStreak}
+          </Typography>
+        </Box>
+      );
+    }
+
     if (!standing.rankChange || standing.rankChange === 0) {
       return (
         <Box sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary' }}>

@@ -108,9 +108,11 @@ const AdminPage: React.FC = () => {
     squadName: string;
     oldPoints: number;
     newPoints: number;
+    bankedPoints?: number; // Optional: only present for reconstruction results
   }[]>([]);
   const [availableSnapshots, setAvailableSnapshots] = useState<LeaderboardSnapshot[]>([]);
   const [showSnapshotDialog, setShowSnapshotDialog] = useState(false);
+  const [snapshotDialogMode, setSnapshotDialogMode] = useState<'restore' | 'recalculate'>('restore');
 
   // Load leagues on mount
   useEffect(() => {
@@ -391,11 +393,287 @@ const AdminPage: React.FC = () => {
       }
 
       setAvailableSnapshots(allSnapshots);
+      setSnapshotDialogMode('recalculate');
       setShowSnapshotDialog(true);
       setErrorMessage('Please select the baseline snapshot (e.g., "ASHES 25/26") to use for recalculation.');
     } catch (error: any) {
       console.error('Error fetching snapshots:', error);
       setErrorMessage(error.message || 'Failed to fetch snapshots');
+    } finally {
+      setRecalculating(false);
+    }
+  };
+
+  const handleRestoreFromSnapshot = async () => {
+    if (!selectedLeagueId) {
+      setErrorMessage('Please select a league first');
+      return;
+    }
+
+    try {
+      setRecalculating(true);
+      setErrorMessage('');
+      setSuccessMessage('');
+
+      // Get all snapshots for this league
+      const allSnapshots = await leaderboardSnapshotService.getByLeague(selectedLeagueId);
+      if (allSnapshots.length === 0) {
+        setErrorMessage('No snapshots available to restore from.');
+        setRecalculating(false);
+        return;
+      }
+
+      setAvailableSnapshots(allSnapshots);
+      setSnapshotDialogMode('restore');
+      setShowSnapshotDialog(true);
+      setErrorMessage('Select the snapshot you want to restore points from (e.g., your "good" stable leaderboard).');
+    } catch (error: any) {
+      console.error('Error fetching snapshots:', error);
+      setErrorMessage(error.message || 'Failed to fetch snapshots');
+      setRecalculating(false);
+    }
+  };
+
+  const handleRestoreWithSnapshot = async (snapshotId: string) => {
+    if (!selectedLeagueId) return;
+
+    try {
+      setRecalculating(true);
+      setErrorMessage('');
+      setSuccessMessage('');
+      setShowSnapshotDialog(false);
+
+      const selectedSnapshot = availableSnapshots.find(s => s.id === snapshotId);
+      if (!selectedSnapshot) {
+        throw new Error('Snapshot not found');
+      }
+
+      // Get current squads
+      const currentSquads = await squadService.getByLeague(selectedLeagueId);
+
+      let restoredCount = 0;
+
+      // Restore each squad's points from the snapshot
+      for (const squad of currentSquads) {
+        const snapshotStanding = selectedSnapshot.standings.find(s => s.squadId === squad.id);
+        if (!snapshotStanding) {
+          console.warn(`Squad ${squad.squadName} not found in snapshot, skipping`);
+          continue;
+        }
+
+        // Restore the points from snapshot
+        await squadService.update(squad.id, {
+          totalPoints: snapshotStanding.totalPoints,
+          captainPoints: snapshotStanding.captainPoints,
+          viceCaptainPoints: snapshotStanding.viceCaptainPoints,
+          xFactorPoints: snapshotStanding.xFactorPoints,
+          lastUpdated: new Date(),
+        });
+
+        restoredCount++;
+      }
+
+      setSuccessMessage(`✅ Restored ${restoredCount} squads from snapshot: ${selectedSnapshot.playerPoolVersion || new Date(selectedSnapshot.snapshotDate).toLocaleString()}`);
+
+      // Create a new snapshot with restored data
+      await leaderboardSnapshotService.create(selectedLeagueId);
+
+      // Reload squads
+      await loadSquads();
+    } catch (error: any) {
+      console.error('Error restoring from snapshot:', error);
+      setErrorMessage(error.message || 'Failed to restore from snapshot');
+    } finally {
+      setRecalculating(false);
+    }
+  };
+
+  const handleReconstructBankedPoints = async () => {
+    if (!selectedLeagueId) {
+      setErrorMessage('Please select a league first');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      'ADD BANKED POINTS TO TOTAL POINTS\n\n' +
+      'This will fix the transfer bug by adding existing bankedPoints to totalPoints.\n\n' +
+      'For each squad with bankedPoints > 0:\n' +
+      '  newTotalPoints = currentTotalPoints + bankedPoints\n\n' +
+      'Continue?'
+    );
+    if (!confirmed) return;
+
+    try {
+      setRecalculating(true);
+      setErrorMessage('');
+      setSuccessMessage('');
+
+      // Get all current squads
+      const currentSquads = await squadService.getByLeague(selectedLeagueId);
+
+      let fixedCount = 0;
+      const results: { squadName: string; oldPoints: number; newPoints: number; bankedPoints: number }[] = [];
+
+      for (const squad of currentSquads.filter(s => s.isSubmitted)) {
+        const bankedPoints = squad.bankedPoints || 0;
+
+        // Only process squads with bankedPoints > 0
+        if (bankedPoints > 0) {
+          const oldTotal = squad.totalPoints;
+          const newTotal = oldTotal + bankedPoints;
+
+          console.log(`📊 ${squad.squadName}:`);
+          console.log(`  Current total: ${oldTotal}`);
+          console.log(`  Banked points: ${bankedPoints}`);
+          console.log(`  New total: ${newTotal}`);
+
+          results.push({
+            squadName: squad.squadName,
+            oldPoints: oldTotal,
+            newPoints: newTotal,
+            bankedPoints: bankedPoints
+          });
+
+          fixedCount++;
+        }
+      }
+
+      console.log(`\n📈 Summary: ${fixedCount} squads need bankedPoints added to totalPoints`);
+
+      if (results.length > 0) {
+        setRecalcResults(results);
+        setSuccessMessage(
+          `✅ Found ${fixedCount} squads with bankedPoints to add.\n\n` +
+          `Review the results below. Click "Apply Changes" to update Firestore.`
+        );
+      } else {
+        setSuccessMessage('✅ No squads have bankedPoints to add. All totals are correct!');
+      }
+
+    } catch (error: any) {
+      console.error('Error calculating bankedPoints addition:', error);
+      setErrorMessage(error.message || 'Failed to calculate bankedPoints addition');
+    } finally {
+      setRecalculating(false);
+    }
+  };
+
+  const handleApplyBankedPointsChanges = async () => {
+    if (!selectedLeagueId || recalcResults.length === 0) {
+      setErrorMessage('No changes to apply');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `APPLY BANKED POINTS CHANGES\n\n` +
+      `This will update ${recalcResults.length} squads in Firestore with:\n` +
+      `✓ Reconstructed bankedPoints\n` +
+      `✓ Updated totalPoints (including banked points)\n\n` +
+      `This action cannot be undone (but you can restore from a snapshot).\n\n` +
+      `Continue?`
+    );
+    if (!confirmed) return;
+
+    try {
+      setRecalculating(true);
+      setErrorMessage('');
+      setSuccessMessage('');
+
+      // Get all current squads
+      const currentSquads = await squadService.getByLeague(selectedLeagueId);
+
+      let appliedCount = 0;
+
+      for (const result of recalcResults) {
+        // Find the squad by name
+        const squad = currentSquads.find(s => s.squadName === result.squadName);
+        if (!squad) {
+          console.warn(`Squad ${result.squadName} not found, skipping`);
+          continue;
+        }
+
+        // Only apply if we have bankedPoints (reconstruction mode)
+        if (result.bankedPoints !== undefined) {
+          console.log(`📝 Updating ${squad.squadName}:`);
+          console.log(`  Old total: ${squad.totalPoints}`);
+          console.log(`  New total: ${result.newPoints}`);
+          console.log(`  New banked: ${result.bankedPoints}`);
+
+          // Update the squad with new values
+          await squadService.update(squad.id, {
+            bankedPoints: result.bankedPoints,
+            totalPoints: result.newPoints,
+            lastUpdated: new Date(),
+          });
+
+          appliedCount++;
+        }
+      }
+
+      console.log(`✅ Applied ${appliedCount} bankedPoints updates`);
+
+      // Create a new snapshot with updated data
+      await leaderboardSnapshotService.create(selectedLeagueId);
+
+      setSuccessMessage(
+        `✅ Successfully updated ${appliedCount} squads with reconstructed bankedPoints!\n\n` +
+        `A new leaderboard snapshot has been created.`
+      );
+
+      // Clear the results table
+      setRecalcResults([]);
+
+      // Reload squads to show updated values
+      await loadSquads();
+
+    } catch (error: any) {
+      console.error('Error applying bankedPoints changes:', error);
+      setErrorMessage(error.message || 'Failed to apply changes');
+    } finally {
+      setRecalculating(false);
+    }
+  };
+
+  const handleRepairAllSquads = async () => {
+    if (!selectedLeagueId) {
+      setErrorMessage('Please select a league first');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      'REPAIR ALL SQUAD POINTS\n\n' +
+      'This will recalculate all squads in the selected league using:\n' +
+      '✓ Preserved pointsAtJoining for transferred players\n' +
+      '✓ Preserved pointsWhenRoleAssigned for role changes\n' +
+      '✓ Preserved bankedPoints from transferred-out players\n\n' +
+      'This fixes the bug where transfers caused point losses.\n\n' +
+      'Continue?'
+    );
+    if (!confirmed) return;
+
+    try {
+      setRecalculating(true);
+      setErrorMessage('');
+      setSuccessMessage('');
+
+      const selectedLeague = leagues.find(l => l.id === selectedLeagueId);
+      if (!selectedLeague) {
+        throw new Error('League not found');
+      }
+      if (!selectedLeague.playerPoolId) {
+        throw new Error('League does not have a player pool associated');
+      }
+
+      // Trigger the recalculation using the fixed player pool service
+      await playerPoolService.recalculateLeaguesUsingPool(selectedLeague.playerPoolId);
+
+      setSuccessMessage('✅ All squad points have been repaired successfully! Banked points and transfer tracking are now correctly applied.');
+
+      // Reload squads to show updated points
+      await loadSquads();
+    } catch (error: any) {
+      console.error('Error repairing squads:', error);
+      setErrorMessage(error.message || 'Failed to repair squad points');
     } finally {
       setRecalculating(false);
     }
@@ -540,80 +818,6 @@ const AdminPage: React.FC = () => {
     } catch (error: any) {
       console.error('Error fetching snapshots:', error);
       setErrorMessage(error.message || 'Failed to fetch snapshots');
-    }
-  };
-
-  const handleRestoreFromSnapshot = async (snapshotId: string) => {
-    if (!selectedLeagueId) {
-      setErrorMessage('Please select a league first');
-      return;
-    }
-
-    const confirmed = window.confirm(
-      'This will restore all squad points from the selected snapshot. Continue?'
-    );
-    if (!confirmed) return;
-
-    try {
-      setRecalculating(true);
-      setErrorMessage('');
-      setSuccessMessage('');
-      setShowSnapshotDialog(false);
-
-      // Get the selected snapshot
-      const selectedSnapshot = availableSnapshots.find(s => s.id === snapshotId);
-      if (!selectedSnapshot) {
-        setErrorMessage('Snapshot not found');
-        return;
-      }
-
-      console.log('Restoring from snapshot:', selectedSnapshot.id, 'created at:', selectedSnapshot.snapshotDate);
-
-      const results: { squadName: string; oldPoints: number; newPoints: number }[] = [];
-
-      // Get all squads for the league
-      const allSquads = await squadService.getByLeague(selectedLeagueId);
-
-      // Restore points for each squad from the snapshot
-      for (const standing of selectedSnapshot.standings) {
-        const squad = allSquads.find(s => s.id === standing.squadId);
-        if (!squad) continue;
-
-        const oldPoints = squad.totalPoints || 0;
-
-        // Restore the points from the snapshot
-        await squadService.update(squad.id, {
-          totalPoints: standing.totalPoints,
-          captainPoints: standing.captainPoints,
-          viceCaptainPoints: standing.viceCaptainPoints,
-          xFactorPoints: standing.xFactorPoints,
-          lastUpdated: new Date()
-        });
-
-        results.push({
-          squadName: squad.squadName,
-          oldPoints: oldPoints,
-          newPoints: standing.totalPoints
-        });
-      }
-
-      setRecalcResults(results);
-      setSuccessMessage(`Successfully restored points for ${results.length} squads from snapshot!`);
-
-      // Reload squads
-      await loadSquads();
-
-      // Create a new snapshot with the restored state
-      try {
-        await leaderboardSnapshotService.create(selectedLeagueId);
-      } catch (err) {
-        console.error('Error updating leaderboard:', err);
-      }
-    } catch (error: any) {
-      console.error('Error restoring from snapshot:', error);
-      setErrorMessage(error.message || 'Failed to restore from snapshot');
-    } finally {
-      setRecalculating(false);
     }
   };
 
@@ -1076,6 +1280,9 @@ const AdminPage: React.FC = () => {
                               <TableCell align="right">Old Points</TableCell>
                               <TableCell align="right">New Points</TableCell>
                               <TableCell align="right">Difference</TableCell>
+                              {recalcResults.some(r => r.bankedPoints !== undefined) && (
+                                <TableCell align="right">Banked Points</TableCell>
+                              )}
                             </TableRow>
                           </TableHead>
                           <TableBody>
@@ -1093,12 +1300,36 @@ const AdminPage: React.FC = () => {
                                       color={diff === 0 ? 'default' : diff > 0 ? 'success' : 'error'}
                                     />
                                   </TableCell>
+                                  {result.bankedPoints !== undefined && (
+                                    <TableCell align="right">
+                                      <Chip
+                                        label={result.bankedPoints.toFixed(2)}
+                                        size="small"
+                                        color="info"
+                                      />
+                                    </TableCell>
+                                  )}
                                 </TableRow>
                               );
                             })}
                           </TableBody>
                         </Table>
                       </TableContainer>
+
+                      {/* Apply Changes Button - Only show if we have bankedPoints (reconstruction mode) */}
+                      {recalcResults.some(r => r.bankedPoints !== undefined) && (
+                        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                          <Button
+                            variant="contained"
+                            color="success"
+                            size="large"
+                            onClick={handleApplyBankedPointsChanges}
+                            disabled={recalculating}
+                          >
+                            {recalculating ? 'Applying...' : 'Apply Changes to Firestore'}
+                          </Button>
+                        </Box>
+                      )}
                     </Box>
                   )}
                 </CardContent>
@@ -1225,6 +1456,28 @@ const AdminPage: React.FC = () => {
             <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3 }}>
               System Settings
             </Typography>
+
+            {/* League Selector for System Tools */}
+            <Box sx={{ mb: 3 }}>
+              <FormControl fullWidth>
+                <InputLabel>Select League</InputLabel>
+                <Select
+                  value={selectedLeagueId}
+                  onChange={(e) => setSelectedLeagueId(e.target.value)}
+                  label="Select League"
+                >
+                  <MenuItem value="">
+                    <em>None</em>
+                  </MenuItem>
+                  {leagues.map((league) => (
+                    <MenuItem key={league.id} value={league.id}>
+                      {league.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
               <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 calc(50% - 12px)' } }}>
                 <Card variant="outlined">
@@ -1259,6 +1512,58 @@ const AdminPage: React.FC = () => {
                     <Button variant="outlined" fullWidth>
                       Security Audit
                     </Button>
+                  </CardContent>
+                </Card>
+              </Box>
+              <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 calc(50% - 12px)' } }}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Data Repair & Maintenance
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Fix transfer bug by adding bankedPoints to totalPoints, or restore from a previous snapshot.
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      color="success"
+                      fullWidth
+                      sx={{ mb: 1 }}
+                      onClick={handleReconstructBankedPoints}
+                      disabled={recalculating || !selectedLeagueId}
+                    >
+                      {recalculating ? 'Calculating...' : '🔧 Add BankedPoints to Total'}
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      fullWidth
+                      sx={{ mb: 1 }}
+                      onClick={handleRestoreFromSnapshot}
+                      disabled={recalculating || !selectedLeagueId}
+                    >
+                      {recalculating ? 'Loading...' : 'Restore from Snapshot'}
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="warning"
+                      fullWidth
+                      sx={{ mb: 1 }}
+                      onClick={handleRepairAllSquads}
+                      disabled={recalculating || !selectedLeagueId}
+                    >
+                      {recalculating ? 'Repairing...' : 'Recalculate All Squads'}
+                    </Button>
+                    {successMessage && (
+                      <Alert severity="success" sx={{ mt: 2 }}>
+                        {successMessage}
+                      </Alert>
+                    )}
+                    {errorMessage && (
+                      <Alert severity="error" sx={{ mt: 2 }}>
+                        {errorMessage}
+                      </Alert>
+                    )}
                   </CardContent>
                 </Card>
               </Box>
@@ -1493,18 +1798,17 @@ const AdminPage: React.FC = () => {
                         <Button
                           variant="contained"
                           size="small"
-                          color="warning"
-                          onClick={() => handleRecalculateWithSnapshot(snapshot.id)}
+                          color={snapshotDialogMode === 'restore' ? 'primary' : 'warning'}
+                          onClick={() => {
+                            if (snapshotDialogMode === 'restore') {
+                              handleRestoreWithSnapshot(snapshot.id);
+                            } else {
+                              handleRecalculateWithSnapshot(snapshot.id);
+                            }
+                          }}
                         >
-                          Recalculate
-                        </Button>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          color="error"
-                          onClick={() => handleRestoreFromSnapshot(snapshot.id)}
-                        >
-                          Restore
+                          {snapshotDialogMode === 'restore' ? 'Restore from This' :
+                           'Recalculate with This'}
                         </Button>
                       </Box>
                     </TableCell>

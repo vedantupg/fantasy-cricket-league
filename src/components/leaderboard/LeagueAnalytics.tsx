@@ -12,6 +12,7 @@ import {
   PersonOutline,
 } from '@mui/icons-material';
 import type { LeaderboardSnapshot, League, LeagueSquad } from '../../types/database';
+import { findMostConsistentPerformer } from '../../utils/streakCalculator';
 
 interface LeagueAnalyticsProps {
   snapshot: LeaderboardSnapshot;
@@ -91,6 +92,9 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot, league, squ
 
   // =============== HOT STREAK ===============
   const hotStreak = standings.filter(s => s.pointsGainedToday > 0).sort((a, b) => b.pointsGainedToday - a.pointsGainedToday).slice(0, 3);
+
+  // =============== MOST CONSISTENT PERFORMER ===============
+  const mostConsistentPerformer = findMostConsistentPerformer(standings);
 
   // =============== RANK PROJECTION ===============
   const rankedStandings = [...standings].sort((a, b) => b.totalPoints - a.totalPoints);
@@ -365,6 +369,59 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot, league, squ
                   </Typography>
                 </Box>
               ))}
+            </Box>
+          </Paper>
+        )}
+
+        {/* Most Consistent Performer */}
+        {mostConsistentPerformer && (
+          <Paper sx={{ p: 3, height: '100%', background: 'linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%)' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <Whatshot sx={{ color: '#FF9800' }} />
+              <Typography variant="h6" fontWeight="bold">
+                Most Consistent
+              </Typography>
+            </Box>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+              Longest rank streak
+            </Typography>
+
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                p: 2,
+                bgcolor: 'background.paper',
+                borderRadius: 2,
+                border: '2px solid',
+                borderColor: '#FF9800',
+                mt: 2,
+              }}
+            >
+              <Box sx={{ textAlign: 'center', minWidth: 48 }}>
+                <Whatshot sx={{ fontSize: 32, color: '#FF9800' }} />
+                <Typography variant="h6" sx={{ color: '#FF9800', fontWeight: 'bold', fontSize: '1.25rem' }}>
+                  {mostConsistentPerformer.rankStreak}
+                </Typography>
+              </Box>
+              <Avatar src={mostConsistentPerformer.profilePicUrl} sx={{ width: 48, height: 48 }} />
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography variant="h6" fontWeight="bold" noWrap>
+                  {mostConsistentPerformer.displayName}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Rank #{mostConsistentPerformer.rank} for {mostConsistentPerformer.rankStreak} consecutive updates
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography variant="h6" fontWeight="bold" color="primary.main">
+                  {mostConsistentPerformer.totalPoints.toFixed(2)}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  points
+                </Typography>
+              </Box>
             </Box>
           </Paper>
         )}
