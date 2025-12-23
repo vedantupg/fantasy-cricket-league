@@ -280,7 +280,11 @@ const SquadSelectionPage: React.FC = () => {
     let viceCaptainPoints = 0;
     let xFactorPoints = 0;
 
-    players.forEach(player => {
+    // CRITICAL: Only count starting XI (first squadSize players), exclude bench
+    const squadSize = league?.squadSize || 11;
+    const startingXI = players.slice(0, squadSize);
+
+    startingXI.forEach(player => {
       // Calculate effective points: only count points earned while in this squad
       const pointsAtJoining = player.pointsAtJoining ?? 0;
       const effectivePoints = Math.max(0, player.points - pointsAtJoining);
