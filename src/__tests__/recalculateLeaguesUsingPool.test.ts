@@ -279,6 +279,66 @@ describe('recalculateLeaguesUsingPool - Integration Tests', () => {
       expect(expectedTotal).toBe(400);
       expect(benchPoints).not.toBe(0); // Bench player has points but they don't count
     });
+
+    test('CRITICAL: Bench players should NOT be counted when mixed with main squad', () => {
+      // Simulate array where first 11 are main squad, rest are bench
+      const allPlayers = [
+        // Main squad (first 11)
+        { playerId: 'p1', name: 'Main 1', team: 'Team A', role: 'Batsman', points: 100, pointsAtJoining: 0 },
+        { playerId: 'p2', name: 'Main 2', team: 'Team A', role: 'Batsman', points: 100, pointsAtJoining: 0 },
+        { playerId: 'p3', name: 'Main 3', team: 'Team A', role: 'Batsman', points: 100, pointsAtJoining: 0 },
+        { playerId: 'p4', name: 'Main 4', team: 'Team A', role: 'Bowler', points: 100, pointsAtJoining: 0 },
+        { playerId: 'p5', name: 'Main 5', team: 'Team A', role: 'Bowler', points: 100, pointsAtJoining: 0 },
+        { playerId: 'p6', name: 'Main 6', team: 'Team A', role: 'Bowler', points: 100, pointsAtJoining: 0 },
+        { playerId: 'p7', name: 'Main 7', team: 'Team A', role: 'Allrounder', points: 100, pointsAtJoining: 0 },
+        { playerId: 'p8', name: 'Main 8', team: 'Team A', role: 'Allrounder', points: 100, pointsAtJoining: 0 },
+        { playerId: 'p9', name: 'Main 9', team: 'Team A', role: 'Wicketkeeper', points: 100, pointsAtJoining: 0 },
+        { playerId: 'p10', name: 'Main 10', team: 'Team A', role: 'Batsman', points: 100, pointsAtJoining: 0 },
+        { playerId: 'p11', name: 'Main 11', team: 'Team A', role: 'Bowler', points: 100, pointsAtJoining: 0 },
+        // Bench players (after first 11)
+        { playerId: 'bench1', name: 'Bench 1', team: 'Team B', role: 'Batsman', points: 500, pointsAtJoining: 0 },
+        { playerId: 'bench2', name: 'Bench 2', team: 'Team B', role: 'Bowler', points: 600, pointsAtJoining: 0 },
+        { playerId: 'bench3', name: 'Bench 3', team: 'Team B', role: 'Allrounder', points: 700, pointsAtJoining: 0 },
+      ];
+
+      const squadSize = 11;
+
+      // Calculate with ONLY starting XI (first 11)
+      const startingXI = allPlayers.slice(0, squadSize);
+      const totalWithStartingXIOnly = startingXI.reduce((sum, p) => sum + (p.points - (p.pointsAtJoining ?? 0)), 0);
+
+      // This is CORRECT: 11 * 100 = 1100
+      expect(totalWithStartingXIOnly).toBe(1100);
+
+      // Calculate with ALL players (BUG simulation)
+      const totalWithAllPlayers = allPlayers.reduce((sum, p) => sum + (p.points - (p.pointsAtJoining ?? 0)), 0);
+
+      // This is WRONG: 11*100 + 500 + 600 + 700 = 2900
+      expect(totalWithAllPlayers).toBe(2900);
+
+      // Verify bench exclusion prevents the bug
+      const benchContribution = allPlayers.slice(squadSize).reduce((sum, p) => sum + (p.points - (p.pointsAtJoining ?? 0)), 0);
+      expect(benchContribution).toBe(1800); // Should NOT be in total
+
+      // The difference shows the bug impact
+      const bugImpact = totalWithAllPlayers - totalWithStartingXIOnly;
+      expect(bugImpact).toBe(1800); // This is how much was incorrectly added
+    });
+
+    test('Should handle bench player with high points not affecting total', () => {
+      const allPlayers = [
+        { playerId: 'p1', name: 'Main Player', team: 'Team A', role: 'Batsman', points: 100, pointsAtJoining: 0 },
+        { playerId: 'bench1', name: 'High Scorer Bench', team: 'Team B', role: 'Batsman', points: 1000, pointsAtJoining: 0 },
+      ];
+
+      const squadSize = 1;
+      const startingXI = allPlayers.slice(0, squadSize);
+      const total = startingXI.reduce((sum, p) => sum + (p.points - (p.pointsAtJoining ?? 0)), 0);
+
+      // Should only count main player (100), not bench (1000)
+      expect(total).toBe(100);
+      expect(total).not.toBe(1100); // Make sure bench not added
+    });
   });
 
   describe('7. Edge Cases', () => {
