@@ -16,7 +16,6 @@ import {
   Avatar,
   Tabs,
   Tab,
-  IconButton,
   Select,
   MenuItem,
   FormControl,
@@ -31,13 +30,6 @@ import {
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowBack,
-  People,
-  SportsCricket,
-  EmojiEvents,
-  Block,
-  CheckCircle,
-  Cancel,
-  Edit,
   Undo,
   SwapHoriz
 } from '@mui/icons-material';
@@ -156,6 +148,7 @@ const AdminPage: React.FC = () => {
     if (selectedLeagueId) {
       loadSquads();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLeagueId]);
 
   const loadSquads = async () => {
@@ -260,7 +253,6 @@ const AdminPage: React.FC = () => {
     let updatedCaptainId = squad.captainId;
     let updatedViceCaptainId = squad.viceCaptainId;
     let updatedXFactorId = squad.xFactorId;
-    let refundedBankedPoints = 0;
 
     if (transfer.changeType === 'playerSubstitution') {
       const playerOutId = transfer.playerOut;
@@ -697,6 +689,99 @@ const AdminPage: React.FC = () => {
     } catch (error: any) {
       console.error('Error repairing squads:', error);
       setErrorMessage(error.message || 'Failed to repair squad points');
+    } finally {
+      setRecalculating(false);
+    }
+  };
+
+  const handleFixMissingRoleTimestamps = async () => {
+    if (!selectedLeagueId) {
+      setErrorMessage('Please select a league first');
+      return;
+    }
+
+    try {
+      setRecalculating(true);
+      setErrorMessage('');
+      setSuccessMessage('');
+
+      const selectedLeague = leagues.find(l => l.id === selectedLeagueId);
+      if (!selectedLeague) throw new Error('League not found');
+
+      // Get all squads in the league
+      const squads = await squadService.getByLeague(selectedLeagueId);
+      if (squads.length === 0) {
+        setErrorMessage('No squads found in this league');
+        return;
+      }
+
+      let fixedCount = 0;
+      const fixResults: Array<{ squadName: string; fixedPlayers: string[] }> = [];
+
+      for (const squad of squads) {
+        const fixedPlayers: string[] = [];
+        let needsUpdate = false;
+
+        // Update players array
+        const updatedPlayers = squad.players.map(player => {
+          // Check if player has a role but missing pointsWhenRoleAssigned
+          const hasRole = player.playerId === squad.captainId ||
+                         player.playerId === squad.viceCaptainId ||
+                         player.playerId === squad.xFactorId;
+
+          if (hasRole && player.pointsWhenRoleAssigned === undefined) {
+            // FIX: Set pointsWhenRoleAssigned to current points
+            // This assumes the role was just assigned (safest assumption for corrupted data)
+            needsUpdate = true;
+            const roleName = player.playerId === squad.captainId ? 'Captain' :
+                            player.playerId === squad.viceCaptainId ? 'Vice-Captain' : 'X-Factor';
+            fixedPlayers.push(`${player.playerName} (${roleName})`);
+
+            return {
+              ...player,
+              pointsWhenRoleAssigned: player.points
+            };
+          }
+
+          return player;
+        });
+
+        if (needsUpdate) {
+          // Update the squad with fixed data
+          await squadService.update(squad.id, {
+            players: updatedPlayers,
+            lastUpdated: new Date()
+          });
+
+          fixedCount++;
+          fixResults.push({
+            squadName: squad.squadName,
+            fixedPlayers
+          });
+        }
+      }
+
+      if (fixedCount === 0) {
+        setSuccessMessage('✅ All squads already have correct role timestamps! No fixes needed.');
+      } else {
+        let resultMessage = `✅ Fixed ${fixedCount} squad(s) with missing role timestamps:\n\n`;
+        fixResults.forEach(result => {
+          resultMessage += `📋 ${result.squadName}:\n`;
+          result.fixedPlayers.forEach(player => {
+            resultMessage += `  • ${player} - set pointsWhenRoleAssigned to current points\n`;
+          });
+          resultMessage += '\n';
+        });
+        resultMessage += '\n🔄 Now run "Recalculate All Squad Points" to update the point calculations!';
+        setSuccessMessage(resultMessage);
+      }
+
+      // Reload squads to show updated data
+      await loadSquads();
+
+    } catch (error: any) {
+      console.error('Error fixing role timestamps:', error);
+      setErrorMessage(error.message || 'Failed to fix role timestamps');
     } finally {
       setRecalculating(false);
     }
@@ -1227,36 +1312,6 @@ const AdminPage: React.FC = () => {
     }
   };
 
-  const users = [
-    { id: 1, name: 'CricketKing', email: 'king@example.com', status: 'active', joinDate: '2024-01-15', teams: 5 },
-    { id: 2, name: 'BoundaryHunter', email: 'hunter@example.com', status: 'active', joinDate: '2024-02-03', teams: 8 },
-    { id: 3, name: 'SixerMaster', email: 'master@example.com', status: 'suspended', joinDate: '2024-01-28', teams: 3 },
-    { id: 4, name: 'WicketWizard', email: 'wizard@example.com', status: 'active', joinDate: '2024-03-10', teams: 12 }
-  ];
-
-  const contests = [
-    { id: 1, name: 'IPL Championship', participants: 1250, status: 'active', prize: '$10,000', startDate: '2024-04-01' },
-    { id: 2, name: 'World Cup Special', participants: 2500, status: 'upcoming', prize: '$25,000', startDate: '2024-06-15' },
-    { id: 3, name: 'T20 Blast', participants: 850, status: 'completed', prize: '$5,000', startDate: '2024-03-15' }
-  ];
-
-  const adminStats = [
-    { label: 'Total Users', value: '15,420', icon: <People sx={{ fontSize: 40, color: 'primary.main' }} /> },
-    { label: 'Active Contests', value: '24', icon: <EmojiEvents sx={{ fontSize: 40, color: 'secondary.main' }} /> },
-    { label: 'Teams Created', value: '8,350', icon: <SportsCricket sx={{ fontSize: 40, color: 'primary.main' }} /> },
-    { label: 'Revenue This Month', value: '$45,280', icon: <Typography variant="h3" sx={{ color: 'secondary.main' }}>$</Typography> }
-  ];
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'success';
-      case 'suspended': return 'error';
-      case 'upcoming': return 'warning';
-      case 'completed': return 'default';
-      default: return 'default';
-    }
-  };
-
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       {/* Header */}
@@ -1282,29 +1337,6 @@ const AdminPage: React.FC = () => {
       </Box>
 
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        {/* Admin Stats */}
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
-          {adminStats.map((stat, index) => (
-            <Box sx={{ flex: { xs: '1 1 100%', sm: '1 1 calc(50% - 12px)', md: '1 1 calc(25% - 18px)' } }} key={index}>
-              <Card>
-                <CardContent sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Box sx={{ mr: 2 }}>
-                    {stat.icon}
-                  </Box>
-                  <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                      {stat.value}
-                    </Typography>
-                    <Typography color="text.secondary">
-                      {stat.label}
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Box>
-          ))}
-        </Box>
-
         {/* Admin Tabs */}
         <Card>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
@@ -1313,129 +1345,13 @@ const AdminPage: React.FC = () => {
               onChange={(e, newValue) => setTabValue(newValue)}
               aria-label="admin tabs"
             >
-              <Tab label="User Management" />
-              <Tab label="Contest Management" />
               <Tab label="Transfer Management" />
               <Tab label="System Settings" />
-              <Tab label="Reports" />
             </Tabs>
           </Box>
 
-          {/* User Management Tab */}
-          <TabPanel value={tabValue} index={0}>
-            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3 }}>
-              User Management
-            </Typography>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>User</TableCell>
-                    <TableCell>Email</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Join Date</TableCell>
-                    <TableCell>Teams</TableCell>
-                    <TableCell align="center">Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
-                            {user.name.charAt(0)}
-                          </Avatar>
-                          <Typography sx={{ fontWeight: 'bold' }}>
-                            {user.name}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={user.status} 
-                          color={getStatusColor(user.status) as any}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{user.joinDate}</TableCell>
-                      <TableCell>{user.teams}</TableCell>
-                      <TableCell align="center">
-                        <IconButton size="small" color="primary">
-                          <Edit />
-                        </IconButton>
-                        <IconButton 
-                          size="small" 
-                          color={user.status === 'suspended' ? 'success' : 'error'}
-                        >
-                          {user.status === 'suspended' ? <CheckCircle /> : <Block />}
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </TabPanel>
-
-          {/* Contest Management Tab */}
-          <TabPanel value={tabValue} index={1}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                Contest Management
-              </Typography>
-              <Button variant="contained">
-                Create New Contest
-              </Button>
-            </Box>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Contest Name</TableCell>
-                    <TableCell>Participants</TableCell>
-                    <TableCell>Prize Pool</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Start Date</TableCell>
-                    <TableCell align="center">Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {contests.map((contest) => (
-                    <TableRow key={contest.id}>
-                      <TableCell>
-                        <Typography sx={{ fontWeight: 'bold' }}>
-                          {contest.name}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>{contest.participants.toLocaleString()}</TableCell>
-                      <TableCell>{contest.prize}</TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={contest.status} 
-                          color={getStatusColor(contest.status) as any}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{contest.startDate}</TableCell>
-                      <TableCell align="center">
-                        <IconButton size="small" color="primary">
-                          <Edit />
-                        </IconButton>
-                        <IconButton size="small" color="error">
-                          <Cancel />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </TabPanel>
-
           {/* Transfer Management Tab */}
-          <TabPanel value={tabValue} index={2}>
+          <TabPanel value={tabValue} index={0}>
             <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3 }}>
               Transfer Management
             </Typography>
@@ -1527,15 +1443,26 @@ const AdminPage: React.FC = () => {
                         Fix incorrect points caused by transfer bugs. This will preserve all transfers but recalculate points correctly.
                       </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                      <Button
+                        variant="contained"
+                        color="info"
+                        onClick={handleFixMissingRoleTimestamps}
+                        disabled={recalculating}
+                        sx={{ minWidth: 220 }}
+                        startIcon={<span>🔧</span>}
+                      >
+                        {recalculating ? 'Fixing...' : 'Step 1: Fix Missing Role Data'}
+                      </Button>
                       <Button
                         variant="contained"
                         color="warning"
                         onClick={handleRecalculatePoints}
                         disabled={recalculating}
-                        sx={{ minWidth: 200 }}
+                        sx={{ minWidth: 220 }}
+                        startIcon={<span>🔄</span>}
                       >
-                        {recalculating ? 'Recalculating...' : 'Recalculate All Points'}
+                        {recalculating ? 'Recalculating...' : 'Step 2: Recalculate All Points'}
                       </Button>
                       <Button
                         variant="contained"
@@ -1734,7 +1661,7 @@ const AdminPage: React.FC = () => {
           </TabPanel>
 
           {/* System Settings Tab */}
-          <TabPanel value={tabValue} index={3}>
+          <TabPanel value={tabValue} index={1}>
             <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3 }}>
               System Settings
             </Typography>
@@ -1761,42 +1688,6 @@ const AdminPage: React.FC = () => {
             </Box>
 
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-              <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 calc(50% - 12px)' } }}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      Application Settings
-                    </Typography>
-                    <Button variant="outlined" fullWidth sx={{ mb: 1 }}>
-                      Maintenance Mode
-                    </Button>
-                    <Button variant="outlined" fullWidth sx={{ mb: 1 }}>
-                      User Registration
-                    </Button>
-                    <Button variant="outlined" fullWidth>
-                      Payment Gateway
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Box>
-              <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 calc(50% - 12px)' } }}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      Security Settings
-                    </Typography>
-                    <Button variant="outlined" fullWidth sx={{ mb: 1 }}>
-                      Reset Admin Password
-                    </Button>
-                    <Button variant="outlined" fullWidth sx={{ mb: 1 }}>
-                      View Login Logs
-                    </Button>
-                    <Button variant="outlined" fullWidth>
-                      Security Audit
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Box>
               <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 calc(50% - 12px)' } }}>
                 <Card variant="outlined">
                   <CardContent>
@@ -1888,27 +1779,43 @@ const AdminPage: React.FC = () => {
                         <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', mb: 1 }}>
                           ⚠️ Optional: Override Banked Points
                         </Typography>
-                        <Typography variant="caption" sx={{ display: 'block', mb: 1, color: 'text.secondary' }}>
+                        <Typography variant="caption" sx={{ display: 'block', mb: 2, color: 'text.secondary' }}>
                           If the transfer reversal corrupted your banked points, enter the correct value here.
-                          Current banked points in DB: {squads.find(s => s.id === selectedSquadForRecalc)?.bankedPoints?.toFixed(2) || 0}
+                          Current banked points in DB: <strong>{squads.find(s => s.id === selectedSquadForRecalc)?.bankedPoints?.toFixed(2) || 0}</strong>
                         </Typography>
-                        <FormControl fullWidth size="small">
-                          <InputLabel>Custom Banked Points (leave empty to use current)</InputLabel>
-                          <Select
-                            value={customBankedPoints === null ? '' : String(customBankedPoints)}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setCustomBankedPoints(val === '' ? null : Number(val));
-                            }}
-                            label="Custom Banked Points (leave empty to use current)"
+                        <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                          <Button
+                            size="small"
+                            variant={customBankedPoints === null ? 'contained' : 'outlined'}
+                            onClick={() => setCustomBankedPoints(null)}
                           >
-                            <MenuItem value="">
-                              <em>Use current value ({squads.find(s => s.id === selectedSquadForRecalc)?.bankedPoints?.toFixed(2) || 0})</em>
-                            </MenuItem>
-                            <MenuItem value="94">94 (Correct value before bad transfer)</MenuItem>
-                            <MenuItem value="0">0 (Reset to zero)</MenuItem>
-                          </Select>
-                        </FormControl>
+                            Use Current
+                          </Button>
+                          <Button
+                            size="small"
+                            variant={customBankedPoints === 0 ? 'contained' : 'outlined'}
+                            onClick={() => setCustomBankedPoints(0)}
+                          >
+                            Reset to 0
+                          </Button>
+                          <Button
+                            size="small"
+                            variant={customBankedPoints !== null && customBankedPoints !== 0 ? 'contained' : 'outlined'}
+                            onClick={() => {
+                              const value = prompt('Enter custom banked points value:', customBankedPoints?.toString() || '');
+                              if (value !== null && value !== '') {
+                                const numValue = parseFloat(value);
+                                if (!isNaN(numValue)) {
+                                  setCustomBankedPoints(numValue);
+                                }
+                              }
+                            }}
+                          >
+                            {customBankedPoints !== null && customBankedPoints !== 0
+                              ? `Custom: ${customBankedPoints.toFixed(2)}`
+                              : 'Enter Custom...'}
+                          </Button>
+                        </Box>
                       </Box>
                     )}
 
@@ -1963,23 +1870,23 @@ const AdminPage: React.FC = () => {
 
                           {/* Detailed Breakdown */}
                           {singleSquadRecalcResult.breakdown && (
-                            <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
-                              <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', mb: 1 }}>
+                            <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(0, 0, 0, 0.03)', borderRadius: 1, border: '1px solid rgba(0, 0, 0, 0.1)' }}>
+                              <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', mb: 1, color: 'text.primary' }}>
                                 Detailed Breakdown:
                               </Typography>
 
                               {/* Role Summary */}
-                              <Box sx={{ mb: 2, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
-                                <Typography variant="caption" display="block">
+                              <Box sx={{ mb: 2, p: 1, bgcolor: 'rgba(33, 150, 243, 0.08)', borderRadius: 1, border: '1px solid rgba(33, 150, 243, 0.2)' }}>
+                                <Typography variant="caption" display="block" color="text.primary">
                                   Captain Contribution: {singleSquadRecalcResult.breakdown.captainPoints.toFixed(2)}
                                 </Typography>
-                                <Typography variant="caption" display="block">
+                                <Typography variant="caption" display="block" color="text.primary">
                                   Vice-Captain Contribution: {singleSquadRecalcResult.breakdown.viceCaptainPoints.toFixed(2)}
                                 </Typography>
-                                <Typography variant="caption" display="block">
+                                <Typography variant="caption" display="block" color="text.primary">
                                   X-Factor Contribution: {singleSquadRecalcResult.breakdown.xFactorPoints.toFixed(2)}
                                 </Typography>
-                                <Typography variant="caption" display="block">
+                                <Typography variant="caption" display="block" color="text.primary">
                                   Banked Points: {singleSquadRecalcResult.breakdown.bankedPoints.toFixed(2)}
                                 </Typography>
                               </Box>
@@ -2054,68 +1961,6 @@ const AdminPage: React.FC = () => {
                   </CardContent>
                 </Card>
               </Box>
-            </Box>
-          </TabPanel>
-
-          {/* Reports Tab */}
-          <TabPanel value={tabValue} index={4}>
-            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3 }}>
-              Reports & Analytics
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-              <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 calc(33.33% - 16px)' } }}>
-                <Card variant="outlined">
-                  <CardContent sx={{ textAlign: 'center' }}>
-                    <Typography variant="h6" gutterBottom>
-                      User Growth
-                    </Typography>
-                    <Typography variant="h3" color="primary.main" sx={{ fontWeight: 'bold' }}>
-                      +23%
-                    </Typography>
-                    <Typography color="text.secondary">
-                      This month
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Box>
-              <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 calc(33.33% - 16px)' } }}>
-                <Card variant="outlined">
-                  <CardContent sx={{ textAlign: 'center' }}>
-                    <Typography variant="h6" gutterBottom>
-                      Revenue Growth
-                    </Typography>
-                    <Typography variant="h3" color="secondary.main" sx={{ fontWeight: 'bold' }}>
-                      +18%
-                    </Typography>
-                    <Typography color="text.secondary">
-                      This month
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Box>
-              <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 calc(33.33% - 16px)' } }}>
-                <Card variant="outlined">
-                  <CardContent sx={{ textAlign: 'center' }}>
-                    <Typography variant="h6" gutterBottom>
-                      Active Users
-                    </Typography>
-                    <Typography variant="h3" color="success.main" sx={{ fontWeight: 'bold' }}>
-                      89%
-                    </Typography>
-                    <Typography color="text.secondary">
-                      Daily active
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Box>
-            </Box>
-            <Box sx={{ mt: 3 }}>
-              <Button variant="contained" sx={{ mr: 2 }}>
-                Generate Full Report
-              </Button>
-              <Button variant="outlined">
-                Export Data
-              </Button>
             </Box>
           </TabPanel>
         </Card>

@@ -502,8 +502,31 @@ const SquadSelectionPage: React.FC = () => {
     if (!user || !league || !leagueId || !existingSquad) return;
 
     try {
-      // Create a copy of the existing squad to modify
-      let updatedPlayers = [...existingSquad.players];
+      // CRITICAL: Create a DEEP copy of players array to avoid mutating original objects
+      // Shallow copy [...array] only copies the array, not the objects inside!
+      let updatedPlayers: SquadPlayer[] = existingSquad.players.map(player => {
+        const playerCopy: SquadPlayer = {
+          ...player,
+          // Preserve all fields including optional ones
+          pointsAtJoining: player.pointsAtJoining ?? 0,
+        };
+
+        // CRITICAL: Always include pointsWhenRoleAssigned to prevent Firebase from stripping it
+        // If undefined, only set it if the player currently has a role
+        if (player.pointsWhenRoleAssigned !== undefined) {
+          playerCopy.pointsWhenRoleAssigned = player.pointsWhenRoleAssigned;
+        } else if (
+          player.playerId === existingSquad.captainId ||
+          player.playerId === existingSquad.viceCaptainId ||
+          player.playerId === existingSquad.xFactorId
+        ) {
+          // Player has a role but pointsWhenRoleAssigned is missing (legacy data)
+          // Set it to their current points to preserve the fix
+          playerCopy.pointsWhenRoleAssigned = player.points;
+        }
+
+        return playerCopy;
+      });
       let updatedCaptainId = existingSquad.captainId;
       let updatedViceCaptainId = existingSquad.viceCaptainId;
       let updatedXFactorId = existingSquad.xFactorId;
@@ -615,8 +638,14 @@ const SquadSelectionPage: React.FC = () => {
             // Combine updated main squad with updated bench
             updatedPlayers = [...updatedMainSquad, ...updatedBench];
 
-            // AUTO-ASSIGN role if the outgoing player had X-Factor
-            if (playerRole === 'xFactor') {
+            // AUTO-ASSIGN roles if the outgoing player had C/VC/X
+            if (playerRole === 'captain') {
+              updatedCaptainId = benchPlayer.playerId;
+              benchPlayer.pointsWhenRoleAssigned = benchPlayer.points;
+            } else if (playerRole === 'viceCaptain') {
+              updatedViceCaptainId = benchPlayer.playerId;
+              benchPlayer.pointsWhenRoleAssigned = benchPlayer.points;
+            } else if (playerRole === 'xFactor') {
               updatedXFactorId = benchPlayer.playerId;
               benchPlayer.pointsWhenRoleAssigned = benchPlayer.points;
             }
@@ -652,8 +681,14 @@ const SquadSelectionPage: React.FC = () => {
               league
             );
 
-            // AUTO-ASSIGN role if the outgoing player had X-Factor
-            if (playerRole === 'xFactor') {
+            // AUTO-ASSIGN roles if the outgoing player had C/VC/X
+            if (playerRole === 'captain') {
+              updatedCaptainId = newSquadPlayer.playerId;
+              newSquadPlayer.pointsWhenRoleAssigned = newSquadPlayer.points;
+            } else if (playerRole === 'viceCaptain') {
+              updatedViceCaptainId = newSquadPlayer.playerId;
+              newSquadPlayer.pointsWhenRoleAssigned = newSquadPlayer.points;
+            } else if (playerRole === 'xFactor') {
               updatedXFactorId = newSquadPlayer.playerId;
               newSquadPlayer.pointsWhenRoleAssigned = newSquadPlayer.points;
             }
@@ -741,6 +776,15 @@ const SquadSelectionPage: React.FC = () => {
       // Calculate new banked points total
       const newBankedPoints = (existingSquad.bankedPoints || 0) + additionalBankedPoints;
 
+      // Calculate OLD points for verification (before changes)
+      const oldCalculatedPoints = calculateSquadPoints(
+        existingSquad.players,
+        existingSquad.captainId || null,
+        existingSquad.viceCaptainId || null,
+        existingSquad.xFactorId || null,
+        existingSquad.bankedPoints || 0
+      );
+
       // Calculate new points (including banked points)
       const calculatedPoints = calculateSquadPoints(
         updatedPlayers,
@@ -749,6 +793,35 @@ const SquadSelectionPage: React.FC = () => {
         updatedXFactorId || null,
         newBankedPoints
       );
+
+      // CRITICAL VALIDATION: For bench transfers, points should be stable
+      if (transferData.transferType === 'bench') {
+        const pointsDifference = Math.abs(calculatedPoints.totalPoints - oldCalculatedPoints.totalPoints);
+        if (pointsDifference > 0.1) {
+          console.error('🚨 BENCH TRANSFER POINT STABILITY VIOLATION 🚨');
+          console.error(`Old Total: ${oldCalculatedPoints.totalPoints}`);
+          console.error(`New Total: ${calculatedPoints.totalPoints}`);
+          console.error(`Difference: ${calculatedPoints.totalPoints - oldCalculatedPoints.totalPoints}`);
+          console.error(`Old Banked: ${existingSquad.bankedPoints || 0}`);
+          console.error(`New Banked: ${newBankedPoints}`);
+          console.error(`Additional Banked: ${additionalBankedPoints}`);
+          console.error('Player Out:', transferData.playerOut);
+          console.error('Player In:', transferData.playerIn);
+
+          // Log detailed player breakdown
+          console.error('Starting XI after transfer:');
+          const startingXI = updatedPlayers.slice(0, league.squadSize);
+          startingXI.forEach((p, idx) => {
+            console.error(`  ${idx + 1}. ${p.playerName}: points=${p.points}, atJoining=${p.pointsAtJoining}, whenRole=${p.pointsWhenRoleAssigned}`);
+          });
+
+          throw new Error(
+            `BENCH TRANSFER BUG DETECTED!\n\n` +
+            `Points changed by ${(calculatedPoints.totalPoints - oldCalculatedPoints.totalPoints).toFixed(2)} when they should stay the same.\n\n` +
+            `This indicates a calculation error. Please report this to the admin with the above console logs.`
+          );
+        }
+      }
 
       // Create transfer history entry (only include defined values)
       const transferHistoryEntry: any = {
@@ -763,9 +836,29 @@ const SquadSelectionPage: React.FC = () => {
       if (transferData.newViceCaptainId) transferHistoryEntry.newViceCaptainId = transferData.newViceCaptainId;
       if (transferData.newXFactorId) transferHistoryEntry.newXFactorId = transferData.newXFactorId;
 
+      // CRITICAL: Clean up players array before saving to Firebase
+      // Firebase strips undefined fields, so we need to ensure all fields are defined
+      const cleanedPlayers = updatedPlayers.map(player => {
+        const cleanPlayer: any = {
+          playerId: player.playerId,
+          playerName: player.playerName,
+          team: player.team,
+          role: player.role,
+          points: player.points,
+          pointsAtJoining: player.pointsAtJoining ?? 0,
+        };
+
+        // Only include pointsWhenRoleAssigned if it's defined
+        if (player.pointsWhenRoleAssigned !== undefined) {
+          cleanPlayer.pointsWhenRoleAssigned = player.pointsWhenRoleAssigned;
+        }
+
+        return cleanPlayer;
+      });
+
       // Update the squad
       const updatePayload: any = {
-        players: updatedPlayers,
+        players: cleanedPlayers,
         totalPoints: calculatedPoints.totalPoints,
         captainPoints: calculatedPoints.captainPoints,
         viceCaptainPoints: calculatedPoints.viceCaptainPoints,
