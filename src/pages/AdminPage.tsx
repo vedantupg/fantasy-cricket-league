@@ -114,6 +114,29 @@ const AdminPage: React.FC = () => {
   const [showSnapshotDialog, setShowSnapshotDialog] = useState(false);
   const [snapshotDialogMode, setSnapshotDialogMode] = useState<'restore' | 'recalculate'>('restore');
 
+  // Single Squad Recalculation State
+  const [selectedSquadForRecalc, setSelectedSquadForRecalc] = useState<string>('');
+  const [customBankedPoints, setCustomBankedPoints] = useState<number | null>(null);
+  const [singleSquadRecalcResult, setSingleSquadRecalcResult] = useState<{
+    squadName: string;
+    oldPoints: number;
+    newPoints: number;
+    breakdown?: {
+      playerBreakdown: Array<{
+        name: string;
+        points: number;
+        pointsAtJoining: number;
+        contribution: number;
+        role?: string;
+        multiplier?: number;
+      }>;
+      captainPoints: number;
+      viceCaptainPoints: number;
+      xFactorPoints: number;
+      bankedPoints: number;
+    };
+  } | null>(null);
+
   // Load leagues on mount
   useEffect(() => {
     const loadLeagues = async () => {
@@ -674,6 +697,265 @@ const AdminPage: React.FC = () => {
     } catch (error: any) {
       console.error('Error repairing squads:', error);
       setErrorMessage(error.message || 'Failed to repair squad points');
+    } finally {
+      setRecalculating(false);
+    }
+  };
+
+  const handleRecalculateSingleSquad = async () => {
+    if (!selectedLeagueId || !selectedSquadForRecalc) {
+      setErrorMessage('Please select a league and a squad first');
+      return;
+    }
+
+    try {
+      setRecalculating(true);
+      setErrorMessage('');
+      setSuccessMessage('');
+      setSingleSquadRecalcResult(null);
+
+      const selectedLeague = leagues.find(l => l.id === selectedLeagueId);
+      if (!selectedLeague) {
+        throw new Error('League not found');
+      }
+      if (!selectedLeague.playerPoolId) {
+        throw new Error('League does not have a player pool associated');
+      }
+
+      // Get the squad
+      const squad = await squadService.getById(selectedSquadForRecalc);
+      if (!squad) {
+        throw new Error('Squad not found');
+      }
+
+      // Get player pool for current points
+      const playerPool = await playerPoolService.getById(selectedLeague.playerPoolId);
+      if (!playerPool) {
+        throw new Error('Player pool not found');
+      }
+
+      const oldPoints = squad.totalPoints || 0;
+
+      // Update all player points from pool AND reset pointsWhenRoleAssigned
+      const updatedPlayers = squad.players.map(squadPlayer => {
+        const poolPlayer = playerPool.players.find(p => p.playerId === squadPlayer.playerId);
+        if (poolPlayer) {
+          // Reset pointsWhenRoleAssigned to 0 for role players
+          // This assumes roles were assigned at the very beginning
+          const isRolePlayer =
+            squadPlayer.playerId === squad.captainId ||
+            squadPlayer.playerId === squad.viceCaptainId ||
+            squadPlayer.playerId === squad.xFactorId;
+
+          return {
+            ...squadPlayer,
+            points: poolPlayer.points,
+            // Reset role assignment points to 0 (start of league)
+            pointsWhenRoleAssigned: isRolePlayer ? 0 : squadPlayer.pointsWhenRoleAssigned
+          };
+        }
+        return squadPlayer;
+      });
+
+      // Use custom banked points if provided, otherwise use squad's current value
+      const bankedPointsToUse = customBankedPoints !== null ? customBankedPoints : (squad.bankedPoints || 0);
+
+      // Calculate new points with fixed logic
+      const calculatedPoints = calculateSquadPointsForRecalc(
+        updatedPlayers,
+        squad.captainId || null,
+        squad.viceCaptainId || null,
+        squad.xFactorId || null,
+        bankedPointsToUse,
+        selectedLeague.squadSize
+      );
+
+      // Build detailed breakdown
+      const squadSize = selectedLeague.squadSize;
+      const startingXI = updatedPlayers.slice(0, squadSize);
+      const playerBreakdown = startingXI.map(player => {
+        const pointsAtJoining = player.pointsAtJoining ?? 0;
+        const effectivePoints = Math.max(0, player.points - pointsAtJoining);
+
+        let contribution = effectivePoints;
+        let role = undefined;
+        let multiplier = 1.0;
+
+        if (squad.captainId === player.playerId) {
+          role = 'Captain';
+          multiplier = 2.0;
+          const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
+          const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
+          const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
+          contribution = basePoints * 1.0 + bonusPoints * 2.0;
+        } else if (squad.viceCaptainId === player.playerId) {
+          role = 'Vice-Captain';
+          multiplier = 1.5;
+          const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
+          const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
+          const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
+          contribution = basePoints * 1.0 + bonusPoints * 1.5;
+        } else if (squad.xFactorId === player.playerId) {
+          role = 'X-Factor';
+          multiplier = 1.25;
+          const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
+          const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
+          const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
+          contribution = basePoints * 1.0 + bonusPoints * 1.25;
+        }
+
+        return {
+          name: player.playerName,
+          points: player.points,
+          pointsAtJoining,
+          contribution,
+          role,
+          multiplier
+        };
+      });
+
+      // Show preview first
+      setSingleSquadRecalcResult({
+        squadName: squad.squadName,
+        oldPoints: oldPoints,
+        newPoints: calculatedPoints.totalPoints,
+        breakdown: {
+          playerBreakdown,
+          captainPoints: calculatedPoints.captainPoints,
+          viceCaptainPoints: calculatedPoints.viceCaptainPoints,
+          xFactorPoints: calculatedPoints.xFactorPoints,
+          bankedPoints: bankedPointsToUse
+        }
+      });
+
+      setSuccessMessage(
+        `Preview: ${squad.squadName} points will change from ${oldPoints.toFixed(2)} to ${calculatedPoints.totalPoints.toFixed(2)}\n\n` +
+        `Review the detailed breakdown below and click "Apply Changes" to update this squad only.`
+      );
+    } catch (error: any) {
+      console.error('Error calculating single squad:', error);
+      setErrorMessage(error.message || 'Failed to calculate squad points');
+    } finally {
+      setRecalculating(false);
+    }
+  };
+
+  const handleApplySingleSquadRecalc = async () => {
+    if (!selectedSquadForRecalc || !singleSquadRecalcResult) {
+      setErrorMessage('No changes to apply');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `APPLY SINGLE SQUAD RECALCULATION\n\n` +
+      `Squad: ${singleSquadRecalcResult.squadName}\n` +
+      `Old Points: ${singleSquadRecalcResult.oldPoints.toFixed(2)}\n` +
+      `New Points: ${singleSquadRecalcResult.newPoints.toFixed(2)}\n\n` +
+      `This will ONLY affect this squad. No other squads will be changed.\n\n` +
+      `Continue?`
+    );
+    if (!confirmed) return;
+
+    try {
+      setRecalculating(true);
+      setErrorMessage('');
+      setSuccessMessage('');
+
+      const selectedLeague = leagues.find(l => l.id === selectedLeagueId);
+      if (!selectedLeague || !selectedLeague.playerPoolId) {
+        throw new Error('League or player pool not found');
+      }
+
+      // Get the squad and player pool
+      const squad = await squadService.getById(selectedSquadForRecalc);
+      if (!squad) {
+        throw new Error('Squad not found');
+      }
+
+      const playerPool = await playerPoolService.getById(selectedLeague.playerPoolId);
+      if (!playerPool) {
+        throw new Error('Player pool not found');
+      }
+
+      // Update all player points from pool AND reset pointsWhenRoleAssigned
+      const updatedPlayers = squad.players.map(squadPlayer => {
+        const poolPlayer = playerPool.players.find(p => p.playerId === squadPlayer.playerId);
+        if (poolPlayer) {
+          // Reset pointsWhenRoleAssigned to 0 for role players
+          // This assumes roles were assigned at the very beginning
+          const isRolePlayer =
+            squadPlayer.playerId === squad.captainId ||
+            squadPlayer.playerId === squad.viceCaptainId ||
+            squadPlayer.playerId === squad.xFactorId;
+
+          return {
+            ...squadPlayer,
+            points: poolPlayer.points,
+            // Reset role assignment points to 0 (start of league)
+            pointsWhenRoleAssigned: isRolePlayer ? 0 : squadPlayer.pointsWhenRoleAssigned
+          };
+        }
+        return squadPlayer;
+      });
+
+      // Use custom banked points if provided, otherwise use squad's current value
+      const bankedPointsToUse = customBankedPoints !== null ? customBankedPoints : (squad.bankedPoints || 0);
+
+      // Calculate new points with fixed logic
+      const calculatedPoints = calculateSquadPointsForRecalc(
+        updatedPlayers,
+        squad.captainId || null,
+        squad.viceCaptainId || null,
+        squad.xFactorId || null,
+        bankedPointsToUse,
+        selectedLeague.squadSize
+      );
+
+      // Clean up players array - remove any undefined fields
+      const cleanedPlayers = updatedPlayers.map(player => {
+        const cleanPlayer: any = {
+          playerId: player.playerId,
+          playerName: player.playerName,
+          team: player.team,
+          role: player.role,
+          points: player.points,
+          pointsAtJoining: player.pointsAtJoining ?? 0
+        };
+
+        // Only add pointsWhenRoleAssigned if it's defined
+        if (player.pointsWhenRoleAssigned !== undefined) {
+          cleanPlayer.pointsWhenRoleAssigned = player.pointsWhenRoleAssigned;
+        }
+
+        return cleanPlayer;
+      });
+
+      // Update ONLY this squad in Firestore
+      await squadService.update(selectedSquadForRecalc, {
+        players: cleanedPlayers,
+        bankedPoints: bankedPointsToUse,
+        totalPoints: calculatedPoints.totalPoints,
+        captainPoints: calculatedPoints.captainPoints,
+        viceCaptainPoints: calculatedPoints.viceCaptainPoints,
+        xFactorPoints: calculatedPoints.xFactorPoints,
+        lastUpdated: new Date()
+      });
+
+      setSuccessMessage(
+        `✅ Successfully recalculated ${squad.squadName}!\n\n` +
+        `Points updated from ${singleSquadRecalcResult.oldPoints.toFixed(2)} to ${calculatedPoints.totalPoints.toFixed(2)}\n\n` +
+        `Only this squad was affected. All other squads remain unchanged.`
+      );
+
+      // Clear the result
+      setSingleSquadRecalcResult(null);
+      setSelectedSquadForRecalc('');
+
+      // Reload squads to show updated values
+      await loadSquads();
+    } catch (error: any) {
+      console.error('Error applying single squad recalculation:', error);
+      setErrorMessage(error.message || 'Failed to apply changes');
     } finally {
       setRecalculating(false);
     }
@@ -1554,6 +1836,211 @@ const AdminPage: React.FC = () => {
                     >
                       {recalculating ? 'Repairing...' : 'Recalculate All Squads'}
                     </Button>
+                    {successMessage && (
+                      <Alert severity="success" sx={{ mt: 2 }}>
+                        {successMessage}
+                      </Alert>
+                    )}
+                    {errorMessage && (
+                      <Alert severity="error" sx={{ mt: 2 }}>
+                        {errorMessage}
+                      </Alert>
+                    )}
+                  </CardContent>
+                </Card>
+              </Box>
+              <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 calc(50% - 12px)' } }}>
+                <Card variant="outlined" sx={{ border: '2px solid', borderColor: 'info.main' }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom color="info.main">
+                      🎯 Recalculate Single Squad
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Fix points for ONE specific squad only. Other squads will NOT be affected.
+                    </Typography>
+
+                    {/* Squad Selector */}
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                      <InputLabel>Select Squad to Fix</InputLabel>
+                      <Select
+                        value={selectedSquadForRecalc}
+                        onChange={(e) => {
+                          setSelectedSquadForRecalc(e.target.value);
+                          setCustomBankedPoints(null); // Reset custom banked points when changing squad
+                        }}
+                        label="Select Squad to Fix"
+                        disabled={!selectedLeagueId}
+                      >
+                        <MenuItem value="">
+                          <em>Choose a squad</em>
+                        </MenuItem>
+                        {squads.filter(s => s.isSubmitted).map((squad) => (
+                          <MenuItem key={squad.id} value={squad.id}>
+                            {squad.squadName} (Current: {squad.totalPoints?.toFixed(2) || 0} pts)
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+
+                    {/* Custom Banked Points Input */}
+                    {selectedSquadForRecalc && (
+                      <Box sx={{ mb: 2, p: 2, bgcolor: 'rgba(255, 152, 0, 0.1)', borderRadius: 1, border: '1px solid rgba(255, 152, 0, 0.3)' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', mb: 1 }}>
+                          ⚠️ Optional: Override Banked Points
+                        </Typography>
+                        <Typography variant="caption" sx={{ display: 'block', mb: 1, color: 'text.secondary' }}>
+                          If the transfer reversal corrupted your banked points, enter the correct value here.
+                          Current banked points in DB: {squads.find(s => s.id === selectedSquadForRecalc)?.bankedPoints?.toFixed(2) || 0}
+                        </Typography>
+                        <FormControl fullWidth size="small">
+                          <InputLabel>Custom Banked Points (leave empty to use current)</InputLabel>
+                          <Select
+                            value={customBankedPoints === null ? '' : String(customBankedPoints)}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setCustomBankedPoints(val === '' ? null : Number(val));
+                            }}
+                            label="Custom Banked Points (leave empty to use current)"
+                          >
+                            <MenuItem value="">
+                              <em>Use current value ({squads.find(s => s.id === selectedSquadForRecalc)?.bankedPoints?.toFixed(2) || 0})</em>
+                            </MenuItem>
+                            <MenuItem value="94">94 (Correct value before bad transfer)</MenuItem>
+                            <MenuItem value="0">0 (Reset to zero)</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Box>
+                    )}
+
+                    {/* Preview Button */}
+                    <Button
+                      variant="contained"
+                      color="info"
+                      fullWidth
+                      sx={{ mb: 1 }}
+                      onClick={handleRecalculateSingleSquad}
+                      disabled={recalculating || !selectedSquadForRecalc}
+                    >
+                      {recalculating ? 'Calculating...' : 'Preview Recalculation'}
+                    </Button>
+
+                    {/* Preview Results */}
+                    {singleSquadRecalcResult && (
+                      <Card sx={{ mt: 2, bgcolor: 'rgba(33, 150, 243, 0.1)', border: '1px solid', borderColor: 'info.main' }}>
+                        <CardContent>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                            Preview for {singleSquadRecalcResult.squadName}:
+                          </Typography>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="body2">Old Points:</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                              {singleSquadRecalcResult.oldPoints.toFixed(2)}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="body2">New Points:</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'info.main' }}>
+                              {singleSquadRecalcResult.newPoints.toFixed(2)}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                            <Typography variant="body2">Difference:</Typography>
+                            <Chip
+                              label={
+                                (singleSquadRecalcResult.newPoints - singleSquadRecalcResult.oldPoints >= 0 ? '+' : '') +
+                                (singleSquadRecalcResult.newPoints - singleSquadRecalcResult.oldPoints).toFixed(2)
+                              }
+                              size="small"
+                              color={
+                                singleSquadRecalcResult.newPoints - singleSquadRecalcResult.oldPoints === 0
+                                  ? 'default'
+                                  : singleSquadRecalcResult.newPoints - singleSquadRecalcResult.oldPoints > 0
+                                  ? 'success'
+                                  : 'error'
+                              }
+                            />
+                          </Box>
+
+                          {/* Detailed Breakdown */}
+                          {singleSquadRecalcResult.breakdown && (
+                            <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+                              <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', mb: 1 }}>
+                                Detailed Breakdown:
+                              </Typography>
+
+                              {/* Role Summary */}
+                              <Box sx={{ mb: 2, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
+                                <Typography variant="caption" display="block">
+                                  Captain Contribution: {singleSquadRecalcResult.breakdown.captainPoints.toFixed(2)}
+                                </Typography>
+                                <Typography variant="caption" display="block">
+                                  Vice-Captain Contribution: {singleSquadRecalcResult.breakdown.viceCaptainPoints.toFixed(2)}
+                                </Typography>
+                                <Typography variant="caption" display="block">
+                                  X-Factor Contribution: {singleSquadRecalcResult.breakdown.xFactorPoints.toFixed(2)}
+                                </Typography>
+                                <Typography variant="caption" display="block">
+                                  Banked Points: {singleSquadRecalcResult.breakdown.bankedPoints.toFixed(2)}
+                                </Typography>
+                              </Box>
+
+                              {/* Player List */}
+                              <TableContainer sx={{ maxHeight: 300 }}>
+                                <Table size="small">
+                                  <TableHead>
+                                    <TableRow>
+                                      <TableCell sx={{ fontSize: '0.75rem' }}>Player</TableCell>
+                                      <TableCell align="right" sx={{ fontSize: '0.75rem' }}>Points</TableCell>
+                                      <TableCell align="right" sx={{ fontSize: '0.75rem' }}>At Joining</TableCell>
+                                      <TableCell align="right" sx={{ fontSize: '0.75rem' }}>Contribution</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {singleSquadRecalcResult.breakdown.playerBreakdown.map((player, idx) => (
+                                      <TableRow key={idx} sx={{ bgcolor: player.role ? 'rgba(33, 150, 243, 0.05)' : 'transparent' }}>
+                                        <TableCell sx={{ fontSize: '0.75rem' }}>
+                                          {player.name}
+                                          {player.role && (
+                                            <Chip
+                                              label={player.role.charAt(0)}
+                                              size="small"
+                                              color="primary"
+                                              sx={{ ml: 0.5, height: 16, fontSize: '0.65rem' }}
+                                            />
+                                          )}
+                                        </TableCell>
+                                        <TableCell align="right" sx={{ fontSize: '0.75rem' }}>{player.points.toFixed(2)}</TableCell>
+                                        <TableCell align="right" sx={{ fontSize: '0.75rem' }}>{player.pointsAtJoining.toFixed(2)}</TableCell>
+                                        <TableCell align="right" sx={{ fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                          {player.contribution.toFixed(2)}
+                                          {player.multiplier && player.multiplier !== 1.0 && (
+                                            <Typography component="span" variant="caption" sx={{ ml: 0.5, color: 'primary.main' }}>
+                                              ({player.multiplier}x)
+                                            </Typography>
+                                          )}
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </TableContainer>
+                            </Box>
+                          )}
+
+                          <Button
+                            variant="contained"
+                            color="success"
+                            fullWidth
+                            sx={{ mt: 2 }}
+                            onClick={handleApplySingleSquadRecalc}
+                            disabled={recalculating}
+                          >
+                            {recalculating ? 'Applying...' : 'Apply Changes (This Squad Only)'}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    )}
+
                     {successMessage && (
                       <Alert severity="success" sx={{ mt: 2 }}>
                         {successMessage}
