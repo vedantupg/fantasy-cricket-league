@@ -110,6 +110,11 @@ const AdminPage: React.FC = () => {
   const [selectedSquadForRecalc, setSelectedSquadForRecalc] = useState<string>('');
   const [customBankedPoints, setCustomBankedPoints] = useState<number | null>(null);
   const [singleSquadRoleFixed, setSingleSquadRoleFixed] = useState<boolean>(false);
+  const [customRoleTimestamps, setCustomRoleTimestamps] = useState<{
+    captain: number | null;
+    viceCaptain: number | null;
+    xFactor: number | null;
+  }>({ captain: null, viceCaptain: null, xFactor: null });
   const [singleSquadRecalcResult, setSingleSquadRecalcResult] = useState<{
     squadName: string;
     oldPoints: number;
@@ -896,22 +901,30 @@ const AdminPage: React.FC = () => {
 
       const oldPoints = squad.totalPoints || 0;
 
-      // Update all player points from pool AND reset pointsWhenRoleAssigned
+      // Update all player points from pool AND set pointsWhenRoleAssigned
       const updatedPlayers = squad.players.map(squadPlayer => {
         const poolPlayer = playerPool.players.find(p => p.playerId === squadPlayer.playerId);
         if (poolPlayer) {
-          // Reset pointsWhenRoleAssigned to 0 for role players
-          // This assumes roles were assigned at the very beginning
-          const isRolePlayer =
-            squadPlayer.playerId === squad.captainId ||
-            squadPlayer.playerId === squad.viceCaptainId ||
-            squadPlayer.playerId === squad.xFactorId;
+          let newPointsWhenRoleAssigned = squadPlayer.pointsWhenRoleAssigned;
+
+          // Apply custom role timestamps if provided
+          if (squadPlayer.playerId === squad.captainId && customRoleTimestamps.captain !== null) {
+            newPointsWhenRoleAssigned = customRoleTimestamps.captain;
+          } else if (squadPlayer.playerId === squad.viceCaptainId && customRoleTimestamps.viceCaptain !== null) {
+            newPointsWhenRoleAssigned = customRoleTimestamps.viceCaptain;
+          } else if (squadPlayer.playerId === squad.xFactorId && customRoleTimestamps.xFactor !== null) {
+            newPointsWhenRoleAssigned = customRoleTimestamps.xFactor;
+          } else if (squadPlayer.playerId === squad.captainId ||
+                     squadPlayer.playerId === squad.viceCaptainId ||
+                     squadPlayer.playerId === squad.xFactorId) {
+            // If no custom timestamp provided, default to 0 (role from start)
+            newPointsWhenRoleAssigned = newPointsWhenRoleAssigned ?? 0;
+          }
 
           return {
             ...squadPlayer,
             points: poolPlayer.points,
-            // Reset role assignment points to 0 (start of league)
-            pointsWhenRoleAssigned: isRolePlayer ? 0 : squadPlayer.pointsWhenRoleAssigned
+            pointsWhenRoleAssigned: newPointsWhenRoleAssigned
           };
         }
         return squadPlayer;
@@ -1037,22 +1050,30 @@ const AdminPage: React.FC = () => {
         throw new Error('Player pool not found');
       }
 
-      // Update all player points from pool AND reset pointsWhenRoleAssigned
+      // Update all player points from pool AND set pointsWhenRoleAssigned
       const updatedPlayers = squad.players.map(squadPlayer => {
         const poolPlayer = playerPool.players.find(p => p.playerId === squadPlayer.playerId);
         if (poolPlayer) {
-          // Reset pointsWhenRoleAssigned to 0 for role players
-          // This assumes roles were assigned at the very beginning
-          const isRolePlayer =
-            squadPlayer.playerId === squad.captainId ||
-            squadPlayer.playerId === squad.viceCaptainId ||
-            squadPlayer.playerId === squad.xFactorId;
+          let newPointsWhenRoleAssigned = squadPlayer.pointsWhenRoleAssigned;
+
+          // Apply custom role timestamps if provided
+          if (squadPlayer.playerId === squad.captainId && customRoleTimestamps.captain !== null) {
+            newPointsWhenRoleAssigned = customRoleTimestamps.captain;
+          } else if (squadPlayer.playerId === squad.viceCaptainId && customRoleTimestamps.viceCaptain !== null) {
+            newPointsWhenRoleAssigned = customRoleTimestamps.viceCaptain;
+          } else if (squadPlayer.playerId === squad.xFactorId && customRoleTimestamps.xFactor !== null) {
+            newPointsWhenRoleAssigned = customRoleTimestamps.xFactor;
+          } else if (squadPlayer.playerId === squad.captainId ||
+                     squadPlayer.playerId === squad.viceCaptainId ||
+                     squadPlayer.playerId === squad.xFactorId) {
+            // If no custom timestamp provided, default to 0 (role from start)
+            newPointsWhenRoleAssigned = newPointsWhenRoleAssigned ?? 0;
+          }
 
           return {
             ...squadPlayer,
             points: poolPlayer.points,
-            // Reset role assignment points to 0 (start of league)
-            pointsWhenRoleAssigned: isRolePlayer ? 0 : squadPlayer.pointsWhenRoleAssigned
+            pointsWhenRoleAssigned: newPointsWhenRoleAssigned
           };
         }
         return squadPlayer;
@@ -1835,6 +1856,7 @@ const AdminPage: React.FC = () => {
                           setCustomBankedPoints(null); // Reset custom banked points when changing squad
                           setSingleSquadRoleFixed(false); // Reset Step 1 status
                           setSingleSquadRecalcResult(null); // Clear previous results
+                          setCustomRoleTimestamps({ captain: null, viceCaptain: null, xFactor: null }); // Reset role timestamps
                         }}
                         label="Select Squad to Fix"
                         disabled={!selectedLeagueId}
@@ -1895,6 +1917,154 @@ const AdminPage: React.FC = () => {
                         </Box>
                       </Box>
                     )}
+
+                    {/* Manual Role Timestamp Override */}
+                    {selectedSquadForRecalc && singleSquadRoleFixed && (() => {
+                      const squad = squads.find(s => s.id === selectedSquadForRecalc);
+                      if (!squad) return null;
+
+                      const captainPlayer = squad.players.find(p => p.playerId === squad.captainId);
+                      const vcPlayer = squad.players.find(p => p.playerId === squad.viceCaptainId);
+                      const xFactorPlayer = squad.players.find(p => p.playerId === squad.xFactorId);
+
+                      return (
+                        <Box sx={{ mb: 2, p: 2, bgcolor: 'rgba(33, 150, 243, 0.1)', borderRadius: 1, border: '1px solid rgba(33, 150, 243, 0.3)' }}>
+                          <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', mb: 1, color: 'info.main' }}>
+                            🎯 Advanced: Manual Role Timestamp Override
+                          </Typography>
+                          <Typography variant="caption" sx={{ display: 'block', mb: 2, color: 'text.secondary' }}>
+                            If a role was NOT assigned from the start, manually set when each role was assigned (in points).
+                            Example: If Starc became VC when he had 200 points, set VC timestamp to 200.
+                          </Typography>
+
+                          {/* Captain Timestamp */}
+                          {captainPlayer && (
+                            <Box sx={{ mb: 1 }}>
+                              <Typography variant="caption" sx={{ display: 'block', mb: 0.5, fontWeight: 'bold' }}>
+                                Captain: {captainPlayer.playerName} (Current: {captainPlayer.points} pts)
+                              </Typography>
+                              <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Button
+                                  size="small"
+                                  variant={customRoleTimestamps.captain === null ? 'contained' : 'outlined'}
+                                  onClick={() => setCustomRoleTimestamps(prev => ({ ...prev, captain: null }))}
+                                >
+                                  Use Existing ({captainPlayer.pointsWhenRoleAssigned ?? 0})
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant={customRoleTimestamps.captain === 0 ? 'contained' : 'outlined'}
+                                  onClick={() => setCustomRoleTimestamps(prev => ({ ...prev, captain: 0 }))}
+                                >
+                                  From Start (0)
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant={customRoleTimestamps.captain !== null && customRoleTimestamps.captain !== 0 ? 'contained' : 'outlined'}
+                                  onClick={() => {
+                                    const value = prompt(`When was ${captainPlayer.playerName} assigned Captain? (points at that time):`, customRoleTimestamps.captain?.toString() || '');
+                                    if (value !== null && value !== '') {
+                                      const numValue = parseFloat(value);
+                                      if (!isNaN(numValue)) {
+                                        setCustomRoleTimestamps(prev => ({ ...prev, captain: numValue }));
+                                      }
+                                    }
+                                  }}
+                                >
+                                  {customRoleTimestamps.captain !== null && customRoleTimestamps.captain !== 0
+                                    ? `Custom: ${customRoleTimestamps.captain}`
+                                    : 'Enter Custom...'}
+                                </Button>
+                              </Box>
+                            </Box>
+                          )}
+
+                          {/* Vice-Captain Timestamp */}
+                          {vcPlayer && (
+                            <Box sx={{ mb: 1 }}>
+                              <Typography variant="caption" sx={{ display: 'block', mb: 0.5, fontWeight: 'bold' }}>
+                                Vice-Captain: {vcPlayer.playerName} (Current: {vcPlayer.points} pts)
+                              </Typography>
+                              <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Button
+                                  size="small"
+                                  variant={customRoleTimestamps.viceCaptain === null ? 'contained' : 'outlined'}
+                                  onClick={() => setCustomRoleTimestamps(prev => ({ ...prev, viceCaptain: null }))}
+                                >
+                                  Use Existing ({vcPlayer.pointsWhenRoleAssigned ?? 0})
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant={customRoleTimestamps.viceCaptain === 0 ? 'contained' : 'outlined'}
+                                  onClick={() => setCustomRoleTimestamps(prev => ({ ...prev, viceCaptain: 0 }))}
+                                >
+                                  From Start (0)
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant={customRoleTimestamps.viceCaptain !== null && customRoleTimestamps.viceCaptain !== 0 ? 'contained' : 'outlined'}
+                                  onClick={() => {
+                                    const value = prompt(`When was ${vcPlayer.playerName} assigned Vice-Captain? (points at that time):`, customRoleTimestamps.viceCaptain?.toString() || '');
+                                    if (value !== null && value !== '') {
+                                      const numValue = parseFloat(value);
+                                      if (!isNaN(numValue)) {
+                                        setCustomRoleTimestamps(prev => ({ ...prev, viceCaptain: numValue }));
+                                      }
+                                    }
+                                  }}
+                                >
+                                  {customRoleTimestamps.viceCaptain !== null && customRoleTimestamps.viceCaptain !== 0
+                                    ? `Custom: ${customRoleTimestamps.viceCaptain}`
+                                    : 'Enter Custom...'}
+                                </Button>
+                              </Box>
+                            </Box>
+                          )}
+
+                          {/* X-Factor Timestamp */}
+                          {xFactorPlayer && (
+                            <Box sx={{ mb: 0 }}>
+                              <Typography variant="caption" sx={{ display: 'block', mb: 0.5, fontWeight: 'bold' }}>
+                                X-Factor: {xFactorPlayer.playerName} (Current: {xFactorPlayer.points} pts)
+                              </Typography>
+                              <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Button
+                                  size="small"
+                                  variant={customRoleTimestamps.xFactor === null ? 'contained' : 'outlined'}
+                                  onClick={() => setCustomRoleTimestamps(prev => ({ ...prev, xFactor: null }))}
+                                >
+                                  Use Existing ({xFactorPlayer.pointsWhenRoleAssigned ?? 0})
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant={customRoleTimestamps.xFactor === 0 ? 'contained' : 'outlined'}
+                                  onClick={() => setCustomRoleTimestamps(prev => ({ ...prev, xFactor: 0 }))}
+                                >
+                                  From Start (0)
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant={customRoleTimestamps.xFactor !== null && customRoleTimestamps.xFactor !== 0 ? 'contained' : 'outlined'}
+                                  onClick={() => {
+                                    const value = prompt(`When was ${xFactorPlayer.playerName} assigned X-Factor? (points at that time):`, customRoleTimestamps.xFactor?.toString() || '');
+                                    if (value !== null && value !== '') {
+                                      const numValue = parseFloat(value);
+                                      if (!isNaN(numValue)) {
+                                        setCustomRoleTimestamps(prev => ({ ...prev, xFactor: numValue }));
+                                      }
+                                    }
+                                  }}
+                                >
+                                  {customRoleTimestamps.xFactor !== null && customRoleTimestamps.xFactor !== 0
+                                    ? `Custom: ${customRoleTimestamps.xFactor}`
+                                    : 'Enter Custom...'}
+                                </Button>
+                              </Box>
+                            </Box>
+                          )}
+                        </Box>
+                      );
+                    })()}
 
                     {/* Step 1: Fix Role Data Button */}
                     <Button
