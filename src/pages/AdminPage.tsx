@@ -2243,11 +2243,32 @@ const AdminPage: React.FC = () => {
               🔍 Transfer Investigation & Transparency
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Select a squad to view all transfer history with complete backend data for investigation and debugging.
+              Select a league and squad to view all transfer history with complete backend data for investigation and debugging.
             </Typography>
 
+            {/* League Selector */}
+            <Box sx={{ mb: 3 }}>
+              <FormControl fullWidth>
+                <InputLabel>Select League</InputLabel>
+                <Select
+                  value={selectedLeagueId}
+                  onChange={(e) => setSelectedLeagueId(e.target.value)}
+                  label="Select League"
+                >
+                  <MenuItem value="">
+                    <em>None</em>
+                  </MenuItem>
+                  {leagues.map((league) => (
+                    <MenuItem key={league.id} value={league.id}>
+                      {league.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
             {/* Squad Selector */}
-            <FormControl fullWidth sx={{ mb: 3 }}>
+            <FormControl fullWidth sx={{ mb: 3 }} disabled={!selectedLeagueId}>
               <InputLabel>Select Squad to Investigate</InputLabel>
               <Select
                 value={selectedSquadForInvestigation}
