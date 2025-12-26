@@ -115,6 +115,10 @@ const AdminPage: React.FC = () => {
     viceCaptain: number | null;
     xFactor: number | null;
   }>({ captain: null, viceCaptain: null, xFactor: null });
+
+  // Transfer Investigation State
+  const [selectedSquadForInvestigation, setSelectedSquadForInvestigation] = useState<string>('');
+  const [expandedTransferIndex, setExpandedTransferIndex] = useState<number | null>(null);
   const [singleSquadRecalcResult, setSingleSquadRecalcResult] = useState<{
     squadName: string;
     oldPoints: number;
@@ -1443,6 +1447,7 @@ const AdminPage: React.FC = () => {
             >
               <Tab label="Transfer Management" />
               <Tab label="System Settings" />
+              <Tab label="Transfer Investigation" />
             </Tabs>
           </Box>
 
@@ -2230,6 +2235,290 @@ const AdminPage: React.FC = () => {
                 </Card>
               </Box>
             </Box>
+          </TabPanel>
+
+          {/* Transfer Investigation Tab */}
+          <TabPanel value={tabValue} index={2}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3 }}>
+              🔍 Transfer Investigation & Transparency
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Select a squad to view all transfer history with complete backend data for investigation and debugging.
+            </Typography>
+
+            {/* Squad Selector */}
+            <FormControl fullWidth sx={{ mb: 3 }}>
+              <InputLabel>Select Squad to Investigate</InputLabel>
+              <Select
+                value={selectedSquadForInvestigation}
+                onChange={(e) => {
+                  setSelectedSquadForInvestigation(e.target.value);
+                  setExpandedTransferIndex(null); // Reset expansion
+                }}
+                label="Select Squad to Investigate"
+              >
+                <MenuItem value="">
+                  <em>Choose a squad</em>
+                </MenuItem>
+                {squads.map((squad) => (
+                  <MenuItem key={squad.id} value={squad.id}>
+                    {squad.squadName} ({squad.transferHistory?.length || 0} transfers)
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {/* Squad Investigation Display */}
+            {selectedSquadForInvestigation && (() => {
+              const squad = squads.find(s => s.id === selectedSquadForInvestigation);
+              if (!squad) return null;
+
+              return (
+                <Box>
+                  {/* Squad Summary */}
+                  <Card sx={{ mb: 3, bgcolor: 'rgba(33, 150, 243, 0.05)' }}>
+                    <CardContent>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+                        Squad Summary: {squad.squadName}
+                      </Typography>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">Total Points</Typography>
+                          <Typography variant="h6">{squad.totalPoints?.toFixed(2) || 0}</Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">Banked Points</Typography>
+                          <Typography variant="h6">{squad.bankedPoints?.toFixed(2) || 0}</Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">Transfers Made</Typography>
+                          <Typography variant="h6">{squad.transferHistory?.length || 0}</Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">Bench Transfers</Typography>
+                          <Typography variant="h6">{squad.benchTransfersUsed || 0}</Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">Flexible Transfers</Typography>
+                          <Typography variant="h6">{squad.flexibleTransfersUsed || 0}</Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">Mid-Season Transfers</Typography>
+                          <Typography variant="h6">{squad.midSeasonTransfersUsed || 0}</Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+
+                  {/* Current Squad Roles */}
+                  <Card sx={{ mb: 3 }}>
+                    <CardContent>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+                        Current Roles
+                      </Typography>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
+                        <Box sx={{ p: 2, bgcolor: 'rgba(255, 193, 7, 0.1)', borderRadius: 1 }}>
+                          <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>
+                            ⭐ Captain (2x)
+                          </Typography>
+                          <Typography variant="body2">
+                            {squad.players.find(p => p.playerId === squad.captainId)?.playerName || 'None'}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Assigned at: {squad.players.find(p => p.playerId === squad.captainId)?.pointsWhenRoleAssigned ?? 'N/A'} pts
+                          </Typography>
+                        </Box>
+                        <Box sx={{ p: 2, bgcolor: 'rgba(156, 39, 176, 0.1)', borderRadius: 1 }}>
+                          <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>
+                            👤 Vice-Captain (1.5x)
+                          </Typography>
+                          <Typography variant="body2">
+                            {squad.players.find(p => p.playerId === squad.viceCaptainId)?.playerName || 'None'}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Assigned at: {squad.players.find(p => p.playerId === squad.viceCaptainId)?.pointsWhenRoleAssigned ?? 'N/A'} pts
+                          </Typography>
+                        </Box>
+                        <Box sx={{ p: 2, bgcolor: 'rgba(233, 30, 99, 0.1)', borderRadius: 1 }}>
+                          <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>
+                            ⚡ X-Factor (1.25x)
+                          </Typography>
+                          <Typography variant="body2">
+                            {squad.players.find(p => p.playerId === squad.xFactorId)?.playerName || 'None'}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Assigned at: {squad.players.find(p => p.playerId === squad.xFactorId)?.pointsWhenRoleAssigned ?? 'N/A'} pts
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+
+                  {/* Transfer History */}
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+                    Transfer History ({squad.transferHistory?.length || 0} total)
+                  </Typography>
+
+                  {!squad.transferHistory || squad.transferHistory.length === 0 ? (
+                    <Alert severity="info">No transfers made yet for this squad.</Alert>
+                  ) : (
+                    squad.transferHistory.map((transfer, index) => {
+                      const isExpanded = expandedTransferIndex === index;
+                      const playerOut = squad.players.find(p => p.playerId === transfer.playerOut);
+                      const playerIn = squad.players.find(p => p.playerId === transfer.playerIn);
+
+                      return (
+                        <Card key={index} sx={{ mb: 2, border: isExpanded ? '2px solid' : '1px solid', borderColor: isExpanded ? 'primary.main' : 'divider' }}>
+                          <CardContent>
+                            {/* Transfer Header */}
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: isExpanded ? 2 : 0 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Chip
+                                  label={`#${index + 1}`}
+                                  size="small"
+                                  color="primary"
+                                  sx={{ fontWeight: 'bold' }}
+                                />
+                                <Chip
+                                  label={transfer.transferType || 'Unknown'}
+                                  size="small"
+                                  color={
+                                    transfer.transferType === 'bench' ? 'info' :
+                                    transfer.transferType === 'flexible' ? 'warning' :
+                                    transfer.transferType === 'midSeason' ? 'secondary' : 'default'
+                                  }
+                                />
+                                <Chip
+                                  label={transfer.changeType === 'playerSubstitution' ? 'Player Swap' : 'Role Change'}
+                                  size="small"
+                                  variant="outlined"
+                                />
+                                <Typography variant="caption" color="text.secondary">
+                                  {transfer.timestamp instanceof Date
+                                    ? transfer.timestamp.toLocaleString()
+                                    : new Date(transfer.timestamp).toLocaleString()}
+                                </Typography>
+                              </Box>
+                              <Button
+                                size="small"
+                                onClick={() => setExpandedTransferIndex(isExpanded ? null : index)}
+                              >
+                                {isExpanded ? 'Hide Details' : 'Show Details'}
+                              </Button>
+                            </Box>
+
+                            {/* Expanded Details */}
+                            {isExpanded && (
+                              <Box sx={{ mt: 2 }}>
+                                {/* Player Substitution Details */}
+                                {transfer.changeType === 'playerSubstitution' && (
+                                  <Box sx={{ mb: 3 }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 2 }}>
+                                      🔄 Player Substitution
+                                    </Typography>
+                                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                                      {/* Player OUT */}
+                                      <Box sx={{ p: 2, bgcolor: 'rgba(244, 67, 54, 0.1)', borderRadius: 1, border: '1px solid rgba(244, 67, 54, 0.3)' }}>
+                                        <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', mb: 1, color: 'error.main' }}>
+                                          ⬅️ Player OUT
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                                          {playerOut?.playerName || transfer.playerOut || 'Unknown'}
+                                        </Typography>
+                                        {playerOut && (
+                                          <>
+                                            <Typography variant="caption" display="block">Team: {playerOut.team}</Typography>
+                                            <Typography variant="caption" display="block">Role: {playerOut.role}</Typography>
+                                            <Typography variant="caption" display="block">Current Points: {playerOut.points}</Typography>
+                                            <Typography variant="caption" display="block">Points at Joining: {playerOut.pointsAtJoining ?? 'N/A'}</Typography>
+                                            {playerOut.pointsWhenRoleAssigned !== undefined && (
+                                              <Typography variant="caption" display="block">
+                                                Points When Role Assigned: {playerOut.pointsWhenRoleAssigned}
+                                              </Typography>
+                                            )}
+                                          </>
+                                        )}
+                                      </Box>
+
+                                      {/* Player IN */}
+                                      <Box sx={{ p: 2, bgcolor: 'rgba(76, 175, 80, 0.1)', borderRadius: 1, border: '1px solid rgba(76, 175, 80, 0.3)' }}>
+                                        <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', mb: 1, color: 'success.main' }}>
+                                          ➡️ Player IN
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                                          {playerIn?.playerName || transfer.playerIn || 'Unknown'}
+                                        </Typography>
+                                        {playerIn && (
+                                          <>
+                                            <Typography variant="caption" display="block">Team: {playerIn.team}</Typography>
+                                            <Typography variant="caption" display="block">Role: {playerIn.role}</Typography>
+                                            <Typography variant="caption" display="block">Current Points: {playerIn.points}</Typography>
+                                            <Typography variant="caption" display="block">Points at Joining: {playerIn.pointsAtJoining ?? 'N/A'}</Typography>
+                                            {playerIn.pointsWhenRoleAssigned !== undefined && (
+                                              <Typography variant="caption" display="block">
+                                                Points When Role Assigned: {playerIn.pointsWhenRoleAssigned}
+                                              </Typography>
+                                            )}
+                                          </>
+                                        )}
+                                      </Box>
+                                    </Box>
+                                  </Box>
+                                )}
+
+                                {/* Role Reassignment Details */}
+                                {transfer.changeType === 'roleReassignment' && (
+                                  <Box sx={{ mb: 3 }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 2 }}>
+                                      👤 Role Reassignment
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                                      {transfer.newViceCaptainId && (
+                                        <Chip
+                                          label={`New VC: ${squad.players.find(p => p.playerId === transfer.newViceCaptainId)?.playerName || transfer.newViceCaptainId}`}
+                                          color="secondary"
+                                        />
+                                      )}
+                                      {transfer.newXFactorId && (
+                                        <Chip
+                                          label={`New X-Factor: ${squad.players.find(p => p.playerId === transfer.newXFactorId)?.playerName || transfer.newXFactorId}`}
+                                          color="error"
+                                        />
+                                      )}
+                                    </Box>
+                                  </Box>
+                                )}
+
+                                {/* Raw Backend Data */}
+                                <Box sx={{ mt: 3, p: 2, bgcolor: 'rgba(0, 0, 0, 0.03)', borderRadius: 1 }}>
+                                  <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', mb: 1 }}>
+                                    🔧 Complete Backend Data (JSON)
+                                  </Typography>
+                                  <Box
+                                    component="pre"
+                                    sx={{
+                                      p: 2,
+                                      bgcolor: '#1e1e1e',
+                                      color: '#d4d4d4',
+                                      borderRadius: 1,
+                                      overflow: 'auto',
+                                      fontSize: '0.75rem',
+                                      maxHeight: 400
+                                    }}
+                                  >
+                                    {JSON.stringify(transfer, null, 2)}
+                                  </Box>
+                                </Box>
+                              </Box>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })
+                  )}
+                </Box>
+              );
+            })()}
           </TabPanel>
         </Card>
       </Container>
