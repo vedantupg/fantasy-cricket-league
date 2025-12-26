@@ -109,6 +109,7 @@ const AdminPage: React.FC = () => {
   // Single Squad Recalculation State
   const [selectedSquadForRecalc, setSelectedSquadForRecalc] = useState<string>('');
   const [customBankedPoints, setCustomBankedPoints] = useState<number | null>(null);
+  const [singleSquadRoleFixed, setSingleSquadRoleFixed] = useState<boolean>(false);
   const [singleSquadRecalcResult, setSingleSquadRecalcResult] = useState<{
     squadName: string;
     oldPoints: number;
@@ -781,6 +782,80 @@ const AdminPage: React.FC = () => {
 
     } catch (error: any) {
       console.error('Error fixing role timestamps:', error);
+      setErrorMessage(error.message || 'Failed to fix role timestamps');
+    } finally {
+      setRecalculating(false);
+    }
+  };
+
+  const handleFixSingleSquadRoleTimestamps = async () => {
+    if (!selectedLeagueId || !selectedSquadForRecalc) {
+      setErrorMessage('Please select a league and a squad first');
+      return;
+    }
+
+    try {
+      setRecalculating(true);
+      setErrorMessage('');
+      setSuccessMessage('');
+      setSingleSquadRecalcResult(null);
+
+      const squad = await squadService.getById(selectedSquadForRecalc);
+      if (!squad) {
+        throw new Error('Squad not found');
+      }
+
+      const fixedPlayers: string[] = [];
+      let needsUpdate = false;
+
+      // Update players array
+      const updatedPlayers = squad.players.map(player => {
+        // Check if player has a role but missing pointsWhenRoleAssigned
+        const hasRole = player.playerId === squad.captainId ||
+                       player.playerId === squad.viceCaptainId ||
+                       player.playerId === squad.xFactorId;
+
+        if (hasRole && player.pointsWhenRoleAssigned === undefined) {
+          // FIX: Set pointsWhenRoleAssigned to current points
+          // This assumes the role was just assigned (safest assumption for corrupted data)
+          needsUpdate = true;
+          const roleName = player.playerId === squad.captainId ? 'Captain' :
+                          player.playerId === squad.viceCaptainId ? 'Vice-Captain' : 'X-Factor';
+          fixedPlayers.push(`${player.playerName} (${roleName})`);
+
+          return {
+            ...player,
+            pointsWhenRoleAssigned: player.points
+          };
+        }
+
+        return player;
+      });
+
+      if (needsUpdate) {
+        // Update the squad with fixed data
+        await squadService.update(squad.id, {
+          players: updatedPlayers,
+          lastUpdated: new Date()
+        });
+
+        let resultMessage = `✅ Fixed missing role timestamps for ${squad.squadName}:\n\n`;
+        fixedPlayers.forEach(player => {
+          resultMessage += `  • ${player} - set pointsWhenRoleAssigned to current points\n`;
+        });
+        resultMessage += '\n✅ Step 1 complete! Now click "Step 2: Preview Recalculation" to see the updated points.';
+        setSuccessMessage(resultMessage);
+        setSingleSquadRoleFixed(true);
+      } else {
+        setSuccessMessage(`✅ Squad "${squad.squadName}" already has correct role timestamps! No fixes needed.\n\nYou can proceed to Step 2.`);
+        setSingleSquadRoleFixed(true);
+      }
+
+      // Reload squads to show updated data
+      await loadSquads();
+
+    } catch (error: any) {
+      console.error('Error fixing single squad role timestamps:', error);
       setErrorMessage(error.message || 'Failed to fix role timestamps');
     } finally {
       setRecalculating(false);
@@ -1758,6 +1833,8 @@ const AdminPage: React.FC = () => {
                         onChange={(e) => {
                           setSelectedSquadForRecalc(e.target.value);
                           setCustomBankedPoints(null); // Reset custom banked points when changing squad
+                          setSingleSquadRoleFixed(false); // Reset Step 1 status
+                          setSingleSquadRecalcResult(null); // Clear previous results
                         }}
                         label="Select Squad to Fix"
                         disabled={!selectedLeagueId}
@@ -1819,17 +1896,38 @@ const AdminPage: React.FC = () => {
                       </Box>
                     )}
 
-                    {/* Preview Button */}
+                    {/* Step 1: Fix Role Data Button */}
+                    <Button
+                      variant="contained"
+                      color={singleSquadRoleFixed ? 'success' : 'warning'}
+                      fullWidth
+                      sx={{ mb: 1 }}
+                      onClick={handleFixSingleSquadRoleTimestamps}
+                      disabled={recalculating || !selectedSquadForRecalc}
+                      startIcon={singleSquadRoleFixed ? <span>✅</span> : <span>🔧</span>}
+                    >
+                      {recalculating ? 'Fixing...' : singleSquadRoleFixed ? '✅ Step 1: Role Data Fixed' : 'Step 1: Fix Missing Role Data'}
+                    </Button>
+
+                    {/* Step 2: Preview Button */}
                     <Button
                       variant="contained"
                       color="info"
                       fullWidth
                       sx={{ mb: 1 }}
                       onClick={handleRecalculateSingleSquad}
-                      disabled={recalculating || !selectedSquadForRecalc}
+                      disabled={recalculating || !selectedSquadForRecalc || !singleSquadRoleFixed}
+                      startIcon={<span>🔄</span>}
                     >
-                      {recalculating ? 'Calculating...' : 'Preview Recalculation'}
+                      {recalculating ? 'Calculating...' : 'Step 2: Preview Recalculation'}
                     </Button>
+
+                    {/* Helper text if Step 1 not done */}
+                    {selectedSquadForRecalc && !singleSquadRoleFixed && (
+                      <Alert severity="info" sx={{ mb: 1 }}>
+                        Please complete Step 1 first to fix any missing role timestamps before recalculating points.
+                      </Alert>
+                    )}
 
                     {/* Preview Results */}
                     {singleSquadRecalcResult && (
