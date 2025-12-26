@@ -511,19 +511,12 @@ const SquadSelectionPage: React.FC = () => {
           pointsAtJoining: player.pointsAtJoining ?? 0,
         };
 
-        // CRITICAL: Always include pointsWhenRoleAssigned to prevent Firebase from stripping it
-        // If undefined, only set it if the player currently has a role
+        // CRITICAL: Always preserve pointsWhenRoleAssigned if it exists
+        // NEVER automatically set it - it should only be set when role is FIRST assigned
         if (player.pointsWhenRoleAssigned !== undefined) {
           playerCopy.pointsWhenRoleAssigned = player.pointsWhenRoleAssigned;
-        } else if (
-          player.playerId === existingSquad.captainId ||
-          player.playerId === existingSquad.viceCaptainId ||
-          player.playerId === existingSquad.xFactorId
-        ) {
-          // Player has a role but pointsWhenRoleAssigned is missing (legacy data)
-          // Set it to their current points to preserve the fix
-          playerCopy.pointsWhenRoleAssigned = player.points;
         }
+        // DO NOT auto-set for missing values - admin must fix via admin panel
 
         return playerCopy;
       });
