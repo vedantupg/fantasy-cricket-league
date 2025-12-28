@@ -496,9 +496,13 @@ export const playerPoolService = {
     );
     await this.update(poolId, { players: updatedPlayers });
 
-    // If points were updated, trigger recalculation
+    // DISABLED: Automatic recalculation can corrupt points due to bad pointsWhenRoleAssigned data
+    // Admin must manually recalculate after fixing role timestamps
+    // if (updates.points !== undefined) {
+    //   await this.recalculateLeaguesUsingPool(poolId);
+    // }
     if (updates.points !== undefined) {
-      await this.recalculateLeaguesUsingPool(poolId);
+      console.warn('⚠️ AUTOMATIC RECALCULATION DISABLED - Manually recalculate from Admin Panel after fixing role timestamps');
     }
   },
 
@@ -534,8 +538,10 @@ export const playerPoolService = {
 
     await this.update(poolId, { players: updatedPlayers });
 
-    // Automatically trigger recalculation for all leagues using this pool
-    await this.recalculateLeaguesUsingPool(poolId);
+    // DISABLED: Automatic recalculation can corrupt points due to bad pointsWhenRoleAssigned data
+    // Admin must manually recalculate after fixing role timestamps
+    // await this.recalculateLeaguesUsingPool(poolId);
+    console.warn('⚠️ AUTOMATIC RECALCULATION DISABLED - Manually recalculate from Admin Panel after fixing role timestamps');
   },
 
   // Find all leagues using a specific player pool
