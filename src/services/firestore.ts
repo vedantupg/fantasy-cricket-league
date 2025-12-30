@@ -24,6 +24,7 @@ import type {
   Match,
   PlayerPool,
   PlayerPoolEntry,
+  PlayerPoolSnapshot,
   LeaderboardSnapshot,
   StandingEntry,
   User,
@@ -36,6 +37,7 @@ const COLLECTIONS = {
   SQUADS: 'squads',
   PLAYERS: 'players',
   PLAYER_POOLS: 'playerPools',
+  PLAYER_POOL_SNAPSHOTS: 'playerPoolSnapshots',
   TRANSFERS: 'transfers',
   MATCHES: 'matches',
   PLAYER_PERFORMANCES: 'playerPerformances',
@@ -518,7 +520,12 @@ export const playerPoolService = {
   },
 
   // Update multiple player points at once
-  async updatePlayerPoints(poolId: string, pointsUpdates: { playerId: string; points: number }[]): Promise<void> {
+  async updatePlayerPoints(
+    poolId: string,
+    pointsUpdates: { playerId: string; points: number }[],
+    updateMessage?: string,
+    updatedBy?: string
+  ): Promise<void> {
     const poolDoc = await this.getById(poolId);
     if (!poolDoc) {
       throw new Error('Player pool not found');
@@ -536,7 +543,22 @@ export const playerPoolService = {
       return player;
     });
 
-    await this.update(poolId, { players: updatedPlayers });
+    // Update the player pool with new points and optional update message
+    const updateData: any = { players: updatedPlayers };
+    if (updateMessage) {
+      updateData.lastUpdateMessage = updateMessage;
+    }
+
+    await this.update(poolId, updateData);
+
+    // Create a snapshot of the player pool with point changes
+    try {
+      await playerPoolSnapshotService.create(poolId, updateMessage, updatedBy);
+      console.log('✅ Player pool snapshot created successfully');
+    } catch (error) {
+      console.error('Error creating player pool snapshot:', error);
+      // Don't fail the update if snapshot creation fails
+    }
 
     // DISABLED: Automatic recalculation can corrupt points due to bad pointsWhenRoleAssigned data
     // Admin must manually recalculate after fixing role timestamps
@@ -712,6 +734,147 @@ export const playerPoolService = {
         callback(null);
       }
     });
+  },
+};
+
+// Player Pool Snapshot Operations
+export const playerPoolSnapshotService = {
+  // Create a new snapshot with deltas from previous snapshot
+  async create(poolId: string, updateMessage?: string, updatedBy?: string): Promise<string> {
+    try {
+      console.log(`Creating player pool snapshot for pool: ${poolId}`);
+
+      // Get the current player pool
+      const playerPool = await playerPoolService.getById(poolId);
+      if (!playerPool) {
+        throw new Error('Player pool not found');
+      }
+
+      // Get the previous snapshot to calculate deltas
+      const previousSnapshot = await this.getLatest(poolId);
+
+      // Create the snapshot data
+      const snapshotData: Omit<PlayerPoolSnapshot, 'id'> = {
+        playerPoolId: poolId,
+        snapshotDate: new Date(),
+        updateMessage: updateMessage || playerPool.lastUpdateMessage,
+        updatedBy,
+        players: playerPool.players.map(p => ({
+          playerId: p.playerId,
+          name: p.name,
+          team: p.team,
+          role: p.role,
+          points: p.points,
+        })),
+        changes: undefined,
+      };
+
+      // Calculate deltas if there's a previous snapshot
+      if (previousSnapshot) {
+        const changes: Array<{
+          playerId: string;
+          name: string;
+          previousPoints: number;
+          newPoints: number;
+          delta: number;
+        }> = [];
+
+        playerPool.players.forEach(currentPlayer => {
+          const previousPlayer = previousSnapshot.players.find(p => p.playerId === currentPlayer.playerId);
+
+          if (previousPlayer) {
+            const delta = currentPlayer.points - previousPlayer.points;
+
+            // Only include players whose points changed
+            if (delta !== 0) {
+              changes.push({
+                playerId: currentPlayer.playerId,
+                name: currentPlayer.name,
+                previousPoints: previousPlayer.points,
+                newPoints: currentPlayer.points,
+                delta,
+              });
+            }
+          } else {
+            // New player added to the pool
+            changes.push({
+              playerId: currentPlayer.playerId,
+              name: currentPlayer.name,
+              previousPoints: 0,
+              newPoints: currentPlayer.points,
+              delta: currentPlayer.points,
+            });
+          }
+        });
+
+        // Sort changes by delta (highest first)
+        changes.sort((a, b) => b.delta - a.delta);
+        snapshotData.changes = changes;
+      }
+
+      // Save the snapshot
+      const docRef = await addDoc(collection(db, COLLECTIONS.PLAYER_POOL_SNAPSHOTS), {
+        ...snapshotData,
+        createdAt: new Date(),
+      });
+
+      console.log(`Player pool snapshot created with ID: ${docRef.id}`);
+      return docRef.id;
+    } catch (error) {
+      console.error('Error creating player pool snapshot:', error);
+      throw error;
+    }
+  },
+
+  // Get all snapshots for a player pool
+  async getByPoolId(poolId: string): Promise<PlayerPoolSnapshot[]> {
+    const q = query(
+      collection(db, COLLECTIONS.PLAYER_POOL_SNAPSHOTS),
+      where('playerPoolId', '==', poolId),
+      orderBy('snapshotDate', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+
+    return querySnapshot.docs.map(doc =>
+      convertTimestamps({ id: doc.id, ...doc.data() }) as PlayerPoolSnapshot
+    );
+  },
+
+  // Get the latest snapshot for a player pool
+  async getLatest(poolId: string): Promise<PlayerPoolSnapshot | null> {
+    const q = query(
+      collection(db, COLLECTIONS.PLAYER_POOL_SNAPSHOTS),
+      where('playerPoolId', '==', poolId),
+      orderBy('snapshotDate', 'desc'),
+      limit(1)
+    );
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      return null;
+    }
+
+    return convertTimestamps({
+      id: querySnapshot.docs[0].id,
+      ...querySnapshot.docs[0].data(),
+    }) as PlayerPoolSnapshot;
+  },
+
+  // Get a specific snapshot by ID
+  async getById(snapshotId: string): Promise<PlayerPoolSnapshot | null> {
+    const docRef = doc(db, COLLECTIONS.PLAYER_POOL_SNAPSHOTS, snapshotId);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      return convertTimestamps({ id: docSnap.id, ...docSnap.data() }) as PlayerPoolSnapshot;
+    }
+    return null;
+  },
+
+  // Delete a snapshot
+  async delete(snapshotId: string): Promise<void> {
+    const docRef = doc(db, COLLECTIONS.PLAYER_POOL_SNAPSHOTS, snapshotId);
+    await deleteDoc(docRef);
   },
 };
 

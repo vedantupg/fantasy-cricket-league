@@ -40,7 +40,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import AppHeader from '../components/common/AppHeader';
-import { playerPoolService } from '../services/firestore';
+import { playerPoolService, playerPoolSnapshotService } from '../services/firestore';
 import type { PlayerPool, PlayerPoolEntry } from '../types/database';
 
 const PlayerPoolManagementPage: React.FC = () => {
@@ -211,10 +211,23 @@ const PlayerPoolManagementPage: React.FC = () => {
                       updatedAt: new Date()
                     });
 
+                    // Create a snapshot to track point changes
+                    try {
+                      await playerPoolSnapshotService.create(
+                        poolToUpdate.id,
+                        poolToUpdate.lastUpdateMessage,
+                        user?.uid
+                      );
+                      console.log('✅ Player pool snapshot created successfully');
+                    } catch (snapshotError) {
+                      console.error('Error creating snapshot:', snapshotError);
+                      // Don't fail the update if snapshot creation fails
+                    }
+
                     // Then trigger recalculation for all leagues using this pool
                     await playerPoolService.recalculateLeaguesUsingPool(poolToUpdate.id);
 
-                    console.log('Player pool updated and leagues recalculated successfully');
+                    console.log('Player pool updated, snapshot created, and leagues recalculated successfully');
 
                     // Update local state
                     setPlayerPools(prev =>

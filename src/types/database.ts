@@ -244,6 +244,32 @@ export interface PlayerPoolEntry {
   updatedBy?: string; // admin who last updated points
 }
 
+export interface PlayerPoolSnapshot {
+  id: string;
+  playerPoolId: string;
+  snapshotDate: Date;
+  updateMessage?: string; // Commit message for this update (e.g., "Match 5 - Updated after Day 1")
+  updatedBy?: string; // Admin who made the update
+
+  // Snapshot of all player points at this moment
+  players: Array<{
+    playerId: string;
+    name: string;
+    team: string;
+    role: 'batsman' | 'bowler' | 'allrounder' | 'wicketkeeper';
+    points: number;
+  }>;
+
+  // Point changes from previous snapshot
+  changes?: Array<{
+    playerId: string;
+    name: string;
+    previousPoints: number;
+    newPoints: number;
+    delta: number; // newPoints - previousPoints
+  }>;
+}
+
 export interface Player {
   id: string;
   name: string;

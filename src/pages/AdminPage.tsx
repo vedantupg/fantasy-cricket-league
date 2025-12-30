@@ -33,8 +33,8 @@ import {
   Undo,
   SwapHoriz
 } from '@mui/icons-material';
-import { leagueService, squadService, playerPoolService, leaderboardSnapshotService } from '../services/firestore';
-import type { League, LeagueSquad, LeaderboardSnapshot } from '../types/database';
+import { leagueService, squadService, playerPoolService, playerPoolSnapshotService, leaderboardSnapshotService } from '../services/firestore';
+import type { League, LeagueSquad, LeaderboardSnapshot, PlayerPool, PlayerPoolSnapshot } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 
 interface TabPanelProps {
@@ -139,6 +139,12 @@ const AdminPage: React.FC = () => {
     };
   } | null>(null);
 
+  // Player Pool History State
+  const [playerPools, setPlayerPools] = useState<PlayerPool[]>([]);
+  const [selectedPoolId, setSelectedPoolId] = useState<string>('');
+  const [poolSnapshots, setPoolSnapshots] = useState<PlayerPoolSnapshot[]>([]);
+  const [loadingSnapshots, setLoadingSnapshots] = useState(false);
+
   // Load leagues on mount
   useEffect(() => {
     const loadLeagues = async () => {
@@ -160,6 +166,41 @@ const AdminPage: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLeagueId]);
+
+  // Load player pools on mount
+  useEffect(() => {
+    const loadPlayerPools = async () => {
+      if (!user) return;
+      try {
+        const pools = await playerPoolService.getAll();
+        setPlayerPools(pools);
+      } catch (error) {
+        console.error('Error loading player pools:', error);
+      }
+    };
+    loadPlayerPools();
+  }, [user]);
+
+  // Load snapshots when pool is selected
+  useEffect(() => {
+    const loadSnapshots = async () => {
+      if (!selectedPoolId) {
+        setPoolSnapshots([]);
+        return;
+      }
+
+      try {
+        setLoadingSnapshots(true);
+        const snapshots = await playerPoolSnapshotService.getByPoolId(selectedPoolId);
+        setPoolSnapshots(snapshots);
+      } catch (error) {
+        console.error('Error loading snapshots:', error);
+      } finally {
+        setLoadingSnapshots(false);
+      }
+    };
+    loadSnapshots();
+  }, [selectedPoolId]);
 
   const loadSquads = async () => {
     if (!selectedLeagueId) return;
@@ -1448,6 +1489,7 @@ const AdminPage: React.FC = () => {
               <Tab label="Transfer Management" />
               <Tab label="System Settings" />
               <Tab label="Transfer Investigation" />
+              <Tab label="Player Pool History" />
             </Tabs>
           </Box>
 
@@ -2540,6 +2582,114 @@ const AdminPage: React.FC = () => {
                 </Box>
               );
             })()}
+          </TabPanel>
+
+          {/* Player Pool History Tab */}
+          <TabPanel value={tabValue} index={3}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3 }}>
+              📊 Player Pool Update History
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              View the complete history of player pool updates with point changes for each player.
+            </Typography>
+
+            {/* Player Pool Selector */}
+            <Box sx={{ mb: 3 }}>
+              <FormControl fullWidth>
+                <InputLabel>Select Player Pool</InputLabel>
+                <Select
+                  value={selectedPoolId}
+                  onChange={(e) => setSelectedPoolId(e.target.value)}
+                  label="Select Player Pool"
+                >
+                  {playerPools.map((pool) => (
+                    <MenuItem key={pool.id} value={pool.id}>
+                      {pool.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Loading State */}
+            {loadingSnapshots && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                <CircularProgress />
+              </Box>
+            )}
+
+            {/* Snapshots Display */}
+            {!loadingSnapshots && selectedPoolId && poolSnapshots.length === 0 && (
+              <Alert severity="info">
+                No update history found for this player pool yet. Snapshots are created automatically when you update player points.
+              </Alert>
+            )}
+
+            {!loadingSnapshots && poolSnapshots.length > 0 && (
+              <Box>
+                {poolSnapshots.map((snapshot, index) => (
+                  <Card key={snapshot.id} sx={{ mb: 3 }}>
+                    <CardContent>
+                      {/* Snapshot Header */}
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                          {snapshot.updateMessage || `Update ${poolSnapshots.length - index}`}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {new Date(snapshot.snapshotDate).toLocaleString()}
+                        </Typography>
+                      </Box>
+
+                      {/* Point Changes */}
+                      {snapshot.changes && snapshot.changes.length > 0 ? (
+                        <TableContainer>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell><strong>Player</strong></TableCell>
+                                <TableCell><strong>Team</strong></TableCell>
+                                <TableCell align="right"><strong>Previous</strong></TableCell>
+                                <TableCell align="right"><strong>New</strong></TableCell>
+                                <TableCell align="right"><strong>Change</strong></TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {snapshot.changes.map((change) => (
+                                <TableRow key={change.playerId}>
+                                  <TableCell>{change.name}</TableCell>
+                                  <TableCell>
+                                    {snapshot.players.find(p => p.playerId === change.playerId)?.team || '-'}
+                                  </TableCell>
+                                  <TableCell align="right">{change.previousPoints}</TableCell>
+                                  <TableCell align="right">{change.newPoints}</TableCell>
+                                  <TableCell align="right">
+                                    <Chip
+                                      label={change.delta > 0 ? `+${change.delta}` : change.delta}
+                                      color={change.delta > 0 ? 'success' : change.delta < 0 ? 'error' : 'default'}
+                                      size="small"
+                                    />
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          No point changes in this update (or first snapshot).
+                        </Typography>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </Box>
+            )}
+
+            {!selectedPoolId && (
+              <Alert severity="info">
+                Please select a player pool to view its update history.
+              </Alert>
+            )}
           </TabPanel>
         </Card>
       </Container>
