@@ -2620,8 +2620,38 @@ const AdminPage: React.FC = () => {
 
             {/* Snapshots Display */}
             {!loadingSnapshots && selectedPoolId && poolSnapshots.length === 0 && (
-              <Alert severity="info">
-                No update history found for this player pool yet. Snapshots are created automatically when you update player points.
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <Box>
+                  <Typography variant="body2" sx={{ mb: 2 }}>
+                    No update history found for this player pool yet. Snapshots are created automatically when you update player points.
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={async () => {
+                      try {
+                        setLoadingSnapshots(true);
+                        const selectedPool = playerPools.find(p => p.id === selectedPoolId);
+                        await playerPoolSnapshotService.create(
+                          selectedPoolId,
+                          `Initial Baseline - ${selectedPool?.name || 'Unknown'}`,
+                          user?.uid
+                        );
+                        // Reload snapshots
+                        const snapshots = await playerPoolSnapshotService.getByPoolId(selectedPoolId);
+                        setPoolSnapshots(snapshots);
+                        setSuccessMessage('✅ Baseline snapshot created successfully!');
+                      } catch (error: any) {
+                        console.error('Error creating baseline snapshot:', error);
+                        setErrorMessage(error.message || 'Failed to create baseline snapshot');
+                      } finally {
+                        setLoadingSnapshots(false);
+                      }
+                    }}
+                  >
+                    Create Baseline Snapshot Now
+                  </Button>
+                </Box>
               </Alert>
             )}
 

@@ -35,6 +35,16 @@ service cloud.firestore {
              get(/databases/$(database)/documents/leagues/$(leagueId)).data.tournamentStarted == true;
     }
 
+    function areFlexibleChangesEnabled(leagueId) {
+      return exists(/databases/$(database)/documents/leagues/$(leagueId)) &&
+             get(/databases/$(database)/documents/leagues/$(leagueId)).data.flexibleChangesEnabled == true;
+    }
+
+    function areBenchChangesEnabled(leagueId) {
+      return exists(/databases/$(database)/documents/leagues/$(leagueId)) &&
+             get(/databases/$(database)/documents/leagues/$(leagueId)).data.benchChangesEnabled == true;
+    }
+
     // Users collection
     match /users/{userId} {
       allow read: if isAuthenticated();
@@ -59,17 +69,22 @@ service cloud.firestore {
     match /squads/{squadId} {
       // Users can read their own squad
       // Users can read other squads only if tournament has started
-      allow read: if isAuthenticated() && 
-                     (resource.data.userId == request.auth.uid || 
-                      isTournamentStarted(resource.data.leagueId));
+      // League admins can read all squads in their league
+      allow read: if isAuthenticated() &&
+                     (resource.data.userId == request.auth.uid ||
+                      isTournamentStarted(resource.data.leagueId) ||
+                      isLeagueAdmin(resource.data.leagueId));
       
       // Users can create/update their own squad (if not submitted and tournament not started)
       allow create: if isAuthenticated() && 
                        request.resource.data.userId == request.auth.uid;
       
-      allow update: if isAuthenticated() && 
+      allow update: if isAuthenticated() &&
                        (resource.data.userId == request.auth.uid || isLeagueAdmin(resource.data.leagueId)) &&
-                       (!resource.data.isSubmitted || isLeagueAdmin(resource.data.leagueId));
+                       (!resource.data.isSubmitted ||
+                        isLeagueAdmin(resource.data.leagueId) ||
+                        areFlexibleChangesEnabled(resource.data.leagueId) ||
+                        areBenchChangesEnabled(resource.data.leagueId));
       
       allow delete: if isLeagueAdmin(resource.data.leagueId);
     }
@@ -124,6 +139,24 @@ service cloud.firestore {
       allow create: if isAdmin();
       allow update: if isAdmin();
       allow delete: if isAdmin();
+    }
+
+    // Player Pool Snapshots collection
+    match /playerPoolSnapshots/{snapshotId} {
+      // All authenticated users can read player pool snapshots
+      allow read: if isAuthenticated();
+      // Only admins can create or delete snapshots
+      allow create: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Leaderboard Snapshots collection
+    match /leaderboardSnapshots/{snapshotId} {
+      // All authenticated users can read leaderboard snapshots
+      allow read: if isAuthenticated();
+      // Only league admins can create or delete snapshots
+      allow create: if isAuthenticated();
+      allow delete: if isAuthenticated();
     }
 
     // Deny all other reads/writes
