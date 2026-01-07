@@ -59,6 +59,7 @@ const EditLeaguePage: React.FC = () => {
     startDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
     endDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000),
     powerplayEnabled: true,
+    maxPowerplayMatches: 20,
   });
 
   const availableTournaments = [
@@ -151,6 +152,7 @@ const EditLeaguePage: React.FC = () => {
           startDate: new Date(leagueData.startDate),
           endDate: new Date(leagueData.endDate),
           powerplayEnabled: leagueData.powerplayEnabled || false,
+          maxPowerplayMatches: leagueData.maxPowerplayMatches || 20,
         });
 
         setSelectedPlayerPoolId(leagueData.playerPoolId || '');
@@ -212,6 +214,7 @@ const EditLeaguePage: React.FC = () => {
         playerPoolId: selectedPlayerPoolId || undefined,
         squadRules,
         powerplayEnabled: leagueData.powerplayEnabled,
+        maxPowerplayMatches: leagueData.maxPowerplayMatches,
         transferTypes,
         flexibleChangesEnabled,
         benchChangesEnabled,
@@ -391,6 +394,20 @@ const EditLeaguePage: React.FC = () => {
                   label="Enable Powerplay Matches"
                 />
               </Grid>
+
+              {leagueData.powerplayEnabled && (
+                <Grid size={12}>
+                  <TextField
+                    label="Number of Matches for Powerplay"
+                    type="number"
+                    value={leagueData.maxPowerplayMatches}
+                    onChange={(e) => setLeagueData(prev => ({ ...prev, maxPowerplayMatches: parseInt(e.target.value) || 20 }))}
+                    fullWidth
+                    inputProps={{ min: 1, max: 100 }}
+                    helperText="Users can select from Match 1 to this number as their powerplay match"
+                  />
+                </Grid>
+              )}
             </Grid>
           </CardContent>
         </Card>

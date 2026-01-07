@@ -38,6 +38,7 @@ export interface League {
   format: 'T20' | 'ODI' | 'Test';
   maxParticipants: number;
   powerplayEnabled: boolean; // NEW: Powerplay feature toggle
+  maxPowerplayMatches?: number; // Number of matches for powerplay dropdown (default 20)
 
   // Squad Selection Settings
   squadSize: number; // default 11
@@ -156,11 +157,14 @@ export interface LeagueSquad {
   transferHistory: TransferHistoryEntry[];
   bankedPoints: number; // Points accumulated from removed players or role changes
 
+  // Powerplay
+  powerplayMatchNumber?: number; // Selected match number for powerplay bonus
+
   // Predictions
   predictions?: {
     topRunScorer?: string; // Player name prediction for top run scorer
     topWicketTaker?: string; // Player name prediction for top wicket taker
-    seriesScoreline?: string; // Predicted series scoreline (e.g., "3-1", "2-2")
+    winningTeam?: string; // Predicted winning team
   };
 
   // Squad Validation

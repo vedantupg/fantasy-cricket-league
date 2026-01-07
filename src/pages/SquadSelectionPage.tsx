@@ -64,7 +64,7 @@ const SquadSelectionPage: React.FC = () => {
   // Predictions state
   const [topRunScorer, setTopRunScorer] = useState('');
   const [topWicketTaker, setTopWicketTaker] = useState('');
-  const [seriesScoreline, setSeriesScoreline] = useState('');
+  const [winningTeam, setWinningTeam] = useState('');
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -187,11 +187,11 @@ const SquadSelectionPage: React.FC = () => {
     if (existingSquad.predictions) {
       setTopRunScorer(existingSquad.predictions.topRunScorer || '');
       setTopWicketTaker(existingSquad.predictions.topWicketTaker || '');
-      setSeriesScoreline(existingSquad.predictions.seriesScoreline || '');
+      setWinningTeam(existingSquad.predictions.winningTeam || '');
       console.log('Predictions loaded:', {
         topRunScorer: existingSquad.predictions.topRunScorer,
         topWicketTaker: existingSquad.predictions.topWicketTaker,
-        seriesScoreline: existingSquad.predictions.seriesScoreline
+        winningTeam: existingSquad.predictions.winningTeam
       });
     } else {
       console.log('No predictions found in existing squad');
@@ -275,7 +275,7 @@ const SquadSelectionPage: React.FC = () => {
            viceCaptainId !== xFactorId &&
            topRunScorer.trim() !== '' &&
            topWicketTaker.trim() !== '' &&
-           seriesScoreline.trim() !== '';
+           winningTeam.trim() !== '';
   };
 
   const calculateSquadPoints = (
@@ -402,7 +402,7 @@ const SquadSelectionPage: React.FC = () => {
           predictions: {
             topRunScorer: topRunScorer.trim(),
             topWicketTaker: topWicketTaker.trim(),
-            seriesScoreline: seriesScoreline.trim(),
+            winningTeam: winningTeam.trim(),
           },
           isSubmitted: true,
           lastUpdated: new Date(),
@@ -438,7 +438,7 @@ const SquadSelectionPage: React.FC = () => {
           predictions: {
             topRunScorer: topRunScorer.trim(),
             topWicketTaker: topWicketTaker.trim(),
-            seriesScoreline: seriesScoreline.trim(),
+            winningTeam: winningTeam.trim(),
           },
           rank: 0,
           matchPoints: {},
@@ -1289,15 +1289,15 @@ const SquadSelectionPage: React.FC = () => {
                 }}
               />
               <Chip
-                label={`Predictions: ${topRunScorer && topWicketTaker && seriesScoreline ? 'Complete' : 'Incomplete'}`}
-                variant={topRunScorer && topWicketTaker && seriesScoreline ? 'filled' : 'outlined'}
+                label={`Predictions: ${topRunScorer && topWicketTaker && winningTeam ? 'Complete' : 'Incomplete'}`}
+                variant={topRunScorer && topWicketTaker && winningTeam ? 'filled' : 'outlined'}
                 sx={{
                   fontWeight: 600,
                   fontSize: { xs: '0.75rem', sm: '0.8125rem' },
                   height: { xs: 28, sm: 32 },
-                  bgcolor: topRunScorer && topWicketTaker && seriesScoreline ? alpha(theme.palette.secondary.main, 0.15) : 'transparent',
-                  borderColor: topRunScorer && topWicketTaker && seriesScoreline ? theme.palette.secondary.main : alpha(theme.palette.text.secondary, 0.3),
-                  color: topRunScorer && topWicketTaker && seriesScoreline ? theme.palette.secondary.main : 'text.secondary'
+                  bgcolor: topRunScorer && topWicketTaker && winningTeam ? alpha(theme.palette.secondary.main, 0.15) : 'transparent',
+                  borderColor: topRunScorer && topWicketTaker && winningTeam ? theme.palette.secondary.main : alpha(theme.palette.text.secondary, 0.3),
+                  color: topRunScorer && topWicketTaker && winningTeam ? theme.palette.secondary.main : 'text.secondary'
                 }}
               />
             </Box>
@@ -1314,7 +1314,7 @@ const SquadSelectionPage: React.FC = () => {
               onUpdatePosition={updatePlayerPosition}
               powerplayMatch={powerplayMatch}
               setPowerplayMatch={setPowerplayMatch}
-              powerplayMatches={[]}
+              maxPowerplayMatches={league.maxPowerplayMatches || 20}
               captainId={captainId}
               viceCaptainId={viceCaptainId}
               xFactorId={xFactorId}
@@ -1393,16 +1393,16 @@ const SquadSelectionPage: React.FC = () => {
                 <TextField
                   fullWidth
                   required
-                  label="Series Scoreline"
-                  placeholder="e.g., 3-1 or 2-2"
-                  value={seriesScoreline}
-                  onChange={(e) => setSeriesScoreline(e.target.value)}
+                  label="Winning Team Prediction"
+                  placeholder="e.g., India or Australia"
+                  value={winningTeam}
+                  onChange={(e) => setWinningTeam(e.target.value)}
                   variant="outlined"
                   size="small"
-                  error={seriesScoreline.trim() === ''}
-                  helperText={seriesScoreline.trim() === '' ? 'Required' : ''}
+                  error={winningTeam.trim() === ''}
+                  helperText={winningTeam.trim() === '' ? 'Required' : ''}
                   InputProps={{
-                    startAdornment: <Box sx={{ mr: 1, color: 'success.main' }}>📊</Box>
+                    startAdornment: <Box sx={{ mr: 1, color: 'success.main' }}>🏆</Box>
                   }}
                 />
               </Grid>
@@ -1442,7 +1442,7 @@ const CricketPitchFormation: React.FC<{
   onUpdatePosition: (playerId: string, position: 'regular' | 'bench') => void;
   powerplayMatch: string;
   setPowerplayMatch: (match: string) => void;
-  powerplayMatches: any[];
+  maxPowerplayMatches: number;
   captainId: string | null;
   viceCaptainId: string | null;
   xFactorId: string | null;
@@ -1450,7 +1450,7 @@ const CricketPitchFormation: React.FC<{
   existingSquad: LeagueSquad | null;
   calculatePlayerContribution: (player: SquadPlayer, role: 'captain' | 'viceCaptain' | 'xFactor' | 'regular') => number;
   readOnly: boolean;
-}> = ({ league, selectedPlayers, onRemovePlayer, onUpdatePosition, powerplayMatch, setPowerplayMatch, powerplayMatches, captainId, viceCaptainId, xFactorId, onSetSpecialRole, existingSquad, calculatePlayerContribution, readOnly }) => {
+}> = ({ league, selectedPlayers, onRemovePlayer, onUpdatePosition, powerplayMatch, setPowerplayMatch, maxPowerplayMatches, captainId, viceCaptainId, xFactorId, onSetSpecialRole, existingSquad, calculatePlayerContribution, readOnly }) => {
 
   // Helper function to get player points for display
   const getPlayerPointsDisplay = (player: SelectedPlayer, slotType: 'required' | 'flexible' | 'bench') => {
@@ -1822,9 +1822,9 @@ const CricketPitchFormation: React.FC<{
                 onChange={(e) => setPowerplayMatch(e.target.value)}
                 sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}
               >
-                {powerplayMatches.map((match) => (
-                  <MenuItem key={match.id} value={match.id} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
-                    {match.name} - {match.date}
+                {Array.from({ length: maxPowerplayMatches }, (_, i) => i + 1).map((matchNumber) => (
+                  <MenuItem key={matchNumber} value={matchNumber.toString()} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
+                    Match {matchNumber}
                   </MenuItem>
                 ))}
               </Select>
