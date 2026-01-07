@@ -223,13 +223,19 @@ const PlayerPoolManagementPage: React.FC = () => {
 
                     // Directly update the entire players array in Firestore
                     // This handles both adding new players and updating existing ones
-                    await playerPoolService.update(poolToUpdate.id, {
+                    const updateData: any = {
                       players: poolToUpdate.players,
-                      lastUpdateMessage: poolToUpdate.lastUpdateMessage,
                       battingConfig: poolToUpdate.battingConfig,
                       bowlingConfig: poolToUpdate.bowlingConfig,
                       updatedAt: new Date()
-                    });
+                    };
+
+                    // Only include lastUpdateMessage if it's defined (Firestore doesn't allow undefined)
+                    if (poolToUpdate.lastUpdateMessage !== undefined) {
+                      updateData.lastUpdateMessage = poolToUpdate.lastUpdateMessage;
+                    }
+
+                    await playerPoolService.update(poolToUpdate.id, updateData);
 
                     console.log('✅ Player pool updated in Firestore successfully');
 
