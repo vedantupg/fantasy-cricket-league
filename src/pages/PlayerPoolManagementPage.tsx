@@ -582,34 +582,30 @@ const PlayerPoolDetails: React.FC<{
                     </TableCell>
                     <TableCell align="center">
                       <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-                        {/* Show batting button for batsmen, allrounders, and wicketkeepers */}
-                        {(player.role === 'batsman' || player.role === 'allrounder' || player.role === 'wicketkeeper') && (
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => {
-                              setSelectedPlayerForPerformance(player);
-                              setAddInningsDialogOpen(true);
-                            }}
-                            title="Add Innings"
-                          >
-                            <SportsBaseball />
-                          </IconButton>
-                        )}
-                        {/* Show bowling button for bowlers and allrounders */}
-                        {(player.role === 'bowler' || player.role === 'allrounder') && (
-                          <IconButton
-                            size="small"
-                            color="secondary"
-                            onClick={() => {
-                              setSelectedPlayerForPerformance(player);
-                              setAddSpellDialogOpen(true);
-                            }}
-                            title="Add Spell"
-                          >
-                            <Speed />
-                          </IconButton>
-                        )}
+                        {/* Show batting button for all players */}
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => {
+                            setSelectedPlayerForPerformance(player);
+                            setAddInningsDialogOpen(true);
+                          }}
+                          title="Add Innings"
+                        >
+                          <SportsCricket />
+                        </IconButton>
+                        {/* Show bowling button for all players */}
+                        <IconButton
+                          size="small"
+                          color="secondary"
+                          onClick={() => {
+                            setSelectedPlayerForPerformance(player);
+                            setAddSpellDialogOpen(true);
+                          }}
+                          title="Add Spell"
+                        >
+                          <SportsBaseball />
+                        </IconButton>
                       </Box>
                     </TableCell>
                     {editMode && (
