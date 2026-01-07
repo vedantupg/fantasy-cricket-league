@@ -201,24 +201,37 @@ const PlayerPoolManagementPage: React.FC = () => {
           <Grid size={{ xs: 12, md: 8 }}>
             {selectedPool ? (
               <PlayerPoolDetails
-                pool={selectedPool}
+                pool={{
+                  ...selectedPool,
+                  // Ensure configs exist for backward compatibility
+                  battingConfig: selectedPool.battingConfig || DEFAULT_BATTING_CONFIG,
+                  bowlingConfig: selectedPool.bowlingConfig || DEFAULT_BOWLING_CONFIG,
+                }}
                 onUpdate={async (updatedPool) => {
                   try {
                     // Ensure players is an array
                     const poolToUpdate = {
                       ...updatedPool,
-                      players: updatedPool.players || []
+                      players: updatedPool.players || [],
+                      // Ensure configs exist (for backward compatibility with old pools)
+                      battingConfig: updatedPool.battingConfig || DEFAULT_BATTING_CONFIG,
+                      bowlingConfig: updatedPool.bowlingConfig || DEFAULT_BOWLING_CONFIG,
                     };
 
                     console.log('Updating player pool with', poolToUpdate.players.length, 'players...');
+                    console.log('Players array:', JSON.stringify(poolToUpdate.players, null, 2));
 
                     // Directly update the entire players array in Firestore
                     // This handles both adding new players and updating existing ones
                     await playerPoolService.update(poolToUpdate.id, {
                       players: poolToUpdate.players,
                       lastUpdateMessage: poolToUpdate.lastUpdateMessage,
+                      battingConfig: poolToUpdate.battingConfig,
+                      bowlingConfig: poolToUpdate.bowlingConfig,
                       updatedAt: new Date()
                     });
+
+                    console.log('✅ Player pool updated in Firestore successfully');
 
                     // Create a snapshot to track point changes
                     try {
@@ -246,9 +259,10 @@ const PlayerPoolManagementPage: React.FC = () => {
 
                     setSnackbarMessage('Player pool updated and all leaderboards recalculated!');
                     setSnackbarOpen(true);
-                  } catch (error) {
+                  } catch (error: any) {
                     console.error('Error updating player pool:', error);
-                    setSnackbarMessage('Failed to update player pool');
+                    console.error('Error details:', error?.message, error?.code);
+                    setSnackbarMessage(`Failed to update player pool: ${error?.message || 'Unknown error'}`);
                     setSnackbarOpen(true);
                   }
                 }}
