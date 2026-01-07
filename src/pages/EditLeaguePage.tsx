@@ -76,6 +76,8 @@ const EditLeaguePage: React.FC = () => {
     minBowlers: 3,
     minAllrounders: 2,
     minWicketkeepers: 1,
+    overseasPlayersEnabled: false,
+    maxOverseasPlayers: 4,
     hasBudget: false,
     totalBudget: 100,
   });
@@ -466,6 +468,33 @@ const EditLeaguePage: React.FC = () => {
                   onChange={(e) => setSquadRules(prev => ({ ...prev, minWicketkeepers: parseInt(e.target.value) }))}
                   inputProps={{ min: 0, max: 3 }}
                 />
+              </Grid>
+
+              {/* Overseas Players Constraint */}
+              <Grid size={12}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={squadRules.overseasPlayersEnabled || false}
+                      onChange={(e) => setSquadRules(prev => ({ ...prev, overseasPlayersEnabled: e.target.checked }))}
+                    />
+                  }
+                  label="Enable Overseas Player Limit"
+                />
+                {squadRules.overseasPlayersEnabled && (
+                  <Box sx={{ ml: 4, mt: 1 }}>
+                    <TextField
+                      type="number"
+                      label="Max Overseas Players"
+                      value={squadRules.maxOverseasPlayers || 4}
+                      onChange={(e) => setSquadRules(prev => ({ ...prev, maxOverseasPlayers: parseInt(e.target.value) }))}
+                      size="small"
+                      inputProps={{ min: 1, max: squadSize }}
+                      sx={{ width: 200 }}
+                      helperText={`Maximum number of overseas players allowed in squad (e.g., 4)`}
+                    />
+                  </Box>
+                )}
               </Grid>
             </Grid>
           </CardContent>

@@ -252,11 +252,21 @@ const SquadSelectionPage: React.FC = () => {
     const mainSquadCount = counts.batsman + counts.bowler + counts.allrounder + counts.wicketkeeper;
     const benchRequired = league.transferTypes?.benchTransfers?.enabled ? league.transferTypes.benchTransfers.benchSlots : 0;
 
+    // Check overseas player limit if enabled
+    let overseasValid = true;
+    if (league.squadRules.overseasPlayersEnabled) {
+      const mainSquadPlayers = selectedPlayers.filter(p => p.position !== 'bench');
+      const overseasCount = mainSquadPlayers.filter((p: any) => p.isOverseas).length;
+      const maxOverseas = league.squadRules.maxOverseasPlayers || 4;
+      overseasValid = overseasCount <= maxOverseas;
+    }
+
     return mainSquadCount === league.squadSize &&
            counts.batsman >= league.squadRules.minBatsmen &&
            counts.bowler >= league.squadRules.minBowlers &&
            counts.wicketkeeper >= league.squadRules.minWicketkeepers &&
            counts.bench >= benchRequired &&
+           overseasValid &&
            captainId !== null &&
            viceCaptainId !== null &&
            xFactorId !== null &&
@@ -759,6 +769,15 @@ const SquadSelectionPage: React.FC = () => {
         }
         if (roleCounts.wicketkeeper < league.squadRules.minWicketkeepers) {
           violations.push(`This transfer would leave you with only ${roleCounts.wicketkeeper} wicketkeeper${roleCounts.wicketkeeper !== 1 ? 's' : ''} (minimum ${league.squadRules.minWicketkeepers} required)`);
+        }
+
+        // Check overseas player limit if enabled
+        if (league.squadRules.overseasPlayersEnabled) {
+          const overseasCount = mainSquad.filter((p: any) => p.isOverseas).length;
+          const maxOverseas = league.squadRules.maxOverseasPlayers || 4;
+          if (overseasCount > maxOverseas) {
+            violations.push(`This transfer would give you ${overseasCount} overseas players (maximum ${maxOverseas} allowed)`);
+          }
         }
 
         if (violations.length > 0) {

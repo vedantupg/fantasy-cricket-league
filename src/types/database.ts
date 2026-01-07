@@ -86,6 +86,10 @@ export interface SquadRules {
   minAllrounders: number;
   minWicketkeepers: number;
 
+  // Overseas player constraints
+  overseasPlayersEnabled?: boolean; // Whether to enforce overseas player limits
+  maxOverseasPlayers?: number; // Maximum overseas players allowed (e.g., 4)
+
   // Budget rules
   hasBudget: boolean;
   totalBudget?: number;
@@ -225,6 +229,10 @@ export interface PlayerPool {
   // Players in this pool with their current points
   players: PlayerPoolEntry[];
 
+  // Scoring Configuration (REQUIRED for all new pools)
+  battingConfig: BattingConfig;
+  bowlingConfig: BowlingConfig;
+
   // Update Message (optional commit message for points updates)
   lastUpdateMessage?: string; // e.g., "Test 1 - Day 1"
 
@@ -234,14 +242,60 @@ export interface PlayerPool {
   isActive: boolean;
 }
 
+export interface BattingConfig {
+  minBallsThreshold: number; // Minimum balls for bonus calculation (e.g., 7)
+  bonusSRTrigger: number; // SR threshold for bonus (e.g., 150)
+  bonusSRBaseline: number; // SR baseline for calculation (e.g., 130)
+  bonusDivisor: number; // Divisor for bonus calculation (e.g., 200)
+  penaltiesEnabled: boolean; // Whether to apply penalties for poor SR
+  penaltySRThreshold?: number; // SR threshold for penalty (e.g., 120) - only if penalties enabled
+}
+
+export interface BowlingConfig {
+  wicketPoints: number; // Points per wicket (e.g., 25)
+  economyBonusThreshold: number; // Economy threshold for bonus (e.g., 7)
+  economyMultiplier: number; // Multiplier for economy bonus (e.g., 5)
+  penaltiesEnabled: boolean; // Whether to apply penalties for poor economy
+  economyPenaltyThreshold?: number; // Economy threshold for penalty (e.g., 8) - only if penalties enabled
+  minOversForEconomy: number; // Minimum overs for economy calculation (e.g., 1)
+}
+
+export interface BattingInnings {
+  id: string;
+  matchId?: string;
+  matchLabel?: string; // e.g., "Test 1 - Day 1" or "Match 5"
+  runs: number;
+  ballsFaced: number;
+  pointsEarned: number; // Calculated points from this innings
+  date: Date;
+  addedBy?: string;
+}
+
+export interface BowlingSpell {
+  id: string;
+  matchId?: string;
+  matchLabel?: string;
+  overs: number;
+  runsConceded: number;
+  wickets: number;
+  pointsEarned: number; // Calculated points from this spell
+  date: Date;
+  addedBy?: string;
+}
+
 export interface PlayerPoolEntry {
   playerId: string;
   name: string;
   team: string;
   role: 'batsman' | 'bowler' | 'allrounder' | 'wicketkeeper';
   points: number; // Current fantasy points for this player
+  isOverseas: boolean; // Whether this player is an overseas player
   lastUpdated: Date;
   updatedBy?: string; // admin who last updated points
+
+  // Performance tracking for granular point calculation
+  battingInnings?: BattingInnings[];
+  bowlingSpells?: BowlingSpell[];
 }
 
 export interface PlayerPoolSnapshot {
