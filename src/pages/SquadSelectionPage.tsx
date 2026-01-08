@@ -265,12 +265,19 @@ const SquadSelectionPage: React.FC = () => {
       overseasValid = overseasCount <= maxOverseas;
     }
 
+    // Check powerplay match selection if powerplay is enabled
+    let powerplayValid = true;
+    if (league.powerplayEnabled) {
+      powerplayValid = powerplayMatch.trim() !== '';
+    }
+
     return mainSquadCount === league.squadSize &&
            counts.batsman >= league.squadRules.minBatsmen &&
            counts.bowler >= league.squadRules.minBowlers &&
            counts.wicketkeeper >= league.squadRules.minWicketkeepers &&
            counts.bench >= benchRequired &&
            overseasValid &&
+           powerplayValid &&
            captainId !== null &&
            viceCaptainId !== null &&
            xFactorId !== null &&
