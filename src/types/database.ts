@@ -165,6 +165,7 @@ export interface LeagueSquad {
     topRunScorer?: string; // Player name prediction for top run scorer
     topWicketTaker?: string; // Player name prediction for top wicket taker
     winningTeam?: string; // Predicted winning team
+    seriesScoreline?: string; // Legacy: Series scoreline prediction (for older leagues)
   };
 
   // Squad Validation

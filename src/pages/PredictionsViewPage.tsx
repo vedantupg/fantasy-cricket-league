@@ -254,7 +254,7 @@ const PredictionsViewPage: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <Chip
-                        label={squad.predictions?.winningTeam || 'N/A'}
+                        label={squad.predictions?.winningTeam || squad.predictions?.seriesScoreline || 'N/A'}
                         size="small"
                         color="success"
                         variant="outlined"
