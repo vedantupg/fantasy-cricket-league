@@ -23,6 +23,7 @@ import AdminPage from './pages/AdminPage';
 import PlayerPoolManagementPage from './pages/PlayerPoolManagementPage';
 import EditLeaguePage from './pages/EditLeaguePage';
 import LeagueRulesPage from './pages/LeagueRulesPage';
+import PredictionsViewPage from './pages/PredictionsViewPage';
 
 // Create Material-UI theme with Montserrat font
 const theme = createTheme({
@@ -178,6 +179,12 @@ function App() {
             <Route path="/admin/player-pools" element={
               <ProtectedRoute adminOnly={true}>
                 <PlayerPoolManagementPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/admin/predictions" element={
+              <ProtectedRoute adminOnly={true}>
+                <PredictionsViewPage />
               </ProtectedRoute>
             } />
 

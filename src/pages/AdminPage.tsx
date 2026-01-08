@@ -1456,25 +1456,43 @@ const AdminPage: React.FC = () => {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       {/* Header */}
-      <Box 
-        sx={{ 
-          p: 2, 
-          display: 'flex', 
+      <Box
+        sx={{
+          p: 2,
+          display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           borderBottom: '1px solid',
-          borderColor: 'divider'
+          borderColor: 'divider',
+          flexWrap: 'wrap',
+          gap: 2
         }}
       >
-        <Button
-          startIcon={<ArrowBack />}
-          onClick={() => navigate('/dashboard')}
-          sx={{ mr: 2 }}
-        >
-          Back to My Leagues
-        </Button>
-        <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-          Admin Panel
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Button
+            startIcon={<ArrowBack />}
+            onClick={() => navigate('/dashboard')}
+          >
+            Back to My Leagues
+          </Button>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+            Admin Panel
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            onClick={() => navigate('/admin/predictions')}
+          >
+            View Predictions
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => navigate('/admin/player-pools')}
+          >
+            Manage Player Pools
+          </Button>
+        </Box>
       </Box>
 
       <Container maxWidth="xl" sx={{ py: 4 }}>
