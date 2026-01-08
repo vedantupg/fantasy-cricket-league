@@ -1231,6 +1231,29 @@ const SquadSelectionPage: React.FC = () => {
                   bgcolor: alpha(theme.palette.primary.main, 0.05)
                 }}
               />
+              {league?.squadRules?.overseasPlayersEnabled && (
+                <Chip
+                  label={`Overseas: ${selectedPlayers.filter(p => p.position !== 'bench' && p.isOverseas).length}/${league.squadRules.maxOverseasPlayers || 4}`}
+                  variant="outlined"
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                    height: { xs: 28, sm: 32 },
+                    borderColor: selectedPlayers.filter(p => p.position !== 'bench' && p.isOverseas).length > (league.squadRules.maxOverseasPlayers || 4)
+                      ? theme.palette.error.main
+                      : theme.palette.info.main,
+                    color: selectedPlayers.filter(p => p.position !== 'bench' && p.isOverseas).length > (league.squadRules.maxOverseasPlayers || 4)
+                      ? theme.palette.error.main
+                      : 'text.primary',
+                    bgcolor: alpha(
+                      selectedPlayers.filter(p => p.position !== 'bench' && p.isOverseas).length > (league.squadRules.maxOverseasPlayers || 4)
+                        ? theme.palette.error.main
+                        : theme.palette.info.main,
+                      0.05
+                    )
+                  }}
+                />
+              )}
               {league?.transferTypes?.benchTransfers?.enabled && (
                 <Chip
                   label={
