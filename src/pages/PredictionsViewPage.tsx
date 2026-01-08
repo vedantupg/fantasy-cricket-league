@@ -335,7 +335,7 @@ const PredictionsViewPage: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" fontWeight="bold" color="text.primary">
-                        {squad.totalPoints.toFixed(2)}
+                        {((squad.totalPoints || 0) + (squad.predictionBonusPoints || 0)).toFixed(2)}
                       </Typography>
                     </TableCell>
                   </TableRow>

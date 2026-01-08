@@ -2365,7 +2365,7 @@ const AdminPage: React.FC = () => {
                       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
                         <Box>
                           <Typography variant="caption" color="text.secondary">Total Points</Typography>
-                          <Typography variant="h6">{squad.totalPoints?.toFixed(2) || 0}</Typography>
+                          <Typography variant="h6">{((squad.totalPoints || 0) + (squad.predictionBonusPoints || 0)).toFixed(2)}</Typography>
                         </Box>
                         <Box>
                           <Typography variant="caption" color="text.secondary">Banked Points</Typography>

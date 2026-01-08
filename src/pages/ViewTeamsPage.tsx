@@ -316,7 +316,7 @@ const ViewTeamsPage: React.FC = () => {
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap'
                           }}>
-                            {squad.user?.displayName} • Rank #{squad.rank || index + 1} • {squad.totalPoints} points
+                            {squad.user?.displayName} • Rank #{squad.rank || index + 1} • {(squad.totalPoints || 0) + (squad.predictionBonusPoints || 0)} points
                           </Typography>
                         </Box>
                         {squad.isSubmitted && (
