@@ -391,15 +391,44 @@ const PlayerPoolDetails: React.FC<{
   const [addSpellDialogOpen, setAddSpellDialogOpen] = useState(false);
   const [selectedPlayerForPerformance, setSelectedPlayerForPerformance] = useState<PlayerPoolEntry | null>(null);
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
+  const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+
 
   // Sync editedPlayers when pool changes
   useEffect(() => {
     const playersArray = getPlayersArray(pool.players);
     setEditedPlayers(playersArray);
     setUpdateMessage(pool.lastUpdateMessage || '');
+
+    // Initialize all teams as expanded
+    const teams = new Set(playersArray.map(p => p.team));
+    setExpandedTeams(teams);
   }, [pool]);
+
+  // Group players by team
+  const groupPlayersByTeam = () => {
+    const grouped: { [team: string]: PlayerPoolEntry[] } = {};
+    editedPlayers.forEach(player => {
+      if (!grouped[player.team]) {
+        grouped[player.team] = [];
+      }
+      grouped[player.team].push(player);
+    });
+    return grouped;
+  };
+
+  // Toggle team expand/collapse
+  const toggleTeam = (team: string) => {
+    const newExpanded = new Set(expandedTeams);
+    if (newExpanded.has(team)) {
+      newExpanded.delete(team);
+    } else {
+      newExpanded.add(team);
+    }
+    setExpandedTeams(newExpanded);
+  };
 
   const handleSavePoints = () => {
     const updatedPool = {
@@ -545,9 +574,32 @@ const PlayerPoolDetails: React.FC<{
                   </TableCell>
                 </TableRow>
               ) : (
-                editedPlayers.map((player) => (
-                  <React.Fragment key={player.playerId}>
-                    <TableRow>
+                Object.entries(groupPlayersByTeam()).map(([team, teamPlayers]) => (
+                  <React.Fragment key={team}>
+                    {/* Team Header Row */}
+                    <TableRow sx={{ bgcolor: 'action.hover' }}>
+                      <TableCell colSpan={editMode ? 8 : 7}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <IconButton size="small" onClick={() => toggleTeam(team)}>
+                            {expandedTeams.has(team) ? <ExpandLess /> : <ExpandMore />}
+                          </IconButton>
+                          <Typography variant="subtitle1" fontWeight="bold">
+                            {team}
+                          </Typography>
+                          <Chip
+                            label={`${teamPlayers.length} player${teamPlayers.length !== 1 ? 's' : ''}`}
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                          />
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+
+                    {/* Team Players - Only show when team is expanded */}
+                    {expandedTeams.has(team) && teamPlayers.map((player) => (
+                      <React.Fragment key={player.playerId}>
+                        <TableRow>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           {/* Expand/Collapse button for performance history */}
@@ -745,6 +797,8 @@ const PlayerPoolDetails: React.FC<{
                       </Collapse>
                     </TableCell>
                   </TableRow>
+                      </React.Fragment>
+                    ))}
                   </React.Fragment>
                 ))
               )}
