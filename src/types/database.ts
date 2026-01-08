@@ -143,6 +143,7 @@ export interface LeagueSquad {
   captainPoints: number; // Points contributed by captain
   viceCaptainPoints: number; // Points contributed by vice-captain
   xFactorPoints: number; // Points contributed by X-factor
+  predictionBonusPoints?: number; // Manual bonus points added by admin for correct predictions
   rank: number;
   previousRank?: number; // Rank from previous snapshot
   rankChange?: number; // Positive for improvement, negative for decline

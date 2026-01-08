@@ -20,8 +20,11 @@ import {
   Alert,
   Chip,
   Avatar,
+  TextField,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
-import { EmojiEvents, TrendingUp, Sports } from '@mui/icons-material';
+import { EmojiEvents, TrendingUp, Sports, Check } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { leagueService, squadService } from '../services/firestore';
@@ -35,6 +38,8 @@ const PredictionsViewPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [fetchingSquads, setFetchingSquads] = useState(false);
   const [error, setError] = useState('');
+  const [bonusPoints, setBonusPoints] = useState<{ [squadId: string]: string }>({});
+  const [updatingBonus, setUpdatingBonus] = useState<{ [squadId: string]: boolean }>({});
 
   const { user, userData } = useAuth();
   const navigate = useNavigate();
@@ -94,6 +99,42 @@ const PredictionsViewPage: React.FC = () => {
 
     fetchSquads();
   }, [selectedLeagueId]);
+
+  // Function to update prediction bonus points
+  const handleUpdateBonusPoints = async (squadId: string) => {
+    const points = parseInt(bonusPoints[squadId] || '0');
+
+    if (isNaN(points) || points < 0) {
+      setError('Please enter a valid number of points (0 or greater)');
+      return;
+    }
+
+    try {
+      setUpdatingBonus({ ...updatingBonus, [squadId]: true });
+      setError('');
+
+      await squadService.update(squadId, {
+        predictionBonusPoints: points,
+      });
+
+      // Update the local squads state
+      setSquads(squads.map(squad =>
+        squad.id === squadId
+          ? { ...squad, predictionBonusPoints: points }
+          : squad
+      ));
+
+      // Clear the input field
+      setBonusPoints({ ...bonusPoints, [squadId]: '' });
+
+      setError('');
+    } catch (err: any) {
+      console.error('Error updating bonus points:', err);
+      setError(err.message || 'Failed to update bonus points');
+    } finally {
+      setUpdatingBonus({ ...updatingBonus, [squadId]: false });
+    }
+  };
 
   if (!userData?.isAdmin) {
     return null;
@@ -208,6 +249,7 @@ const PredictionsViewPage: React.FC = () => {
                       Winning Team
                     </Box>
                   </TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Bonus Points</TableCell>
                   <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Total Points</TableCell>
                 </TableRow>
               </TableHead>
@@ -259,6 +301,37 @@ const PredictionsViewPage: React.FC = () => {
                         color="success"
                         variant="outlined"
                       />
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <TextField
+                          size="small"
+                          type="number"
+                          placeholder={squad.predictionBonusPoints ? `Current: ${squad.predictionBonusPoints}` : '0'}
+                          value={bonusPoints[squad.id] || ''}
+                          onChange={(e) => setBonusPoints({ ...bonusPoints, [squad.id]: e.target.value })}
+                          sx={{ width: 100 }}
+                          inputProps={{ min: 0, step: 10 }}
+                        />
+                        <Tooltip title="Add/Update Bonus Points">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => handleUpdateBonusPoints(squad.id)}
+                            disabled={updatingBonus[squad.id]}
+                          >
+                            {updatingBonus[squad.id] ? <CircularProgress size={20} /> : <Check />}
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                      {squad.predictionBonusPoints && squad.predictionBonusPoints > 0 && (
+                        <Chip
+                          label={`+${squad.predictionBonusPoints}`}
+                          size="small"
+                          color="info"
+                          sx={{ mt: 0.5 }}
+                        />
+                      )}
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" fontWeight="bold" color="text.primary">
