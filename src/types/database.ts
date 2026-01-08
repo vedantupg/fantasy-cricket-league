@@ -338,6 +338,7 @@ export interface Player {
   // Fantasy Relevance
   isActive: boolean;
   availability: 'available' | 'injured' | 'not_selected';
+  isOverseas?: boolean; // Whether this player is an overseas player
 
   // Pricing
   basePrice?: number;

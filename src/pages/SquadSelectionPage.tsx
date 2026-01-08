@@ -39,6 +39,7 @@ import { performAutoSlot } from '../utils/slotManagement';
 
 interface SelectedPlayer extends Player {
   position: 'regular' | 'bench';
+  isOverseas: boolean;
 }
 
 const SquadSelectionPage: React.FC = () => {
@@ -139,6 +140,7 @@ const SquadSelectionPage: React.FC = () => {
                 role: entry.role,
                 isActive: true,
                 availability: 'available' as const,
+                isOverseas: entry.isOverseas,
                 stats: {
                   T20: { matches: 0, runs: 0, wickets: 0, economy: 0, strikeRate: 0, catches: 0, recentForm: entry.points },
                   ODI: { matches: 0, runs: 0, wickets: 0, economy: 0, strikeRate: 0, catches: 0, recentForm: entry.points },
@@ -212,6 +214,7 @@ const SquadSelectionPage: React.FC = () => {
           role: squadPlayer.role,
           isActive: true,
           availability: 'available' as const,
+          isOverseas: false, // Default to false if player not found in pool
           stats: {
             T20: { matches: 0, runs: 0, wickets: 0, economy: 0, strikeRate: 0, catches: 0, recentForm: squadPlayer.points },
             ODI: { matches: 0, runs: 0, wickets: 0, economy: 0, strikeRate: 0, catches: 0, recentForm: squadPlayer.points },
@@ -228,6 +231,7 @@ const SquadSelectionPage: React.FC = () => {
 
       return {
         ...fullPlayer,
+        isOverseas: fullPlayer.isOverseas ?? false, // Ensure isOverseas is always a boolean
         position
       };
     });
@@ -1010,7 +1014,7 @@ const SquadSelectionPage: React.FC = () => {
       }
 
       // All validations passed, add the player
-      const newPlayer: SelectedPlayer = { ...player, position: targetPosition };
+      const newPlayer: SelectedPlayer = { ...player, isOverseas: player.isOverseas ?? false, position: targetPosition };
       console.log(`Adding player ${player.name} to ${targetPosition} position. Total main squad: ${currentMainSquad + (targetPosition === 'regular' ? 1 : 0)}/${league.squadSize}`);
       return [...prev, newPlayer];
     });
