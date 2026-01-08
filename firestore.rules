@@ -61,19 +61,27 @@ service cloud.firestore {
     match /leagues/{leagueId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
-      allow update: if isLeagueAdmin(leagueId);
+      // Allow league admins to update everything
+      // Allow authenticated users to join league (update participants array only)
+      allow update: if isLeagueAdmin(leagueId) ||
+                       (isAuthenticated() &&
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants']) &&
+                        request.auth.uid in request.resource.data.participants &&
+                        !(request.auth.uid in resource.data.participants));
       allow delete: if isLeagueAdmin(leagueId);
     }
 
     // Squads collection
     match /squads/{squadId} {
       // Users can read their own squad
-      // Users can read other squads only if tournament has started
+      // League participants can read submitted squads
+      // Users can read other squads if tournament has started
       // League admins can read all squads in their league
       allow read: if isAuthenticated() &&
                      (resource.data.userId == request.auth.uid ||
+                      isLeagueAdmin(resource.data.leagueId) ||
                       isTournamentStarted(resource.data.leagueId) ||
-                      isLeagueAdmin(resource.data.leagueId));
+                      (resource.data.isSubmitted && isLeagueParticipant(resource.data.leagueId)));
       
       // Users can create/update their own squad (if not submitted and tournament not started)
       allow create: if isAuthenticated() && 
