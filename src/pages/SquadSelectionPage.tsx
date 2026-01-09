@@ -497,6 +497,132 @@ const SquadSelectionPage: React.FC = () => {
     }
   };
 
+  const handleSaveDraft = async () => {
+    if (!user || !league || !leagueId) return;
+
+    // Require at least one player to save draft
+    if (selectedPlayers.length === 0) {
+      setSubmitError('Please select at least one player before saving draft');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setSubmitError('');
+
+      // Sort players: main squad first, then bench
+      const sortedPlayers = [
+        ...selectedPlayers.filter(p => p.position !== 'bench'),
+        ...selectedPlayers.filter(p => p.position === 'bench')
+      ];
+
+      // Convert selected players to SquadPlayer format
+      const squadPlayers: SquadPlayer[] = sortedPlayers.map(player => {
+        const squadPlayer = squadPlayerUtils.createInitialSquadPlayer({
+          playerId: player.id,
+          playerName: player.name,
+          team: player.team,
+          role: player.role,
+          points: player.stats[league.format].recentForm || 0,
+        });
+
+        // Set pointsWhenRoleAssigned for C/VC/X if assigned
+        if (player.id === captainId || player.id === viceCaptainId || player.id === xFactorId) {
+          squadPlayer.pointsWhenRoleAssigned = squadPlayer.points;
+        }
+
+        return squadPlayer;
+      });
+
+      // Calculate points (even if squad is incomplete)
+      const calculatedPoints = calculateSquadPoints(squadPlayers, captainId, viceCaptainId, xFactorId);
+
+      // Check if squad already exists
+      const existingSquad = await squadService.getByUserAndLeague(user.uid, leagueId);
+
+      if (existingSquad) {
+        // Update existing draft
+        await squadService.update(existingSquad.id, {
+          players: squadPlayers,
+          captainId: captainId || undefined,
+          viceCaptainId: viceCaptainId || undefined,
+          xFactorId: xFactorId || undefined,
+          totalPoints: calculatedPoints.totalPoints,
+          captainPoints: calculatedPoints.captainPoints,
+          viceCaptainPoints: calculatedPoints.viceCaptainPoints,
+          xFactorPoints: calculatedPoints.xFactorPoints,
+          predictions: {
+            topRunScorer: topRunScorer.trim(),
+            topWicketTaker: topWicketTaker.trim(),
+            winningTeam: winningTeam.trim(),
+          },
+          isSubmitted: false, // Keep as draft
+          lastUpdated: new Date(),
+        });
+
+        setExistingSquad({
+          ...existingSquad,
+          players: squadPlayers,
+          captainId: captainId || undefined,
+          viceCaptainId: viceCaptainId || undefined,
+          xFactorId: xFactorId || undefined,
+          totalPoints: calculatedPoints.totalPoints,
+          isSubmitted: false,
+        });
+
+        setSubmitError(''); // Clear any errors
+        alert('✅ Draft saved successfully! You can continue editing or submit when ready.');
+      } else {
+        // Create new draft
+        const squadData: any = {
+          userId: user.uid,
+          leagueId: leagueId,
+          squadName: user.displayName || 'User',
+          players: squadPlayers,
+          isSubmitted: false, // Save as draft
+          totalPoints: calculatedPoints.totalPoints,
+          captainPoints: calculatedPoints.captainPoints,
+          viceCaptainPoints: calculatedPoints.viceCaptainPoints,
+          xFactorPoints: calculatedPoints.xFactorPoints,
+          predictions: {
+            topRunScorer: topRunScorer.trim(),
+            topWicketTaker: topWicketTaker.trim(),
+            winningTeam: winningTeam.trim(),
+          },
+          rank: 0,
+          matchPoints: {},
+          transfersUsed: 0,
+          benchTransfersUsed: 0,
+          flexibleTransfersUsed: 0,
+          midSeasonTransfersUsed: 0,
+          transferHistory: [],
+          bankedPoints: 0,
+          isValid: false, // Draft may not be valid yet
+          validationErrors: [],
+          captainId: captainId || undefined,
+          viceCaptainId: viceCaptainId || undefined,
+          xFactorId: xFactorId || undefined,
+        };
+
+        const squadId = await squadService.create(squadData);
+
+        setExistingSquad({
+          ...squadData,
+          id: squadId,
+          createdAt: new Date()
+        });
+
+        setSubmitError(''); // Clear any errors
+        alert('✅ Draft saved successfully! You can continue editing or submit when ready.');
+      }
+    } catch (error: any) {
+      console.error('Error saving draft:', error);
+      setSubmitError(error.message || 'Failed to save draft');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Helper function to calculate a player's current contribution (including role multiplier)
   const calculatePlayerContribution = (
     player: SquadPlayer,
@@ -1129,16 +1255,27 @@ const SquadSelectionPage: React.FC = () => {
           Make Transfer
         </Button>
       ) : (
-        <Button
-          variant="contained"
-          color={isDeadlinePassed ? "inherit" : "success"}
-          disabled={!isSquadValid() || submitting || isDeadlinePassed}
-          startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <Star />}
-          onClick={handleSubmitSquad}
-          sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1.5, sm: 2 }, py: { xs: 0.5, sm: 1 } }}
-        >
-          {getSubmitButtonText()}
-        </Button>
+        <Box display="flex" gap={1}>
+          <Button
+            variant="outlined"
+            color="primary"
+            disabled={selectedPlayers.length === 0 || submitting || isDeadlinePassed}
+            onClick={handleSaveDraft}
+            sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1.5, sm: 2 }, py: { xs: 0.5, sm: 1 } }}
+          >
+            Save Draft
+          </Button>
+          <Button
+            variant="contained"
+            color={isDeadlinePassed ? "inherit" : "success"}
+            disabled={!isSquadValid() || submitting || isDeadlinePassed}
+            startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <Star />}
+            onClick={handleSubmitSquad}
+            sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1.5, sm: 2 }, py: { xs: 0.5, sm: 1 } }}
+          >
+            {getSubmitButtonText()}
+          </Button>
+        </Box>
       )}
     </Box>
   );
@@ -1226,9 +1363,19 @@ const SquadSelectionPage: React.FC = () => {
           boxShadow: `0 4px 16px ${alpha('#000', 0.3)}`
         }}>
           <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', fontSize: { xs: '0.95rem', sm: '1.1rem', md: '1.25rem' }, mb: 2 }}>
-              Squad Summary
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: { xs: '0.95rem', sm: '1.1rem', md: '1.25rem' } }}>
+                Squad Summary
+              </Typography>
+              {existingSquad && (
+                <Chip
+                  label={existingSquad.isSubmitted ? "Submitted" : "Draft"}
+                  color={existingSquad.isSubmitted ? "success" : "warning"}
+                  size="small"
+                  sx={{ fontWeight: 'bold' }}
+                />
+              )}
+            </Box>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 1, sm: 1.5 } }}>
               <Chip
                 label={`Players: ${selectedPlayers.filter(p => p.position !== 'bench').length}/${league?.squadSize || 0}`}
