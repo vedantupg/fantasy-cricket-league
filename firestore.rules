@@ -45,6 +45,11 @@ service cloud.firestore {
              get(/databases/$(database)/documents/leagues/$(leagueId)).data.benchChangesEnabled == true;
     }
 
+    function isBeforeSquadDeadline(leagueId) {
+      return exists(/databases/$(database)/documents/leagues/$(leagueId)) &&
+             request.time < get(/databases/$(database)/documents/leagues/$(leagueId)).data.squadDeadline;
+    }
+
     // Users collection
     match /users/{userId} {
       allow read: if isAuthenticated();
@@ -74,14 +79,14 @@ service cloud.firestore {
     // Squads collection
     match /squads/{squadId} {
       // Users can read their own squad
-      // League participants can read submitted squads
+      // League participants can read ALL squads in their league
       // Users can read other squads if tournament has started
       // League admins can read all squads in their league
       allow read: if isAuthenticated() &&
                      (resource.data.userId == request.auth.uid ||
                       isLeagueAdmin(resource.data.leagueId) ||
                       isTournamentStarted(resource.data.leagueId) ||
-                      (resource.data.isSubmitted && isLeagueParticipant(resource.data.leagueId)));
+                      isLeagueParticipant(resource.data.leagueId));
       
       // Users can create/update their own squad (if not submitted and tournament not started)
       allow create: if isAuthenticated() && 
@@ -91,6 +96,7 @@ service cloud.firestore {
                        (resource.data.userId == request.auth.uid || isLeagueAdmin(resource.data.leagueId)) &&
                        (!resource.data.isSubmitted ||
                         isLeagueAdmin(resource.data.leagueId) ||
+                        isBeforeSquadDeadline(resource.data.leagueId) ||
                         areFlexibleChangesEnabled(resource.data.leagueId) ||
                         areBenchChangesEnabled(resource.data.leagueId));
       

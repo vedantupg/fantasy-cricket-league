@@ -326,13 +326,19 @@ export const transferService = {
   async getByLeague(leagueId: string): Promise<Transfer[]> {
     const q = query(
       collection(db, COLLECTIONS.TRANSFERS),
-      where('leagueId', '==', leagueId),
-      orderBy('requestedAt', 'desc')
+      where('leagueId', '==', leagueId)
+      // Note: Removed orderBy to avoid needing a composite index
+      // Sorting is done in-memory instead
     );
     const querySnapshot = await getDocs(q);
-    
-    return querySnapshot.docs.map(doc => 
+
+    const transfers = querySnapshot.docs.map(doc =>
       convertTimestamps({ id: doc.id, ...doc.data() }) as Transfer
+    );
+
+    // Sort in memory by requestedAt descending (newest first)
+    return transfers.sort((a, b) =>
+      new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
     );
   },
 

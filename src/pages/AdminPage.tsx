@@ -33,8 +33,8 @@ import {
   Undo,
   SwapHoriz
 } from '@mui/icons-material';
-import { leagueService, squadService, playerPoolService, playerPoolSnapshotService, leaderboardSnapshotService } from '../services/firestore';
-import type { League, LeagueSquad, LeaderboardSnapshot, PlayerPool, PlayerPoolSnapshot } from '../types/database';
+import { leagueService, squadService, playerPoolService, playerPoolSnapshotService, leaderboardSnapshotService, transferService } from '../services/firestore';
+import type { League, LeagueSquad, LeaderboardSnapshot, PlayerPool, PlayerPoolSnapshot, Transfer } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 
 interface TabPanelProps {
@@ -145,6 +145,13 @@ const AdminPage: React.FC = () => {
   const [poolSnapshots, setPoolSnapshots] = useState<PlayerPoolSnapshot[]>([]);
   const [loadingSnapshots, setLoadingSnapshots] = useState(false);
 
+  // Transfer History State
+  const [transferHistoryLeagueId, setTransferHistoryLeagueId] = useState<string>('');
+  const [transfers, setTransfers] = useState<any[]>([]); // TransferHistoryEntry with additional fields
+  const [loadingTransfers, setLoadingTransfers] = useState(false);
+  const [transferSnapshots, setTransferSnapshots] = useState<PlayerPoolSnapshot[]>([]);
+  const [playerNameMap, setPlayerNameMap] = useState<Map<string, string>>(new Map());
+
   // Load leagues on mount
   useEffect(() => {
     const loadLeagues = async () => {
@@ -201,6 +208,77 @@ const AdminPage: React.FC = () => {
     };
     loadSnapshots();
   }, [selectedPoolId]);
+
+  // Load transfers and snapshots for Transfer History tab
+  useEffect(() => {
+    const loadTransferHistory = async () => {
+      if (!transferHistoryLeagueId) {
+        setTransfers([]);
+        setTransferSnapshots([]);
+        setPlayerNameMap(new Map());
+        return;
+      }
+
+      try {
+        setLoadingTransfers(true);
+
+        // Fetch all squads for the league
+        console.log('🔍 DEBUG: Fetching squads for league:', transferHistoryLeagueId);
+        const leagueSquads = await squadService.getByLeague(transferHistoryLeagueId);
+        console.log('🔍 DEBUG: Found squads:', leagueSquads.length);
+
+        // Extract all transfer history entries from all squads
+        const allTransfers: any[] = [];
+        leagueSquads.forEach(squad => {
+          if (squad.transferHistory && squad.transferHistory.length > 0) {
+            // Add squad info to each transfer entry
+            squad.transferHistory.forEach(transfer => {
+              allTransfers.push({
+                ...transfer,
+                squadId: squad.id,
+                userId: squad.userId,
+                squadName: squad.squadName,
+              });
+            });
+          }
+        });
+
+        console.log('🔍 DEBUG: Found transfer history entries:', allTransfers.length, allTransfers);
+
+        // Sort by timestamp (newest first)
+        allTransfers.sort((a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+
+        setTransfers(allTransfers as any);
+
+        // Fetch the league to get player pool ID
+        const league = leagues.find(l => l.id === transferHistoryLeagueId);
+        if (league?.playerPoolId) {
+          // Fetch player pool snapshots for grouping
+          const snapshots = await playerPoolSnapshotService.getByPoolId(league.playerPoolId);
+          setTransferSnapshots(snapshots);
+
+          // Fetch player pool to map player IDs to names
+          const playerPool = await playerPoolService.getById(league.playerPoolId);
+          if (playerPool) {
+            const nameMap = new Map<string, string>();
+            playerPool.players.forEach(player => {
+              nameMap.set(player.playerId, player.name);
+            });
+            setPlayerNameMap(nameMap);
+            console.log('🔍 DEBUG: Created player name map with', nameMap.size, 'players');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading transfer history:', error);
+        setErrorMessage('Failed to load transfer history');
+      } finally {
+        setLoadingTransfers(false);
+      }
+    };
+    loadTransferHistory();
+  }, [transferHistoryLeagueId, leagues]);
 
   const loadSquads = async () => {
     if (!selectedLeagueId) return;
@@ -1508,6 +1586,7 @@ const AdminPage: React.FC = () => {
               <Tab label="System Settings" />
               <Tab label="Transfer Investigation" />
               <Tab label="Player Pool History" />
+              <Tab label="Squad Changes" />
             </Tabs>
           </Box>
 
@@ -2737,6 +2816,233 @@ const AdminPage: React.FC = () => {
               <Alert severity="info">
                 Please select a player pool to view its update history.
               </Alert>
+            )}
+          </TabPanel>
+
+          {/* Transfer History Tab */}
+          <TabPanel value={tabValue} index={4}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3 }}>
+              🔄 Squad Changes Timeline
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              View all squad changes (player swaps & role changes) from all users, grouped by player pool updates and sorted chronologically.
+            </Typography>
+
+            {/* League Selector */}
+            <Box sx={{ mb: 3 }}>
+              <FormControl fullWidth>
+                <InputLabel>Select League</InputLabel>
+                <Select
+                  value={transferHistoryLeagueId}
+                  onChange={(e) => setTransferHistoryLeagueId(e.target.value)}
+                  label="Select League"
+                >
+                  {leagues.map((league) => (
+                    <MenuItem key={league.id} value={league.id}>
+                      {league.name} - {league.tournamentName}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Loading State */}
+            {loadingTransfers && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                <CircularProgress />
+              </Box>
+            )}
+
+            {/* No League Selected */}
+            {!transferHistoryLeagueId && !loadingTransfers && (
+              <Alert severity="info">
+                Please select a league to view transfer history.
+              </Alert>
+            )}
+
+            {/* No Transfers Found */}
+            {!loadingTransfers && transferHistoryLeagueId && transfers.length === 0 && (
+              <Alert severity="info">
+                No squad changes found for this league yet. Squad changes will appear here when users make player swaps or role reassignments.
+              </Alert>
+            )}
+
+            {/* Transfer Timeline */}
+            {!loadingTransfers && transferHistoryLeagueId && transfers.length > 0 && (
+              <Box>
+                {(() => {
+                  // Group transfers by PlayerPool snapshot
+                  const groupedTransfers: Map<string, any[]> = new Map();
+
+                  // Sort snapshots by date (newest first)
+                  const sortedSnapshots = [...transferSnapshots].sort((a, b) =>
+                    new Date(b.snapshotDate).getTime() - new Date(a.snapshotDate).getTime()
+                  );
+
+                  // For each transfer, find which snapshot period it belongs to
+                  transfers.forEach(transfer => {
+                    const transferDate = new Date(transfer.timestamp);
+
+                    // Find the snapshot that this transfer was made after
+                    const snapshot = sortedSnapshots.find(s =>
+                      new Date(s.snapshotDate) <= transferDate
+                    );
+
+                    const key = snapshot?.id || 'before-snapshots';
+                    if (!groupedTransfers.has(key)) {
+                      groupedTransfers.set(key, []);
+                    }
+                    groupedTransfers.get(key)!.push(transfer);
+                  });
+
+                  return (
+                    <Box>
+                      {Array.from(groupedTransfers.entries()).map(([snapshotId, snapshotTransfers]) => {
+                        const snapshot = sortedSnapshots.find(s => s.id === snapshotId);
+
+                        return (
+                          <Card key={snapshotId} sx={{ mb: 3 }}>
+                            <CardContent>
+                              {/* Snapshot Header */}
+                              <Box sx={{ mb: 2, pb: 2, borderBottom: '2px solid', borderColor: 'primary.main' }}>
+                                <Typography variant="h6" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  📅 {snapshot?.updateMessage || 'Initial Transfers'}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  {snapshot
+                                    ? `Updated on: ${new Date(snapshot.snapshotDate).toLocaleString()}`
+                                    : 'Transfers before first player pool update'}
+                                </Typography>
+                                <Chip
+                                  label={`${snapshotTransfers.length} transfer${snapshotTransfers.length !== 1 ? 's' : ''}`}
+                                  size="small"
+                                  color="primary"
+                                  sx={{ mt: 1 }}
+                                />
+                              </Box>
+
+                              {/* Transfers Table */}
+                              <TableContainer>
+                                <Table size="small">
+                                  <TableHead>
+                                    <TableRow>
+                                      <TableCell><strong>User / Squad</strong></TableCell>
+                                      <TableCell><strong>Change Type</strong></TableCell>
+                                      <TableCell><strong>Transfer Type</strong></TableCell>
+                                      <TableCell><strong>Details</strong></TableCell>
+                                      <TableCell><strong>Timestamp</strong></TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {snapshotTransfers
+                                      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                                      .map((transfer, idx) => {
+                                        const timeSince = () => {
+                                          const now = new Date();
+                                          const then = new Date(transfer.timestamp);
+                                          const diffMs = now.getTime() - then.getTime();
+                                          const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                                          const diffDays = Math.floor(diffHours / 24);
+
+                                          if (diffDays > 0) return `${diffDays}d ago`;
+                                          if (diffHours > 0) return `${diffHours}h ago`;
+                                          return 'Just now';
+                                        };
+
+                                        return (
+                                          <TableRow key={`${transfer.squadId}-${idx}`}>
+                                            <TableCell>
+                                              <Box display="flex" alignItems="center" gap={1}>
+                                                <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem', bgcolor: 'primary.main' }}>
+                                                  {transfer.squadName?.slice(0, 2).toUpperCase() || 'U'}
+                                                </Avatar>
+                                                <Box>
+                                                  <Typography variant="body2" fontWeight="medium">
+                                                    {transfer.squadName || 'Unknown Squad'}
+                                                  </Typography>
+                                                  <Typography variant="caption" color="text.secondary">
+                                                    {transfer.userId?.slice(0, 8)}
+                                                  </Typography>
+                                                </Box>
+                                              </Box>
+                                            </TableCell>
+                                            <TableCell>
+                                              <Chip
+                                                label={transfer.changeType === 'playerSubstitution' ? '🔄 Player Swap' : '👤 Role Change'}
+                                                size="small"
+                                                color={transfer.changeType === 'playerSubstitution' ? 'primary' : 'secondary'}
+                                                variant="outlined"
+                                              />
+                                            </TableCell>
+                                            <TableCell>
+                                              <Chip
+                                                label={
+                                                  transfer.transferType === 'bench' ? 'Bench' :
+                                                  transfer.transferType === 'flexible' ? 'Flexible' :
+                                                  transfer.transferType === 'midSeason' ? 'Mid-Season' : 'Unknown'
+                                                }
+                                                size="small"
+                                                color={
+                                                  transfer.transferType === 'bench' ? 'info' :
+                                                  transfer.transferType === 'flexible' ? 'warning' :
+                                                  transfer.transferType === 'midSeason' ? 'success' : 'default'
+                                                }
+                                              />
+                                            </TableCell>
+                                            <TableCell>
+                                              {transfer.changeType === 'playerSubstitution' ? (
+                                                <Box display="flex" alignItems="center" gap={1}>
+                                                  <Chip
+                                                    label={playerNameMap.get(transfer.playerOut) || transfer.playerOut || 'Unknown'}
+                                                    size="small"
+                                                    color="error"
+                                                    variant="outlined"
+                                                  />
+                                                  <Typography variant="caption">→</Typography>
+                                                  <Chip
+                                                    label={playerNameMap.get(transfer.playerIn) || transfer.playerIn || 'Unknown'}
+                                                    size="small"
+                                                    color="success"
+                                                    variant="outlined"
+                                                  />
+                                                </Box>
+                                              ) : (
+                                                <Box>
+                                                  {transfer.newViceCaptainId && (
+                                                    <Typography variant="caption" display="block">
+                                                      New VC: {playerNameMap.get(transfer.newViceCaptainId) || transfer.newViceCaptainId}
+                                                    </Typography>
+                                                  )}
+                                                  {transfer.newXFactorId && (
+                                                    <Typography variant="caption" display="block">
+                                                      New X: {playerNameMap.get(transfer.newXFactorId) || transfer.newXFactorId}
+                                                    </Typography>
+                                                  )}
+                                                </Box>
+                                              )}
+                                            </TableCell>
+                                            <TableCell>
+                                              <Typography variant="body2">
+                                                {new Date(transfer.timestamp).toLocaleString()}
+                                              </Typography>
+                                              <Typography variant="caption" color="text.secondary">
+                                                {timeSince()}
+                                              </Typography>
+                                            </TableCell>
+                                          </TableRow>
+                                        );
+                                      })}
+                                  </TableBody>
+                                </Table>
+                              </TableContainer>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </Box>
+                  );
+                })()}
+              </Box>
             )}
           </TabPanel>
         </Card>
