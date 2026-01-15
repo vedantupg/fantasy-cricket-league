@@ -263,7 +263,6 @@ const LeaderboardPage: React.FC = () => {
 
   // At this point, league is guaranteed to be non-null
   const topFive = snapshot?.standings.slice(0, 5) || [];
-  const userStanding = snapshot?.standings.find((s) => s.userId === userData?.uid);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>

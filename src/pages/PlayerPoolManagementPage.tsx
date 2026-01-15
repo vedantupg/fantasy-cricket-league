@@ -42,7 +42,6 @@ import {
   PersonAdd,
   Flight,
   SportsBaseball,
-  Speed,
   ExpandMore,
   ExpandLess
 } from '@mui/icons-material';

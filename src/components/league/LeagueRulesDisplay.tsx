@@ -13,7 +13,6 @@ import {
   SportsCricket,
   SwapHoriz,
   CalendarMonth,
-  Schedule,
   EmojiEvents
 } from '@mui/icons-material';
 import type { League } from '../../types/database';

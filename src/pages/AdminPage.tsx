@@ -33,8 +33,8 @@ import {
   Undo,
   SwapHoriz
 } from '@mui/icons-material';
-import { leagueService, squadService, playerPoolService, playerPoolSnapshotService, leaderboardSnapshotService, transferService } from '../services/firestore';
-import type { League, LeagueSquad, LeaderboardSnapshot, PlayerPool, PlayerPoolSnapshot, Transfer } from '../types/database';
+import { leagueService, squadService, playerPoolService, playerPoolSnapshotService, leaderboardSnapshotService } from '../services/firestore';
+import type { League, LeagueSquad, LeaderboardSnapshot, PlayerPool, PlayerPoolSnapshot } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 
 interface TabPanelProps {
