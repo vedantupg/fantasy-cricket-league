@@ -43,10 +43,12 @@ import {
   Flight,
   SportsBaseball,
   ExpandMore,
-  ExpandLess
+  ExpandLess,
+  ContentPaste
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import AppHeader from '../components/common/AppHeader';
+import ScorecardParserDialog from '../components/ScorecardParserDialog';
 import { playerPoolService, playerPoolSnapshotService } from '../services/firestore';
 import type { PlayerPool, PlayerPoolEntry, BattingConfig, BowlingConfig, BattingInnings, BowlingSpell } from '../types/database';
 import { DEFAULT_BATTING_CONFIG, DEFAULT_BOWLING_CONFIG, calculateBattingPoints, calculateBowlingPoints } from '../utils/pointsCalculation';
@@ -307,11 +309,15 @@ const PlayerPoolManagementPage: React.FC = () => {
             const poolId = await playerPoolService.create({
               name: newPool.name,
               description: newPool.description,
+              format: newPool.format,
+              scoringMode: newPool.scoringMode,
               creatorId: user?.uid || '',
               adminIds: [user?.uid || ''],
               players: [],
-              battingConfig: newPool.battingConfig,
-              bowlingConfig: newPool.bowlingConfig,
+              ...(newPool.scoringMode === 'automated' && {
+                battingConfig: newPool.battingConfig,
+                bowlingConfig: newPool.bowlingConfig,
+              }),
               isActive: true,
             });
 
@@ -393,6 +399,8 @@ const PlayerPoolDetails: React.FC<{
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [manualPoints, setManualPoints] = useState<{ [playerId: string]: string }>({});
+  const [scorecardDialogOpen, setScorecardDialogOpen] = useState(false);
 
 
   // Sync editedPlayers when pool changes
@@ -461,6 +469,143 @@ const PlayerPoolDetails: React.FC<{
     setEditedPlayers(prev => prev.filter(p => p.playerId !== playerId));
   };
 
+  const handleDeleteBattingInnings = async (playerId: string, inningsId: string) => {
+    if (!window.confirm('Are you sure you want to delete this batting innings? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      // Find the player in edited players
+      const player = editedPlayers.find(p => p.playerId === playerId);
+      if (!player || !player.battingInnings) return;
+
+      // Find the innings to delete
+      const innings = player.battingInnings.find(i => i.id === inningsId);
+      if (!innings) return;
+
+      // Remove the innings from the player
+      const updatedBattingInnings = player.battingInnings.filter(i => i.id !== inningsId);
+
+      // Recalculate total points (batting + bowling)
+      const battingPoints = updatedBattingInnings.reduce((sum, i) => sum + i.pointsEarned, 0);
+      const bowlingPoints = player.bowlingSpells?.reduce((sum, s) => sum + s.pointsEarned, 0) || 0;
+
+      // Update edited players
+      setEditedPlayers(prev =>
+        prev.map(p =>
+          p.playerId === playerId
+            ? {
+                ...p,
+                battingInnings: updatedBattingInnings,
+                points: battingPoints + bowlingPoints,
+                lastUpdated: new Date()
+              }
+            : p
+        )
+      );
+
+      setSnackbarMessage(`Deleted batting innings for ${player.name}`);
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error('Error deleting batting innings:', error);
+      setSnackbarMessage('Failed to delete batting innings');
+      setSnackbarOpen(true);
+    }
+  };
+
+  const handleDeleteBowlingSpell = async (playerId: string, spellId: string) => {
+    if (!window.confirm('Are you sure you want to delete this bowling spell? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      // Find the player in edited players
+      const player = editedPlayers.find(p => p.playerId === playerId);
+      if (!player || !player.bowlingSpells) return;
+
+      // Find the spell to delete
+      const spell = player.bowlingSpells.find(s => s.id === spellId);
+      if (!spell) return;
+
+      // Remove the spell from the player
+      const updatedBowlingSpells = player.bowlingSpells.filter(s => s.id !== spellId);
+
+      // Recalculate total points (batting + bowling)
+      const battingPoints = player.battingInnings?.reduce((sum, i) => sum + i.pointsEarned, 0) || 0;
+      const bowlingPoints = updatedBowlingSpells.reduce((sum, s) => sum + s.pointsEarned, 0);
+
+      // Update edited players
+      setEditedPlayers(prev =>
+        prev.map(p =>
+          p.playerId === playerId
+            ? {
+                ...p,
+                bowlingSpells: updatedBowlingSpells,
+                points: battingPoints + bowlingPoints,
+                lastUpdated: new Date()
+              }
+            : p
+        )
+      );
+
+      setSnackbarMessage(`Deleted bowling spell for ${player.name}`);
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error('Error deleting bowling spell:', error);
+      setSnackbarMessage('Failed to delete bowling spell');
+      setSnackbarOpen(true);
+    }
+  };
+
+  const handleAddManualPoints = (playerId: string) => {
+    const pointsToAdd = parseFloat(manualPoints[playerId] || '0');
+    if (isNaN(pointsToAdd) || pointsToAdd < 0) {
+      setSnackbarMessage('Please enter a valid number of points (0 or greater)');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    setEditedPlayers(prev =>
+      prev.map(p =>
+        p.playerId === playerId
+          ? { ...p, points: p.points + pointsToAdd, lastUpdated: new Date() }
+          : p
+      )
+    );
+    setManualPoints({ ...manualPoints, [playerId]: '' });
+    setSnackbarMessage(`Added ${pointsToAdd} points to ${editedPlayers.find(p => p.playerId === playerId)?.name}`);
+    setSnackbarOpen(true);
+  };
+
+  const handleApplyScorecardUpdates = (updates: { playerId: string; pointsToAdd: number; performance: string }[]) => {
+    // Apply points from parsed scorecard to edited players
+    setEditedPlayers(prev =>
+      prev.map(player => {
+        const update = updates.find(u => u.playerId === player.playerId);
+        if (update) {
+          return {
+            ...player,
+            points: player.points + update.pointsToAdd,
+            lastUpdated: new Date()
+          };
+        }
+        return player;
+      })
+    );
+
+    // Enable edit mode if not already enabled
+    if (!editMode) {
+      setEditMode(true);
+    }
+
+    // Show success message
+    const totalPoints = updates.reduce((sum, u) => sum + u.pointsToAdd, 0);
+    setSnackbarMessage(
+      `Updated ${updates.length} player(s) from scorecard. Total points added: ${totalPoints.toFixed(1)}. Review and click "Save Changes" to apply.`
+    );
+    setSnackbarOpen(true);
+  };
+
   return (
     <Card>
       <CardContent>
@@ -517,6 +662,14 @@ const PlayerPoolDetails: React.FC<{
                   startIcon={<PersonAdd />}
                 >
                   Add Player
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => setScorecardDialogOpen(true)}
+                  startIcon={<ContentPaste />}
+                >
+                  Quick Update from Scorecard
                 </Button>
               </>
             )}
@@ -652,32 +805,58 @@ const PlayerPoolDetails: React.FC<{
                       </Typography>
                     </TableCell>
                     <TableCell align="center">
-                      <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-                        {/* Show batting button for all players */}
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => {
-                            setSelectedPlayerForPerformance(player);
-                            setAddInningsDialogOpen(true);
-                          }}
-                          title="Add Innings"
-                        >
-                          <SportsCricket />
-                        </IconButton>
-                        {/* Show bowling button for all players */}
-                        <IconButton
-                          size="small"
-                          color="secondary"
-                          onClick={() => {
-                            setSelectedPlayerForPerformance(player);
-                            setAddSpellDialogOpen(true);
-                          }}
-                          title="Add Spell"
-                        >
-                          <SportsBaseball />
-                        </IconButton>
-                      </Box>
+                      {pool.scoringMode === 'manual' ? (
+                        // Manual point input interface for Test format
+                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', alignItems: 'center' }}>
+                          <TextField
+                            size="small"
+                            type="number"
+                            placeholder="Add points"
+                            value={manualPoints[player.playerId] || ''}
+                            onChange={(e) => setManualPoints({ ...manualPoints, [player.playerId]: e.target.value })}
+                            sx={{ width: 100 }}
+                            inputProps={{ min: 0, step: 1 }}
+                            disabled={!editMode}
+                          />
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => handleAddManualPoints(player.playerId)}
+                            title="Add Points"
+                            disabled={!editMode}
+                          >
+                            <Add />
+                          </IconButton>
+                        </Box>
+                      ) : (
+                        // Automated mode: performance tracking buttons
+                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                          {/* Show batting button for all players */}
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => {
+                              setSelectedPlayerForPerformance(player);
+                              setAddInningsDialogOpen(true);
+                            }}
+                            title="Add Innings"
+                          >
+                            <SportsCricket />
+                          </IconButton>
+                          {/* Show bowling button for all players */}
+                          <IconButton
+                            size="small"
+                            color="secondary"
+                            onClick={() => {
+                              setSelectedPlayerForPerformance(player);
+                              setAddSpellDialogOpen(true);
+                            }}
+                            title="Add Spell"
+                          >
+                            <SportsBaseball />
+                          </IconButton>
+                        </Box>
+                      )}
                     </TableCell>
                     {editMode && (
                       <TableCell align="center">
@@ -717,6 +896,7 @@ const PlayerPoolDetails: React.FC<{
                                       <TableCell align="right">Balls</TableCell>
                                       <TableCell align="right">SR</TableCell>
                                       <TableCell align="right">Points</TableCell>
+                                      <TableCell align="center">Actions</TableCell>
                                     </TableRow>
                                   </TableHead>
                                   <TableBody>
@@ -733,6 +913,16 @@ const PlayerPoolDetails: React.FC<{
                                         </TableCell>
                                         <TableCell align="right">
                                           <strong>{innings.pointsEarned.toFixed(2)}</strong>
+                                        </TableCell>
+                                        <TableCell align="center">
+                                          <IconButton
+                                            size="small"
+                                            color="error"
+                                            onClick={() => handleDeleteBattingInnings(player.playerId, innings.id)}
+                                            title="Delete innings"
+                                          >
+                                            <Delete fontSize="small" />
+                                          </IconButton>
                                         </TableCell>
                                       </TableRow>
                                     ))}
@@ -759,6 +949,7 @@ const PlayerPoolDetails: React.FC<{
                                       <TableCell align="right">Wickets</TableCell>
                                       <TableCell align="right">Econ</TableCell>
                                       <TableCell align="right">Points</TableCell>
+                                      <TableCell align="center">Actions</TableCell>
                                     </TableRow>
                                   </TableHead>
                                   <TableBody>
@@ -775,6 +966,16 @@ const PlayerPoolDetails: React.FC<{
                                           <TableCell align="right">{economy.toFixed(2)}</TableCell>
                                           <TableCell align="right">
                                             <strong>{spell.pointsEarned.toFixed(2)}</strong>
+                                          </TableCell>
+                                          <TableCell align="center">
+                                            <IconButton
+                                              size="small"
+                                              color="error"
+                                              onClick={() => handleDeleteBowlingSpell(player.playerId, spell.id)}
+                                              title="Delete spell"
+                                            >
+                                              <Delete fontSize="small" />
+                                            </IconButton>
                                           </TableCell>
                                         </TableRow>
                                       );
@@ -796,10 +997,10 @@ const PlayerPoolDetails: React.FC<{
                       </Collapse>
                     </TableCell>
                   </TableRow>
-                      </React.Fragment>
-                    ))}
-                  </React.Fragment>
-                ))
+                </React.Fragment>
+              ))}
+            </React.Fragment>
+          ))
               )}
             </TableBody>
           </Table>
@@ -825,8 +1026,8 @@ const PlayerPoolDetails: React.FC<{
         }}
       />
 
-      {/* Add Innings Dialog */}
-      {selectedPlayerForPerformance && (
+      {/* Add Innings Dialog - Only for automated mode */}
+      {selectedPlayerForPerformance && pool.battingConfig && (
         <AddInningsDialog
           open={addInningsDialogOpen}
           onClose={() => {
@@ -854,8 +1055,8 @@ const PlayerPoolDetails: React.FC<{
         />
       )}
 
-      {/* Add Spell Dialog */}
-      {selectedPlayerForPerformance && (
+      {/* Add Spell Dialog - Only for automated mode */}
+      {selectedPlayerForPerformance && pool.bowlingConfig && (
         <AddSpellDialog
           open={addSpellDialogOpen}
           onClose={() => {
@@ -883,6 +1084,16 @@ const PlayerPoolDetails: React.FC<{
         />
       )}
 
+      {/* Scorecard Parser Dialog */}
+      <ScorecardParserDialog
+        open={scorecardDialogOpen}
+        onClose={() => setScorecardDialogOpen(false)}
+        poolPlayers={editedPlayers}
+        battingConfig={pool.battingConfig}
+        bowlingConfig={pool.bowlingConfig}
+        onApplyUpdates={handleApplyScorecardUpdates}
+      />
+
       {/* Success Snackbar */}
       <Snackbar
         open={snackbarOpen}
@@ -903,20 +1114,29 @@ const CreatePlayerPoolDialog: React.FC<{
 }> = ({ open, onClose, onSave }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [format, setFormat] = useState<'T20' | 'ODI' | 'Test'>('T20');
   const [battingConfig, setBattingConfig] = useState<BattingConfig>(DEFAULT_BATTING_CONFIG);
   const [bowlingConfig, setBowlingConfig] = useState<BowlingConfig>(DEFAULT_BOWLING_CONFIG);
   const { user } = useAuth();
+
+  // Auto-determine scoring mode based on format
+  const scoringMode: 'automated' | 'manual' = format === 'Test' ? 'manual' : 'automated';
 
   const handleCreate = () => {
     const newPool: PlayerPool = {
       id: Date.now().toString(),
       name,
       description,
+      format,
+      scoringMode,
       creatorId: user?.uid || '',
       adminIds: [user?.uid || ''],
       players: [],
-      battingConfig,
-      bowlingConfig,
+      // Only include configs for automated mode
+      ...(scoringMode === 'automated' && {
+        battingConfig,
+        bowlingConfig,
+      }),
       createdAt: new Date(),
       updatedAt: new Date(),
       isActive: true
@@ -925,6 +1145,7 @@ const CreatePlayerPoolDialog: React.FC<{
     // Reset form
     setName('');
     setDescription('');
+    setFormat('T20');
     setBattingConfig(DEFAULT_BATTING_CONFIG);
     setBowlingConfig(DEFAULT_BOWLING_CONFIG);
   };
@@ -955,10 +1176,29 @@ const CreatePlayerPoolDialog: React.FC<{
                 rows={2}
                 placeholder="Brief description of this player pool"
               />
+              <FormControl fullWidth required>
+                <InputLabel>Format</InputLabel>
+                <Select
+                  value={format}
+                  label="Format"
+                  onChange={(e) => setFormat(e.target.value as 'T20' | 'ODI' | 'Test')}
+                >
+                  <MenuItem value="T20">T20 (Automated Scoring)</MenuItem>
+                  <MenuItem value="ODI">ODI (Automated Scoring)</MenuItem>
+                  <MenuItem value="Test">Test (Manual Scoring)</MenuItem>
+                </Select>
+              </FormControl>
+              {scoringMode === 'manual' && (
+                <Alert severity="info">
+                  <strong>Manual Scoring Mode:</strong> For Test format, you'll manually add points to each player rather than tracking detailed performance metrics.
+                </Alert>
+              )}
             </Box>
           </Box>
 
-          {/* Batting Configuration */}
+          {/* Batting Configuration - Only for Automated Mode */}
+          {scoringMode === 'automated' && (
+          <>
           <Box>
             <Typography variant="h6" gutterBottom color="primary">⚾ Batting Scoring Rules</Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pl: 2 }}>
@@ -1083,6 +1323,8 @@ const CreatePlayerPoolDialog: React.FC<{
               )}
             </Box>
           </Box>
+          </>
+          )}
         </Box>
       </DialogContent>
       <DialogActions>

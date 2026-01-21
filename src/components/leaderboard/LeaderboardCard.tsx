@@ -25,8 +25,8 @@ const LeaderboardCard: React.FC<LeaderboardCardProps> = ({ standing, isCurrentUs
   const rankColor = getRankColor(standing.rank);
 
   const getRankChangeIndicator = () => {
-    // Show fire icon if user has a streak of 1 or more
-    if (standing.rankStreak && standing.rankStreak >= 1) {
+    // Show fire icon if user has a streak of 2 or more (maintained rank for at least 2 consecutive snapshots)
+    if (standing.rankStreak && standing.rankStreak >= 2) {
       return (
         <Box sx={{ display: 'flex', alignItems: 'center', color: '#FF9800' }}>
           <FireIcon sx={{ fontSize: 16, mr: 0.5 }} />

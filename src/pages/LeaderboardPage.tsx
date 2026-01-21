@@ -108,6 +108,8 @@ const LeaderboardPage: React.FC = () => {
             console.log('🔍 DEBUG: Standings with streaks:', standingsWithStreaks.map(s => ({
               name: s.displayName,
               rank: s.rank,
+              previousRank: s.previousRank,
+              rankChange: s.rankChange,
               rankStreak: s.rankStreak
             })));
 

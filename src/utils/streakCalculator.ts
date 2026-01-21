@@ -30,7 +30,7 @@ export function calculateRankStreaks(
 
   // For each user, calculate their streak
   userIds.forEach(userId => {
-    let streak = 0; // Start at 0, increment for each maintained rank
+    let streak = 1; // Start at 1 (counting the first snapshot where they have this rank)
     let currentRank: number | null = null;
 
     // Iterate through snapshots from most recent to oldest
@@ -55,8 +55,8 @@ export function calculateRankStreaks(
       }
     }
 
-    // Only set streak if it's 1 or more (rank maintained for at least 1 update)
-    if (streak >= 1) {
+    // Only set streak if it's 2 or more (rank maintained for at least 2 consecutive snapshots)
+    if (streak >= 2) {
       streaks.set(userId, streak);
       console.log('🔥 STREAK CALC: User', userId, 'has streak of', streak);
     }
@@ -90,7 +90,7 @@ export function attachStreaksToStandings(
 export function findMostConsistentPerformer(
   standings: StandingEntry[]
 ): StandingEntry | null {
-  const standingsWithStreaks = standings.filter(s => s.rankStreak && s.rankStreak >= 1);
+  const standingsWithStreaks = standings.filter(s => s.rankStreak && s.rankStreak >= 2);
 
   if (standingsWithStreaks.length === 0) {
     return null;
