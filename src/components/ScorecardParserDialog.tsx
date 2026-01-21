@@ -344,7 +344,7 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
           // Try to parse a batting entry
           // Format: Name, Dismissal (optional), R, B, 4s, 6s, SR
           const playerName = lines[i];
-          if (!playerName || playerName.match(/^[\d\.]+$/) || playerName.match(battingColumnHeaders)) {
+          if (!playerName || playerName.match(/^[\d.]+$/) || playerName.match(battingColumnHeaders)) {
             i++;
             continue;
           }
@@ -367,7 +367,7 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
             const balls = parseInt(lines[i++]);
             const fours = parseInt(lines[i++]);
             const sixes = parseInt(lines[i++]);
-            const sr = parseFloat(lines[i++]); // Skip SR, we calculate it
+            i++; // Skip SR line, we calculate it ourselves
 
             if (!isNaN(runs) && !isNaN(balls) && battingConfig) {
               const pointsEarned = calculateBattingPoints(runs, balls, battingConfig);
@@ -406,7 +406,7 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
           // Try to parse a bowling entry
           // Format: Name, O, M, R, W, NB, WD, ECO
           const playerName = lines[i];
-          if (!playerName || playerName.match(/^[\d\.]+$/) || playerName.match(bowlingColumnHeaders)) {
+          if (!playerName || playerName.match(/^[\d.]+$/) || playerName.match(bowlingColumnHeaders)) {
             i++;
             continue;
           }
@@ -416,12 +416,12 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
           // Next lines should be: O, M, R, W, NB, WD, ECO
           if (i + 6 < lines.length) {
             const overs = parseFloat(lines[i++]);
-            const maidens = parseInt(lines[i++]);
+            i++; // Skip maidens
             const runs = parseInt(lines[i++]);
             const wickets = parseInt(lines[i++]);
-            const noBalls = parseInt(lines[i++]);
-            const wides = parseInt(lines[i++]);
-            const economy = parseFloat(lines[i++]); // Skip economy, we calculate it
+            i++; // Skip no balls
+            i++; // Skip wides
+            i++; // Skip economy, we calculate it ourselves
 
             if (!isNaN(overs) && !isNaN(runs) && !isNaN(wickets) && bowlingConfig) {
               const pointsEarned = calculateBowlingPoints(overs, runs, wickets, bowlingConfig);
@@ -453,13 +453,13 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
     // "Player Name  45 (32)  [6x4, 2x6]"
     // "Player Name  not out  67 (45)  [8x4, 1x6]"
     // "Player Name  c Fielder b Bowler  34 (28)  [4x4, 1x6]"
-    const battingPattern = /^([A-Za-z\s\.'-]+?)\s+(c\s+[\w\s]+\s+b\s+[\w\s]+|b\s+[\w\s]+|lbw\s+b\s+[\w\s]+|run out\s*\([^)]+\)|st\s+[\w\s]+\s+b\s+[\w\s]+|not out|retired)?\s*(\d+)\s*\((\d+)\)(?:\s*\[(\d+)x4(?:,\s*(\d+)x6)?\])?/i;
+    const battingPattern = /^([A-Za-z\s.'-]+?)\s+(c\s+[\w\s]+\s+b\s+[\w\s]+|b\s+[\w\s]+|lbw\s+b\s+[\w\s]+|run out\s*\([^)]+\)|st\s+[\w\s]+\s+b\s+[\w\s]+|not out|retired)?\s*(\d+)\s*\((\d+)\)(?:\s*\[(\d+)x4(?:,\s*(\d+)x6)?\])?/i;
 
     // Parse bowling performances
     // Patterns to match:
     // "Player Name  4-0-25-2"
     // "Player Name  3.5-0-30-1"
-    const bowlingPattern = /^([A-Za-z\s\.'-]+?)\s+([\d\.]+)-(\d+)-(\d+)-(\d+)/i;
+    const bowlingPattern = /^([A-Za-z\s.'-]+?)\s+([\d.]+)-(\d+)-(\d+)-(\d+)/i;
 
     // Track fielding performances
     const fieldingMap = new Map<string, ParsedFieldingPerformance>();
@@ -503,7 +503,7 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
       if (bowlingMatch && bowlingConfig) {
         const playerName = bowlingMatch[1].trim();
         const overs = parseFloat(bowlingMatch[2]);
-        const maidens = parseInt(bowlingMatch[3]);
+        // bowlingMatch[3] is maidens - we don't use it
         const runs = parseInt(bowlingMatch[4]);
         const wickets = parseInt(bowlingMatch[5]);
 
