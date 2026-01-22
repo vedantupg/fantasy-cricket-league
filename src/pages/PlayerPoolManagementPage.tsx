@@ -358,6 +358,7 @@ const PlayerPoolDetails: React.FC<{
   onUpdate: (pool: PlayerPool) => void;
   onDelete: () => void;
 }> = ({ pool, onUpdate, onDelete }) => {
+  const { user } = useAuth();
   const [editMode, setEditMode] = useState(false);
 
   // Convert role to display text
@@ -577,25 +578,70 @@ const PlayerPoolDetails: React.FC<{
     setSnackbarOpen(true);
   };
 
-  const handleApplyScorecardUpdates = (updates: { playerId: string; pointsToAdd: number; performance: string }[], updateMsg?: string) => {
-    // Apply points from parsed scorecard to edited players
+  const handleApplyScorecardUpdates = (
+    updates: {
+      playerId: string;
+      pointsToAdd: number;
+      performance: string;
+      battingData?: { runs: number; balls: number };
+      bowlingData?: { overs: number; runs: number; wickets: number };
+    }[],
+    matchLabel?: string
+  ) => {
+    // Apply points from parsed scorecard to edited players and create innings/spell records
     setEditedPlayers(prev =>
       prev.map(player => {
         const update = updates.find(u => u.playerId === player.playerId);
         if (update) {
-          return {
-            ...player,
-            points: player.points + update.pointsToAdd,
-            lastUpdated: new Date()
-          };
+          const updatedPlayer = { ...player };
+
+          // Create batting innings record if batting data exists
+          if (update.battingData) {
+            const newInnings: BattingInnings = {
+              id: `${Date.now()}-${player.playerId}-bat`,
+              matchLabel: matchLabel || undefined,
+              runs: update.battingData.runs,
+              ballsFaced: update.battingData.balls,
+              pointsEarned: update.battingData.runs > 0 || update.battingData.balls > 0
+                ? calculateBattingPoints(update.battingData.runs, update.battingData.balls, pool.battingConfig!)
+                : 0,
+              date: new Date(),
+              addedBy: user?.uid
+            };
+            updatedPlayer.battingInnings = [...(player.battingInnings || []), newInnings];
+          }
+
+          // Create bowling spell record if bowling data exists
+          if (update.bowlingData) {
+            const newSpell: BowlingSpell = {
+              id: `${Date.now()}-${player.playerId}-bowl`,
+              matchLabel: matchLabel || undefined,
+              overs: update.bowlingData.overs,
+              runsConceded: update.bowlingData.runs,
+              wickets: update.bowlingData.wickets,
+              pointsEarned: update.bowlingData.overs > 0
+                ? calculateBowlingPoints(update.bowlingData.overs, update.bowlingData.runs, update.bowlingData.wickets, pool.bowlingConfig!)
+                : 0,
+              date: new Date(),
+              addedBy: user?.uid
+            };
+            updatedPlayer.bowlingSpells = [...(player.bowlingSpells || []), newSpell];
+          }
+
+          // Update total points
+          updatedPlayer.points = player.points + update.pointsToAdd;
+          updatedPlayer.lastUpdated = new Date();
+          updatedPlayer.updatedBy = user?.uid;
+
+          return updatedPlayer;
         }
         return player;
       })
     );
 
-    // Update the message if provided
-    if (updateMsg) {
-      setUpdateMessage(updateMsg);
+    // Set the match label as the update message if provided
+    if (matchLabel) {
+      setUpdateMessage(matchLabel);
     }
 
     // Enable edit mode if not already enabled

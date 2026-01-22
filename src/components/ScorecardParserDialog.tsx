@@ -58,7 +58,16 @@ interface ScorecardParserDialogProps {
   poolPlayers: PlayerPoolEntry[];
   battingConfig?: BattingConfig;
   bowlingConfig?: BowlingConfig;
-  onApplyUpdates: (updates: { playerId: string; pointsToAdd: number; performance: string }[], updateMessage?: string) => void;
+  onApplyUpdates: (
+    updates: {
+      playerId: string;
+      pointsToAdd: number;
+      performance: string;
+      battingData?: { runs: number; balls: number };
+      bowlingData?: { overs: number; runs: number; wickets: number };
+    }[],
+    matchLabel?: string
+  ) => void;
 }
 
 const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
@@ -76,7 +85,7 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
   const [includeFielding, setIncludeFielding] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [error, setError] = useState('');
-  const [updateMessage, setUpdateMessage] = useState('');
+  const [matchLabel, setMatchLabel] = useState('');
 
   // Smart player name matching with scoring system
   const findMatchingPlayer = (rawName: string): PlayerPoolEntry | undefined => {
@@ -528,7 +537,13 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
   };
 
   const handleApply = () => {
-    const updates: { playerId: string; pointsToAdd: number; performance: string }[] = [];
+    const updates: {
+      playerId: string;
+      pointsToAdd: number;
+      performance: string;
+      battingData?: { runs: number; balls: number };
+      bowlingData?: { overs: number; runs: number; wickets: number };
+    }[] = [];
 
     parsedBatting.forEach((perf) => {
       if (perf.matchedPlayer) {
@@ -536,6 +551,7 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
           playerId: perf.matchedPlayer.playerId,
           pointsToAdd: perf.pointsEarned,
           performance: `${perf.runs}(${perf.balls}) [${perf.fours || 0}x4, ${perf.sixes || 0}x6]`,
+          battingData: { runs: perf.runs, balls: perf.balls },
         });
       }
     });
@@ -546,11 +562,13 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
         if (existing) {
           existing.pointsToAdd += perf.pointsEarned;
           existing.performance += `, ${perf.overs}-${perf.wickets}-${perf.runs}`;
+          existing.bowlingData = { overs: perf.overs, runs: perf.runs, wickets: perf.wickets };
         } else {
           updates.push({
             playerId: perf.matchedPlayer.playerId,
             pointsToAdd: perf.pointsEarned,
             performance: `${perf.overs}-${perf.wickets}-${perf.runs}`,
+            bowlingData: { overs: perf.overs, runs: perf.runs, wickets: perf.wickets },
           });
         }
       }
@@ -580,7 +598,7 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
       });
     }
 
-    onApplyUpdates(updates, updateMessage.trim() || undefined);
+    onApplyUpdates(updates, matchLabel.trim() || undefined);
     handleClose();
   };
 
@@ -591,7 +609,7 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
     setParsedFielding([]);
     setIncludeFielding(false);
     setError('');
-    setUpdateMessage('');
+    setMatchLabel('');
     onClose();
   };
 
@@ -642,11 +660,11 @@ Sophie Ecclestone
 
           <TextField
             fullWidth
-            label="Update Message (Optional)"
+            label="Match Label (Optional)"
             placeholder="e.g., Test 1 - Day 1, Match 5"
-            value={updateMessage}
-            onChange={(e) => setUpdateMessage(e.target.value)}
-            helperText="Add a version label for this points update. This will be displayed on the leaderboard."
+            value={matchLabel}
+            onChange={(e) => setMatchLabel(e.target.value)}
+            helperText="Label to identify this match in performance history. Also displayed on leaderboard."
             variant="outlined"
             sx={{ mb: 2 }}
           />
