@@ -160,6 +160,8 @@ export interface LeagueSquad {
 
   // Powerplay
   powerplayMatchNumber?: number; // Selected match number for powerplay bonus
+  powerplayPoints?: number; // Points awarded by admin for the powerplay match
+  powerplayCompleted?: boolean; // Whether the powerplay match has been played and points awarded
 
   // Predictions
   predictions?: {
@@ -502,6 +504,8 @@ export interface StandingEntry {
   captainPoints: number;
   viceCaptainPoints: number;
   xFactorPoints: number;
+  powerplayPoints?: number; // Points from powerplay match
+  powerplayCompleted?: boolean; // Whether the powerplay match has been completed
   rank: number;
   previousRank?: number;
   rankChange?: number; // Positive for improvement, negative for decline

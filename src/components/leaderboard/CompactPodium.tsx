@@ -254,7 +254,7 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive }) => {
               )}
             </Box>
 
-            {/* C/VC/X Breakdown */}
+            {/* C/VC/PP Breakdown */}
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0.5, width: '100%', mt: 'auto' }}>
               <Box sx={{ textAlign: 'center' }}>
                 <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' } }}>
@@ -274,10 +274,10 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive }) => {
               </Box>
               <Box sx={{ textAlign: 'center' }}>
                 <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' } }}>
-                  X
+                  PP
                 </Typography>
                 <Typography variant="body2" fontWeight="bold" sx={{ color: '#9C27B0', fontSize: { xs: '0.65rem', sm: '0.7rem' }, lineHeight: 1 }}>
-                  {standing.xFactorPoints.toFixed(2)}
+                  {standing.powerplayCompleted ? (standing.powerplayPoints || 0).toFixed(2) : '--'}
                 </Typography>
               </Box>
             </Box>

@@ -21,15 +21,16 @@ import {
   Chip,
   TextField,
   Button,
+  Checkbox,
 } from '@mui/material';
-import { EmojiEvents, TrendingUp, Sports, Save } from '@mui/icons-material';
+import { FlashOn, Save } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { leagueService, squadService, leaderboardSnapshotService } from '../services/firestore';
 import type { League, LeagueSquad } from '../types/database';
 import AppHeader from '../components/common/AppHeader';
 
-const PredictionsViewPage: React.FC = () => {
+const PowerplayManagementPage: React.FC = () => {
   const [leagues, setLeagues] = useState<League[]>([]);
   const [selectedLeagueId, setSelectedLeagueId] = useState<string>('');
   const [squads, setSquads] = useState<LeagueSquad[]>([]);
@@ -37,7 +38,9 @@ const PredictionsViewPage: React.FC = () => {
   const [fetchingSquads, setFetchingSquads] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [bonusPoints, setBonusPoints] = useState<{ [squadId: string]: string }>({});
+  const [powerplayData, setPowerplayData] = useState<{
+    [squadId: string]: { points: string; completed: boolean };
+  }>({});
   const [savingAll, setSavingAll] = useState(false);
 
   const { user, userData } = useAuth();
@@ -88,9 +91,21 @@ const PredictionsViewPage: React.FC = () => {
 
         const leagueSquads = await squadService.getByLeague(selectedLeagueId);
         setSquads(leagueSquads);
+
+        // Initialize powerplayData with existing values
+        const initialData: { [squadId: string]: { points: string; completed: boolean } } = {};
+        leagueSquads.forEach((squad) => {
+          if (squad.powerplayMatchNumber) {
+            initialData[squad.id] = {
+              points: squad.powerplayPoints?.toString() || '',
+              completed: squad.powerplayCompleted || false,
+            };
+          }
+        });
+        setPowerplayData(initialData);
       } catch (err: any) {
         console.error('Error fetching squads:', err);
-        setError(err.message || 'Failed to load predictions');
+        setError(err.message || 'Failed to load squads');
       } finally {
         setFetchingSquads(false);
       }
@@ -99,8 +114,8 @@ const PredictionsViewPage: React.FC = () => {
     fetchSquads();
   }, [selectedLeagueId]);
 
-  // Function to save all bonus points and update leaderboard
-  const handleSaveAllBonusPoints = async () => {
+  // Function to save all powerplay data and update leaderboard
+  const handleSaveAllPowerplayData = async () => {
     if (!selectedLeagueId) {
       setError('No league selected');
       return;
@@ -111,27 +126,29 @@ const PredictionsViewPage: React.FC = () => {
       setError('');
       setSuccess('');
 
-      // Collect all squads that have bonus points to update
+      // Collect all squads that have powerplay data to update
       const updates: Promise<void>[] = [];
       const updatedSquads = [...squads];
 
-      Object.entries(bonusPoints).forEach(([squadId, pointsStr]) => {
-        const points = parseInt(pointsStr || '0');
+      Object.entries(powerplayData).forEach(([squadId, data]) => {
+        const points = parseFloat(data.points || '0');
 
         if (!isNaN(points) && points >= 0) {
           // Create update promise
           updates.push(
             squadService.update(squadId, {
-              predictionBonusPoints: points,
+              powerplayPoints: points,
+              powerplayCompleted: data.completed,
             })
           );
 
           // Update local state
-          const squadIndex = updatedSquads.findIndex(s => s.id === squadId);
+          const squadIndex = updatedSquads.findIndex((s) => s.id === squadId);
           if (squadIndex !== -1) {
             updatedSquads[squadIndex] = {
               ...updatedSquads[squadIndex],
-              predictionBonusPoints: points
+              powerplayPoints: points,
+              powerplayCompleted: data.completed,
             };
           }
         }
@@ -144,19 +161,16 @@ const PredictionsViewPage: React.FC = () => {
         // Update local state
         setSquads(updatedSquads);
 
-        // Clear all inputs
-        setBonusPoints({});
-
         // Create new leaderboard snapshot with updated points
         await leaderboardSnapshotService.create(selectedLeagueId);
 
         setSuccess(`Successfully updated ${updates.length} squad(s) and refreshed the leaderboard!`);
       } else {
-        setError('No valid bonus points to save');
+        setError('No valid powerplay data to save');
       }
     } catch (err: any) {
-      console.error('Error saving bonus points:', err);
-      setError(err.message || 'Failed to save bonus points');
+      console.error('Error saving powerplay data:', err);
+      setError(err.message || 'Failed to save powerplay data');
     } finally {
       setSavingAll(false);
     }
@@ -177,8 +191,9 @@ const PredictionsViewPage: React.FC = () => {
     );
   }
 
-  const selectedLeague = leagues.find(l => l.id === selectedLeagueId);
-  const squadsWithPredictions = squads.filter(s => s.predictions && s.isSubmitted);
+  const selectedLeague = leagues.find((l) => l.id === selectedLeagueId);
+  const submittedSquads = squads.filter((s) => s.isSubmitted);
+  const squadsWithPowerplay = submittedSquads.filter((s) => s.powerplayMatchNumber);
 
   return (
     <Box>
@@ -188,10 +203,10 @@ const PredictionsViewPage: React.FC = () => {
         {/* Header */}
         <Box mb={4}>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
-            User Predictions Overview
+            Powerplay Management
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            View all predictions submitted by users for the selected league
+            Award powerplay points and mark matches as completed for the selected league
           </Typography>
         </Box>
 
@@ -233,8 +248,8 @@ const PredictionsViewPage: React.FC = () => {
                   variant="outlined"
                 />
                 <Chip
-                  label={`${squadsWithPredictions.length} Predictions Submitted`}
-                  color="success"
+                  label={`${squadsWithPowerplay.length} Powerplay Matches Selected`}
+                  color="warning"
                   variant="outlined"
                 />
               </Box>
@@ -243,31 +258,31 @@ const PredictionsViewPage: React.FC = () => {
         </Card>
 
         {/* Save All Button */}
-        {squadsWithPredictions.length > 0 && (
+        {submittedSquads.length > 0 && (
           <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
             <Button
               variant="contained"
               color="primary"
               size="large"
               startIcon={savingAll ? <CircularProgress size={20} color="inherit" /> : <Save />}
-              onClick={handleSaveAllBonusPoints}
-              disabled={savingAll || Object.keys(bonusPoints).length === 0}
+              onClick={handleSaveAllPowerplayData}
+              disabled={savingAll || Object.keys(powerplayData).length === 0}
             >
               {savingAll ? 'Saving & Updating Leaderboard...' : 'Save All & Update Leaderboard'}
             </Button>
           </Box>
         )}
 
-        {/* Predictions Table */}
+        {/* Powerplay Table */}
         {fetchingSquads ? (
           <Box display="flex" justifyContent="center" py={4}>
             <CircularProgress />
           </Box>
-        ) : squadsWithPredictions.length === 0 ? (
+        ) : submittedSquads.length === 0 ? (
           <Card>
             <CardContent>
               <Typography variant="body1" color="text.secondary" textAlign="center" py={4}>
-                No predictions submitted yet for this league
+                No squads submitted yet for this league
               </Typography>
             </CardContent>
           </Card>
@@ -280,33 +295,22 @@ const PredictionsViewPage: React.FC = () => {
                   <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Squad Name</TableCell>
                   <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>
                     <Box display="flex" alignItems="center" gap={1}>
-                      <Sports fontSize="small" />
-                      Top Run Scorer
+                      <FlashOn fontSize="small" />
+                      Powerplay Match
                     </Box>
                   </TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <TrendingUp fontSize="small" />
-                      Top Wicket Taker
-                    </Box>
-                  </TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <EmojiEvents fontSize="small" />
-                      Winning Team
-                    </Box>
-                  </TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Bonus Points</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>PP Points</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Completed</TableCell>
                   <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Total Points</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {squadsWithPredictions.map((squad, index) => (
+                {submittedSquads.map((squad, index) => (
                   <TableRow
                     key={squad.id}
                     sx={{
                       '&:nth-of-type(odd)': { bgcolor: 'action.hover' },
-                      '&:hover': { bgcolor: 'action.selected' }
+                      '&:hover': { bgcolor: 'action.selected' },
                     }}
                   >
                     <TableCell>{index + 1}</TableCell>
@@ -317,53 +321,55 @@ const PredictionsViewPage: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <Chip
-                        label={squad.predictions?.topRunScorer || 'N/A'}
+                        label={`Match ${squad.powerplayMatchNumber}`}
                         size="small"
-                        color="primary"
+                        color="warning"
                         variant="outlined"
+                        icon={<FlashOn />}
                       />
                     </TableCell>
                     <TableCell>
-                      <Chip
-                        label={squad.predictions?.topWicketTaker || 'N/A'}
+                      <TextField
                         size="small"
-                        color="secondary"
-                        variant="outlined"
+                        type="number"
+                        placeholder={squad.powerplayPoints ? `Current: ${squad.powerplayPoints}` : '0'}
+                        value={powerplayData[squad.id]?.points || ''}
+                        onChange={(e) =>
+                          setPowerplayData({
+                            ...powerplayData,
+                            [squad.id]: {
+                              points: e.target.value,
+                              completed: powerplayData[squad.id]?.completed || false,
+                            },
+                          })
+                        }
+                        sx={{ width: 120 }}
+                        inputProps={{ min: 0, step: 1 }}
+                        label="PP Points"
                       />
                     </TableCell>
                     <TableCell>
-                      <Chip
-                        label={squad.predictions?.winningTeam || squad.predictions?.seriesScoreline || 'N/A'}
-                        size="small"
+                      <Checkbox
+                        checked={powerplayData[squad.id]?.completed || false}
+                        onChange={(e) =>
+                          setPowerplayData({
+                            ...powerplayData,
+                            [squad.id]: {
+                              points: powerplayData[squad.id]?.points || '',
+                              completed: e.target.checked,
+                            },
+                          })
+                        }
                         color="success"
-                        variant="outlined"
                       />
-                    </TableCell>
-                    <TableCell>
-                      <Box>
-                        <TextField
-                          size="small"
-                          type="number"
-                          placeholder={squad.predictionBonusPoints ? `Current: ${squad.predictionBonusPoints}` : '0'}
-                          value={bonusPoints[squad.id] || ''}
-                          onChange={(e) => setBonusPoints({ ...bonusPoints, [squad.id]: e.target.value })}
-                          sx={{ width: 120 }}
-                          inputProps={{ min: 0, step: 10 }}
-                          label="Bonus Points"
-                        />
-                        {squad.predictionBonusPoints && squad.predictionBonusPoints > 0 && (
-                          <Chip
-                            label={`Current: +${squad.predictionBonusPoints}`}
-                            size="small"
-                            color="info"
-                            sx={{ mt: 0.5 }}
-                          />
-                        )}
-                      </Box>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" fontWeight="bold" color="text.primary">
-                        {((squad.totalPoints || 0) + (squad.predictionBonusPoints || 0)).toFixed(2)}
+                        {(
+                          (squad.totalPoints || 0) +
+                          (squad.predictionBonusPoints || 0) +
+                          (squad.powerplayPoints || 0)
+                        ).toFixed(2)}
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -374,7 +380,7 @@ const PredictionsViewPage: React.FC = () => {
         )}
 
         {/* Summary Statistics */}
-        {squadsWithPredictions.length > 0 && (
+        {submittedSquads.length > 0 && (
           <Card sx={{ mt: 3 }}>
             <CardContent>
               <Typography variant="h6" fontWeight="bold" gutterBottom>
@@ -383,28 +389,34 @@ const PredictionsViewPage: React.FC = () => {
               <Box display="flex" gap={3} flexWrap="wrap">
                 <Box>
                   <Typography variant="body2" color="text.secondary">
-                    Total Predictions
+                    Total Squads
                   </Typography>
-                  <Typography variant="h5" fontWeight="bold" color="primary">
-                    {squadsWithPredictions.length}
+                  <Typography variant="h5" fontWeight="bold" color="primary.main">
+                    {submittedSquads.length}
                   </Typography>
                 </Box>
                 <Box>
                   <Typography variant="body2" color="text.secondary">
-                    Pending Submissions
+                    Powerplay Selected
                   </Typography>
                   <Typography variant="h5" fontWeight="bold" color="warning.main">
-                    {selectedLeague ? selectedLeague.participants.length - squadsWithPredictions.length : 0}
+                    {squadsWithPowerplay.length}
                   </Typography>
                 </Box>
                 <Box>
                   <Typography variant="body2" color="text.secondary">
-                    Submission Rate
+                    Completed Matches
                   </Typography>
                   <Typography variant="h5" fontWeight="bold" color="success.main">
-                    {selectedLeague
-                      ? Math.round((squadsWithPredictions.length / selectedLeague.participants.length) * 100)
-                      : 0}%
+                    {submittedSquads.filter((s) => s.powerplayCompleted).length}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Pending Matches
+                  </Typography>
+                  <Typography variant="h5" fontWeight="bold" color="error.main">
+                    {squadsWithPowerplay.filter((s) => s.powerplayMatchNumber && !s.powerplayCompleted).length}
                   </Typography>
                 </Box>
               </Box>
@@ -416,4 +428,4 @@ const PredictionsViewPage: React.FC = () => {
   );
 };
 
-export default PredictionsViewPage;
+export default PowerplayManagementPage;

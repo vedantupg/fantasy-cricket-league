@@ -1591,6 +1591,12 @@ const AdminPage: React.FC = () => {
           </Button>
           <Button
             variant="outlined"
+            onClick={() => navigate('/admin/powerplay')}
+          >
+            Manage Powerplay
+          </Button>
+          <Button
+            variant="outlined"
             onClick={() => navigate('/admin/player-pools')}
           >
             Manage Player Pools

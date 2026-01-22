@@ -932,13 +932,13 @@ export const leaderboardSnapshotService = {
       console.log(`Fetched ${users.filter(u => u !== null).length} user documents`);
 
     // Build standings with rank changes and points gained
-    // First, map squads to standings with calculated totalPoints (including predictionBonusPoints)
+    // First, map squads to standings with calculated totalPoints (including predictionBonusPoints and powerplayPoints)
     const unsortedStandings: StandingEntry[] = squads.map((squad, index) => {
       const user = users[index];
       const previousEntry = previousStandings.find(s => s.userId === squad.userId);
       const previousRank = previousEntry?.rank;
       const previousPoints = previousEntry?.totalPoints || 0;
-      const currentTotalPoints = (squad.totalPoints || 0) + (squad.predictionBonusPoints || 0);
+      const currentTotalPoints = (squad.totalPoints || 0) + (squad.predictionBonusPoints || 0) + (squad.powerplayPoints || 0);
       const pointsGainedToday = currentTotalPoints - previousPoints;
 
       // Get captain, vice-captain, and X-factor details
@@ -947,7 +947,7 @@ export const leaderboardSnapshotService = {
       const xFactor = squad.players.find(p => p.playerId === squad.xFactorId);
 
       // Build standing entry, only including defined fields (Firestore doesn't allow undefined)
-      // IMPORTANT: Include predictionBonusPoints in totalPoints calculation
+      // IMPORTANT: Include predictionBonusPoints and powerplayPoints in totalPoints calculation
       const standing: any = {
         userId: squad.userId,
         squadId: squad.id,
@@ -971,6 +971,8 @@ export const leaderboardSnapshotService = {
       if (viceCaptain?.playerName) standing.viceCaptainName = viceCaptain.playerName;
       if (squad.xFactorId) standing.xFactorId = squad.xFactorId;
       if (xFactor?.playerName) standing.xFactorName = xFactor.playerName;
+      if (squad.powerplayPoints !== undefined) standing.powerplayPoints = squad.powerplayPoints;
+      if (squad.powerplayCompleted !== undefined) standing.powerplayCompleted = squad.powerplayCompleted;
 
       return standing as StandingEntry;
     });
