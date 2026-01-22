@@ -577,7 +577,7 @@ const PlayerPoolDetails: React.FC<{
     setSnackbarOpen(true);
   };
 
-  const handleApplyScorecardUpdates = (updates: { playerId: string; pointsToAdd: number; performance: string }[]) => {
+  const handleApplyScorecardUpdates = (updates: { playerId: string; pointsToAdd: number; performance: string }[], updateMsg?: string) => {
     // Apply points from parsed scorecard to edited players
     setEditedPlayers(prev =>
       prev.map(player => {
@@ -592,6 +592,11 @@ const PlayerPoolDetails: React.FC<{
         return player;
       })
     );
+
+    // Update the message if provided
+    if (updateMsg) {
+      setUpdateMessage(updateMsg);
+    }
 
     // Enable edit mode if not already enabled
     if (!editMode) {

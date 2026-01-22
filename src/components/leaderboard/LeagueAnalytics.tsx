@@ -611,8 +611,8 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot, league, squ
                     label={`#${standing.rank}`}
                     size="small"
                     sx={{
-                      bgcolor: idx === 0 ? 'warning.main' : 'grey.200',
-                      color: idx === 0 ? 'white' : 'text.primary',
+                      bgcolor: idx === 0 ? 'warning.main' : 'rgba(99,110,250,0.9)',
+                      color: 'white',
                       fontWeight: 'bold',
                       minWidth: 40,
                     }}
@@ -669,8 +669,8 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot, league, squ
                     label={`#${standing.rank}`}
                     size="small"
                     sx={{
-                      bgcolor: 'grey.200',
-                      color: 'text.primary',
+                      bgcolor: 'rgba(99,110,250,0.9)',
+                      color: 'white',
                       fontWeight: 'bold',
                       minWidth: 40,
                     }}

@@ -283,74 +283,145 @@ const LeaderboardPage: React.FC = () => {
         {/* 🎨 CUSTOMIZATION ZONE - LEAGUE INFO CARD */}
         <Card sx={{
           mb: { xs: 2, sm: 3, md: 4 },
-          // 🎨 Card Background - Remove grey, make transparent
-          bgcolor: 'rgba(99,110,250,0.05)', // Try: 'rgba(0,0,0,0.2)', 'rgba(99,110,250,0.05)', or any color
-          boxShadow: 'none', // Remove shadow for cleaner look
+          // 🎨 Gradient Background with transparency
+          background: 'linear-gradient(135deg, rgba(99,110,250,0.1) 0%, rgba(168,85,247,0.08) 100%)',
+          backdropFilter: 'blur(10px)', // Glass morphism effect
+          border: '1px solid rgba(99,110,250,0.2)', // Subtle border
+          borderRadius: 4, // 🎨 Increased from default (1) to 4 for smoother corners
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)', // Subtle shadow for depth
         }}>
           <CardContent sx={{
-            px: { xs: 2, sm: 3, md: 4 },
-            py: { xs: 1.25, sm: 1.5, md: 1.75 }, // 🎨 Reduced from { xs: 2, sm: 2.5, md: 3 } for shorter height
+            px: { xs: 2, sm: 3, md: 3.5 },
+            py: { xs: 1, sm: 1.25, md: 1.5 }, // 🎨 Further reduced for more compact look
           }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, sm: 3 }, justifyContent: 'space-between' }}>
-              {/* Left: FCL Logo + League Name and Version Chip */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, sm: 3 }, flex: 1, minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, sm: 2.5 }, justifyContent: 'space-between' }}>
+              {/* Left: FCL Logo + League Name */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, sm: 2.5 }, flex: 1, minWidth: 0 }}>
                 {/* FCL Logo */}
                 <Box
                   component="img"
                   src="/logo192.png"
                   alt="FCL Logo"
                   sx={{
-                    width: { xs: 50, sm: 60, md: 70 },
-                    height: { xs: 50, sm: 60, md: 70 },
+                    width: { xs: 45, sm: 52, md: 60 },
+                    height: { xs: 45, sm: 52, md: 60 },
                     borderRadius: '50%',
                     flexShrink: 0,
                   }}
                 />
 
-                {/* League Name and Version Chip */}
-                <Box sx={{ flex: 1, minWidth: 0 }}>
+                {/* League Name + Format Badge */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 }}>
                   <Typography
                     variant="h5"
                     fontWeight="bold"
                     sx={{
-                      fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' },
-                      mb: 0.5,
+                      fontSize: { xs: '1.15rem', sm: '1.35rem', md: '1.5rem' },
+                      lineHeight: 1.2,
                     }}
                   >
                     {league?.name || 'League'}
                   </Typography>
-                  {snapshot?.playerPoolVersion && (
-                    <Chip
-                      label={snapshot.playerPoolVersion}
-                      color="primary"
-                      variant="filled" // 🎨 Changed from "outlined" to "filled" for darker chip
-                      size="small"
-                      sx={{
-                        fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                        fontWeight: 600,
-                        // 🎨 CHIP CUSTOMIZATION - Make it darker
-                        bgcolor: 'rgba(63,81,181,0.8)', // Try: '#3f51b5', '#1976d2', 'rgba(63,81,181,0.8)'
-                        color: 'white', // Text color
-                        '&:hover': {
-                          bgcolor: 'primary.dark', // Darker on hover
-                        }
-                      }}
-                    />
+
+                  {/* Format Badge below league name */}
+                  {league && (
+                    <Box>
+                      <Chip
+                        label={league.format}
+                        size="small"
+                        sx={{
+                          fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                          fontWeight: 700,
+                          height: { xs: 24, sm: 26 },
+                          bgcolor: 'rgba(168,85,247,0.15)',
+                          color: '#a855f7',
+                          border: '1px solid rgba(168,85,247,0.3)',
+                          '&:hover': {
+                            bgcolor: 'rgba(168,85,247,0.25)',
+                          }
+                        }}
+                      />
+                    </Box>
                   )}
                 </Box>
               </Box>
 
-              {/* Right: Last Updated Time */}
-              {snapshot && (
-                <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
-                    Last updated
+              {/* Right: Stats & Info - Mobile friendly with better wrapping */}
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: { xs: 1, sm: 1.5 },
+                flexShrink: 0,
+                flexWrap: 'wrap',
+                justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+                maxWidth: { xs: '100%', sm: 'auto' },
+              }}>
+                {/* Average Score - Ocean Blue/Neon Cyan */}
+                {snapshot && snapshot.standings.length > 0 && (
+                  <Chip
+                    label={`Avg: ${(snapshot.standings.reduce((sum, s) => sum + s.totalPoints, 0) / snapshot.standings.length).toFixed(1)}`}
+                    size="small"
+                    sx={{
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      height: { xs: 26, sm: 28 },
+                      bgcolor: 'rgba(6,182,212,0.15)', // Ocean blue/cyan
+                      color: '#06b6d4',
+                      border: '1px solid rgba(6,182,212,0.3)',
+                      '&:hover': {
+                        bgcolor: 'rgba(6,182,212,0.25)',
+                      }
+                    }}
+                  />
+                )}
+
+                {/* PlayerPool Update Message */}
+                {snapshot?.playerPoolVersion && (
+                  <Chip
+                    label={snapshot.playerPoolVersion}
+                    color="primary"
+                    variant="filled"
+                    size="small"
+                    sx={{
+                      fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                      fontWeight: 600,
+                      height: { xs: 24, sm: 26 },
+                      bgcolor: 'rgba(63,81,181,0.8)',
+                      color: 'white',
+                      '&:hover': {
+                        bgcolor: 'primary.dark',
+                      }
+                    }}
+                  />
+                )}
+
+                {/* Relative Time */}
+                {snapshot && (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontSize: '0.8rem',
+                      color: 'text.secondary',
+                      fontStyle: 'italic',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {(() => {
+                      const now = new Date();
+                      const updated = new Date(snapshot.snapshotDate);
+                      const diffMs = now.getTime() - updated.getTime();
+                      const diffMins = Math.floor(diffMs / 60000);
+                      const diffHours = Math.floor(diffMins / 60);
+                      const diffDays = Math.floor(diffHours / 24);
+
+                      if (diffMins < 1) return 'Just now';
+                      if (diffMins < 60) return `${diffMins}m ago`;
+                      if (diffHours < 24) return `${diffHours}h ago`;
+                      return `${diffDays}d ago`;
+                    })()}
                   </Typography>
-                  <Typography variant="body2" fontWeight="500" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
-                    {snapshot.snapshotDate.toLocaleString()}
-                  </Typography>
-                </Box>
-              )}
+                )}
+              </Box>
             </Box>
           </CardContent>
         </Card>

@@ -58,7 +58,7 @@ interface ScorecardParserDialogProps {
   poolPlayers: PlayerPoolEntry[];
   battingConfig?: BattingConfig;
   bowlingConfig?: BowlingConfig;
-  onApplyUpdates: (updates: { playerId: string; pointsToAdd: number; performance: string }[]) => void;
+  onApplyUpdates: (updates: { playerId: string; pointsToAdd: number; performance: string }[], updateMessage?: string) => void;
 }
 
 const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
@@ -76,6 +76,7 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
   const [includeFielding, setIncludeFielding] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [error, setError] = useState('');
+  const [updateMessage, setUpdateMessage] = useState('');
 
   // Smart player name matching with scoring system
   const findMatchingPlayer = (rawName: string): PlayerPoolEntry | undefined => {
@@ -579,7 +580,7 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
       });
     }
 
-    onApplyUpdates(updates);
+    onApplyUpdates(updates, updateMessage.trim() || undefined);
     handleClose();
   };
 
@@ -590,6 +591,7 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
     setParsedFielding([]);
     setIncludeFielding(false);
     setError('');
+    setUpdateMessage('');
     onClose();
   };
 
@@ -636,6 +638,17 @@ Sophie Ecclestone
             value={scorecardText}
             onChange={(e) => setScorecardText(e.target.value)}
             sx={{ mt: 2, mb: 2 }}
+          />
+
+          <TextField
+            fullWidth
+            label="Update Message (Optional)"
+            placeholder="e.g., Test 1 - Day 1, Match 5"
+            value={updateMessage}
+            onChange={(e) => setUpdateMessage(e.target.value)}
+            helperText="Add a version label for this points update. This will be displayed on the leaderboard."
+            variant="outlined"
+            sx={{ mb: 2 }}
           />
 
           <Button
