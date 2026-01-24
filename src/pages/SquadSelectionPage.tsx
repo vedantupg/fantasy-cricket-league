@@ -18,6 +18,7 @@ import {
   Grid,
   Alert,
   TextField,
+  InputAdornment,
   useTheme,
   alpha
 } from '@mui/material';
@@ -25,7 +26,8 @@ import {
   PersonAdd,
   Close,
   SwapHoriz,
-  Star
+  Star,
+  Search
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -410,6 +412,7 @@ const SquadSelectionPage: React.FC = () => {
           captainPoints: calculatedPoints.captainPoints,
           viceCaptainPoints: calculatedPoints.viceCaptainPoints,
           xFactorPoints: calculatedPoints.xFactorPoints,
+          powerplayMatchNumber: powerplayMatch ? parseInt(powerplayMatch) : undefined,
           predictions: {
             topRunScorer: topRunScorer.trim(),
             topWicketTaker: topWicketTaker.trim(),
@@ -446,6 +449,7 @@ const SquadSelectionPage: React.FC = () => {
           captainPoints: calculatedPoints.captainPoints,
           viceCaptainPoints: calculatedPoints.viceCaptainPoints,
           xFactorPoints: calculatedPoints.xFactorPoints,
+          powerplayMatchNumber: powerplayMatch ? parseInt(powerplayMatch) : undefined,
           predictions: {
             topRunScorer: topRunScorer.trim(),
             topWicketTaker: topWicketTaker.trim(),
@@ -551,6 +555,7 @@ const SquadSelectionPage: React.FC = () => {
           captainPoints: calculatedPoints.captainPoints,
           viceCaptainPoints: calculatedPoints.viceCaptainPoints,
           xFactorPoints: calculatedPoints.xFactorPoints,
+          powerplayMatchNumber: powerplayMatch ? parseInt(powerplayMatch) : undefined,
           predictions: {
             topRunScorer: topRunScorer.trim(),
             topWicketTaker: topWicketTaker.trim(),
@@ -584,6 +589,7 @@ const SquadSelectionPage: React.FC = () => {
           captainPoints: calculatedPoints.captainPoints,
           viceCaptainPoints: calculatedPoints.viceCaptainPoints,
           xFactorPoints: calculatedPoints.xFactorPoints,
+          powerplayMatchNumber: powerplayMatch ? parseInt(powerplayMatch) : undefined,
           predictions: {
             topRunScorer: topRunScorer.trim(),
             topWicketTaker: topWicketTaker.trim(),
@@ -811,6 +817,7 @@ const SquadSelectionPage: React.FC = () => {
               team: incomingPlayer.team,
               role: incomingPlayer.role,
               points: incomingPlayer.stats[league.format].recentForm || 0,
+              isOverseas: incomingPlayer.isOverseas,
             });
 
             // Use auto-slotting algorithm to intelligently place the new player
@@ -1000,6 +1007,11 @@ const SquadSelectionPage: React.FC = () => {
         // Only include pointsWhenRoleAssigned if it's defined
         if (player.pointsWhenRoleAssigned !== undefined) {
           cleanPlayer.pointsWhenRoleAssigned = player.pointsWhenRoleAssigned;
+        }
+
+        // Include isOverseas property if defined
+        if (player.isOverseas !== undefined) {
+          cleanPlayer.isOverseas = player.isOverseas;
         }
 
         return cleanPlayer;
@@ -2390,11 +2402,19 @@ const PlayerSelectionPanel: React.FC<{
   setFilterRole: (role: string) => void;
   league: League;
 }> = ({ availablePlayers, selectedPlayers, onAddPlayer, filterRole, setFilterRole, league }) => {
+  const [searchQuery, setSearchQuery] = React.useState('');
 
   const filteredPlayers = availablePlayers.filter(player => {
     const isSelected = selectedPlayers.find(p => p.id === player.id);
     const roleMatch = filterRole === 'all' || player.role === filterRole;
-    return !isSelected && roleMatch;
+
+    // Search functionality - match against name, team, or role
+    const searchMatch = !searchQuery ||
+      player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      player.team.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      player.role.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return !isSelected && roleMatch && searchMatch;
   });
 
   const PlayerCard: React.FC<{ player: Player }> = ({ player }) => (
@@ -2453,6 +2473,29 @@ const PlayerSelectionPanel: React.FC<{
         <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' } }}>
           Player Selection
         </Typography>
+
+        {/* Search Bar */}
+        <TextField
+          fullWidth
+          placeholder="Search by name, team, or role..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          sx={{ mb: { xs: 1.5, sm: 2 } }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search />
+              </InputAdornment>
+            ),
+            endAdornment: searchQuery && (
+              <InputAdornment position="end">
+                <IconButton size="small" onClick={() => setSearchQuery('')}>
+                  <Close fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
 
         {/* Role Filter */}
         <FormControl fullWidth sx={{ mb: { xs: 1.5, sm: 2 } }}>

@@ -18,11 +18,16 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
+  TextField,
+  InputAdornment,
+  IconButton
 } from '@mui/material';
 import {
   ExpandMore,
-  Groups
+  Groups,
+  Search,
+  Close
 } from '@mui/icons-material';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -42,6 +47,7 @@ const ViewTeamsPage: React.FC = () => {
   const [squads, setSquads] = useState<SquadWithUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
@@ -160,6 +166,26 @@ const ViewTeamsPage: React.FC = () => {
   // Check if league has started
   const leagueStarted = league ? new Date() > new Date(league.startDate) : false;
 
+  // Filter squads based on search query
+  const filteredSquads = squads.filter(squad => {
+    if (!searchQuery) return true;
+
+    const query = searchQuery.toLowerCase();
+    const userName = squad.user?.displayName?.toLowerCase() || '';
+    const squadName = squad.squadName.toLowerCase();
+
+    // Search in squad players (only if league has started)
+    if (leagueStarted) {
+      const hasPlayerMatch = squad.players.some(player =>
+        player.playerName.toLowerCase().includes(query) ||
+        player.team.toLowerCase().includes(query)
+      );
+      return userName.includes(query) || squadName.includes(query) || hasPlayerMatch;
+    }
+
+    return userName.includes(query) || squadName.includes(query);
+  });
+
   return (
     <Box>
       <AppHeader />
@@ -199,6 +225,39 @@ const ViewTeamsPage: React.FC = () => {
           </CardContent>
         </Card>
 
+        {/* Search Bar */}
+        {squads.length > 0 && (
+          <Card sx={{ mb: { xs: 2, sm: 3 } }}>
+            <CardContent>
+              <TextField
+                fullWidth
+                placeholder={leagueStarted ? "Search by team name, user, player, or team..." : "Search by team name or user..."}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchQuery && (
+                    <InputAdornment position="end">
+                      <IconButton size="small" onClick={() => setSearchQuery('')}>
+                        <Close fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              {searchQuery && (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  Showing {filteredSquads.length} of {squads.length} teams
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Teams List */}
         {squads.length === 0 ? (
           <Card sx={{ textAlign: 'center', py: { xs: 4, sm: 8 } }}>
@@ -212,10 +271,21 @@ const ViewTeamsPage: React.FC = () => {
               </Typography>
             </CardContent>
           </Card>
+        ) : filteredSquads.length === 0 ? (
+          <Card sx={{ textAlign: 'center', py: { xs: 4, sm: 8 } }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                No teams found
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Try adjusting your search query
+              </Typography>
+            </CardContent>
+          </Card>
         ) : !leagueStarted ? (
           // Before league starts: Show only participant names and profile pictures
           <Grid container spacing={{ xs: 2, sm: 3 }}>
-            {squads.map((squad, index) => (
+            {filteredSquads.map((squad, index) => (
               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={squad.id}>
                 <Card>
                   <CardContent sx={{ p: { xs: 2, sm: 2, md: 3 } }}>
@@ -265,7 +335,7 @@ const ViewTeamsPage: React.FC = () => {
         ) : (
           // After league starts: Show full team details
           <Grid container spacing={{ xs: 2, sm: 3 }}>
-            {squads.map((squad, index) => {
+            {filteredSquads.map((squad, index) => {
               const squadSize = league?.squadSize || 11;
 
               // Sort function to order by role: batsman -> allrounder -> wicketkeeper -> bowler

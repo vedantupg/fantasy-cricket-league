@@ -160,6 +160,8 @@ export interface LeagueSquad {
 
   // Powerplay
   powerplayMatchNumber?: number; // Selected match number for powerplay bonus
+  powerplayPoints?: number; // Points awarded by admin for the powerplay match
+  powerplayCompleted?: boolean; // Whether the powerplay match has been played and points awarded
 
   // Predictions
   predictions?: {
@@ -199,6 +201,7 @@ export interface SquadPlayer {
   addedAt?: Date; // When this player was added to the squad (optional for backward compatibility)
   pointsAtJoining?: number; // Player's total points when they joined this squad (defaults to 0 for initial squad)
   pointsWhenRoleAssigned?: number; // Snapshot of points when C/VC/X role was assigned (for future multiplier tracking)
+  isOverseas?: boolean; // Whether this player is an overseas player (for transfer validation)
 }
 
 export interface Transfer {
@@ -229,15 +232,23 @@ export interface PlayerPool {
   id: string;
   name: string;
   description?: string;
+  format?: 'T20' | 'ODI' | 'Test'; // Format determines auto scoring mode (optional for backward compatibility)
   creatorId: string; // who created this pool (must be admin)
   adminIds: string[]; // admins who can edit this pool
 
   // Players in this pool with their current points
   players: PlayerPoolEntry[];
 
-  // Scoring Configuration (REQUIRED for all new pools)
-  battingConfig: BattingConfig;
-  bowlingConfig: BowlingConfig;
+  // Scoring Mode - determines how points are calculated
+  // 'automated': Uses detailed battingConfig/bowlingConfig with performance tracking (T20/ODI)
+  // 'manual': Simple point input by admin (Test format)
+  // Auto-set based on format: T20/ODI = 'automated', Test = 'manual'
+  // Defaults to 'automated' for backward compatibility
+  scoringMode?: 'automated' | 'manual';
+
+  // Scoring Configuration (REQUIRED for 'automated' mode, optional for 'manual' mode)
+  battingConfig?: BattingConfig;
+  bowlingConfig?: BowlingConfig;
 
   // Update Message (optional commit message for points updates)
   lastUpdateMessage?: string; // e.g., "Test 1 - Day 1"
@@ -493,6 +504,8 @@ export interface StandingEntry {
   captainPoints: number;
   viceCaptainPoints: number;
   xFactorPoints: number;
+  powerplayPoints?: number; // Points from powerplay match
+  powerplayCompleted?: boolean; // Whether the powerplay match has been completed
   rank: number;
   previousRank?: number;
   rankChange?: number; // Positive for improvement, negative for decline

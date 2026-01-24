@@ -24,6 +24,7 @@ import PlayerPoolManagementPage from './pages/PlayerPoolManagementPage';
 import EditLeaguePage from './pages/EditLeaguePage';
 import LeagueRulesPage from './pages/LeagueRulesPage';
 import PredictionsViewPage from './pages/PredictionsViewPage';
+import PowerplayManagementPage from './pages/PowerplayManagementPage';
 
 // Create Material-UI theme with Montserrat font
 const theme = createTheme({
@@ -185,6 +186,12 @@ function App() {
             <Route path="/admin/predictions" element={
               <ProtectedRoute adminOnly={true}>
                 <PredictionsViewPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/admin/powerplay" element={
+              <ProtectedRoute adminOnly={true}>
+                <PowerplayManagementPage />
               </ProtectedRoute>
             } />
 

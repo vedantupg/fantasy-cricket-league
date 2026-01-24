@@ -932,18 +932,14 @@ export const leaderboardSnapshotService = {
       console.log(`Fetched ${users.filter(u => u !== null).length} user documents`);
 
     // Build standings with rank changes and points gained
-    const standings: StandingEntry[] = squads.map((squad, index) => {
+    // First, map squads to standings with calculated totalPoints (including predictionBonusPoints and powerplayPoints)
+    const unsortedStandings: StandingEntry[] = squads.map((squad, index) => {
       const user = users[index];
       const previousEntry = previousStandings.find(s => s.userId === squad.userId);
       const previousRank = previousEntry?.rank;
       const previousPoints = previousEntry?.totalPoints || 0;
-      const pointsGainedToday = squad.totalPoints - previousPoints;
-      const rankChange = previousRank ? previousRank - (index + 1) : 0;
-
-      // Calculate lead from next player
-      const leadFromNext = index < squads.length - 1
-        ? squad.totalPoints - squads[index + 1].totalPoints
-        : undefined;
+      const currentTotalPoints = (squad.totalPoints || 0) + (squad.predictionBonusPoints || 0) + (squad.powerplayPoints || 0);
+      const pointsGainedToday = currentTotalPoints - previousPoints;
 
       // Get captain, vice-captain, and X-factor details
       const captain = squad.players.find(p => p.playerId === squad.captainId);
@@ -951,32 +947,48 @@ export const leaderboardSnapshotService = {
       const xFactor = squad.players.find(p => p.playerId === squad.xFactorId);
 
       // Build standing entry, only including defined fields (Firestore doesn't allow undefined)
+      // IMPORTANT: Include predictionBonusPoints and powerplayPoints in totalPoints calculation
       const standing: any = {
         userId: squad.userId,
         squadId: squad.id,
         squadName: squad.squadName,
         displayName: user?.displayName || 'Unknown',
-        totalPoints: squad.totalPoints,
+        totalPoints: currentTotalPoints,
         captainPoints: squad.captainPoints || 0,
         viceCaptainPoints: squad.viceCaptainPoints || 0,
         xFactorPoints: squad.xFactorPoints || 0,
-        rank: index + 1,
-        rankChange,
+        rank: 0, // Will be set after sorting
+        rankChange: 0, // Will be calculated after sorting
         pointsGainedToday,
       };
 
       // Only add optional fields if they're defined
       if (user?.profilePicUrl) standing.profilePicUrl = user.profilePicUrl;
       if (previousRank !== undefined) standing.previousRank = previousRank;
-      if (leadFromNext !== undefined) standing.leadFromNext = leadFromNext;
       if (squad.captainId) standing.captainId = squad.captainId;
       if (captain?.playerName) standing.captainName = captain.playerName;
       if (squad.viceCaptainId) standing.viceCaptainId = squad.viceCaptainId;
       if (viceCaptain?.playerName) standing.viceCaptainName = viceCaptain.playerName;
       if (squad.xFactorId) standing.xFactorId = squad.xFactorId;
       if (xFactor?.playerName) standing.xFactorName = xFactor.playerName;
+      if (squad.powerplayPoints !== undefined) standing.powerplayPoints = squad.powerplayPoints;
+      if (squad.powerplayCompleted !== undefined) standing.powerplayCompleted = squad.powerplayCompleted;
 
       return standing as StandingEntry;
+    });
+
+    // Sort by totalPoints (descending) to get correct rankings
+    const standings = unsortedStandings.sort((a, b) => b.totalPoints - a.totalPoints);
+
+    // Now assign ranks and calculate rank changes and lead from next
+    standings.forEach((standing, index) => {
+      standing.rank = index + 1;
+      standing.rankChange = standing.previousRank ? standing.previousRank - standing.rank : 0;
+
+      // Calculate lead from next player
+      if (index < standings.length - 1) {
+        standing.leadFromNext = standing.totalPoints - standings[index + 1].totalPoints;
+      }
     });
 
     // Find best performer (most points gained)
@@ -1414,6 +1426,7 @@ export const squadPlayerUtils = {
       role: 'batsman' | 'bowler' | 'allrounder' | 'wicketkeeper';
       points: number;
       price?: number;
+      isOverseas?: boolean;
     }
   ): SquadPlayer {
     const squadPlayer: SquadPlayer = {
@@ -1432,6 +1445,11 @@ export const squadPlayerUtils = {
       squadPlayer.price = player.price;
     }
 
+    // Only include isOverseas if it's defined
+    if (player.isOverseas !== undefined) {
+      squadPlayer.isOverseas = player.isOverseas;
+    }
+
     return squadPlayer;
   },
 
@@ -1447,6 +1465,7 @@ export const squadPlayerUtils = {
       role: 'batsman' | 'bowler' | 'allrounder' | 'wicketkeeper';
       points: number;
       price?: number;
+      isOverseas?: boolean;
     }
   ): SquadPlayer {
     const squadPlayer: SquadPlayer = {
@@ -1463,6 +1482,11 @@ export const squadPlayerUtils = {
     // Only include price if it's defined
     if (player.price !== undefined) {
       squadPlayer.price = player.price;
+    }
+
+    // Only include isOverseas if it's defined
+    if (player.isOverseas !== undefined) {
+      squadPlayer.isOverseas = player.isOverseas;
     }
 
     return squadPlayer;

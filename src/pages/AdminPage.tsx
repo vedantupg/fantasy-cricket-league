@@ -33,7 +33,7 @@ import {
   Undo,
   SwapHoriz
 } from '@mui/icons-material';
-import { leagueService, squadService, playerPoolService, playerPoolSnapshotService, leaderboardSnapshotService } from '../services/firestore';
+import { leagueService, squadService, playerPoolService, playerPoolSnapshotService, leaderboardSnapshotService, squadPlayerUtils } from '../services/firestore';
 import type { League, LeagueSquad, LeaderboardSnapshot, PlayerPool, PlayerPoolSnapshot } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -427,15 +427,40 @@ const AdminPage: React.FC = () => {
           }
         } else {
           // playerOut is completely gone from squad
-          // Simply remove playerIn from the squad
-          updatedPlayers = updatedPlayers.filter(p => p.playerId !== playerInId);
+          // Fetch the player from the player pool and restore it
 
-          // Note: In a real reversal, we'd need to restore playerOut from historical data
-          // For now, we'll leave a gap or mark this as a partial reversal
-          throw new Error(
-            'Cannot fully reverse this transfer: outgoing player data not available. ' +
-            'This transfer removed a player from the squad entirely.'
-          );
+          if (!league.playerPoolId) {
+            throw new Error('Cannot reverse transfer: League does not have a player pool assigned');
+          }
+
+          // Get the player pool
+          const playerPool = await playerPoolService.getById(league.playerPoolId);
+          if (!playerPool) {
+            throw new Error('Cannot reverse transfer: Player pool not found');
+          }
+
+          // Find playerOut in the pool
+          const poolPlayer = playerPool.players.find(p => p.playerId === playerOutId);
+          if (!poolPlayer) {
+            throw new Error(`Cannot reverse transfer: Player ${playerOutId} not found in player pool`);
+          }
+
+          // Reconstruct the SquadPlayer object from pool data
+          // Use createTransferSquadPlayer so points snapshot correctly
+          const restoredPlayer = squadPlayerUtils.createTransferSquadPlayer({
+            playerId: poolPlayer.playerId,
+            playerName: poolPlayer.name,
+            team: poolPlayer.team,
+            role: poolPlayer.role,
+            points: poolPlayer.points,
+          });
+
+          // Find the position where playerIn is currently
+          const playerInPosition = playerInIndex;
+
+          // Remove playerIn and insert playerOut at that position
+          updatedPlayers = updatedPlayers.filter(p => p.playerId !== playerInId);
+          updatedPlayers.splice(playerInPosition, 0, restoredPlayer);
         }
       }
 
@@ -1563,6 +1588,12 @@ const AdminPage: React.FC = () => {
             onClick={() => navigate('/admin/predictions')}
           >
             View Predictions
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => navigate('/admin/powerplay')}
+          >
+            Manage Powerplay
           </Button>
           <Button
             variant="outlined"
