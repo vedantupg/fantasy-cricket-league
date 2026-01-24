@@ -95,7 +95,8 @@ const PowerplayManagementPage: React.FC = () => {
         // Initialize powerplayData with existing values
         const initialData: { [squadId: string]: { points: string; completed: boolean } } = {};
         leagueSquads.forEach((squad) => {
-          if (squad.powerplayMatchNumber) {
+          // Load existing powerplay data if ANY powerplay field is set (not just powerplayMatchNumber)
+          if (squad.powerplayMatchNumber || squad.powerplayPoints !== undefined || squad.powerplayCompleted) {
             initialData[squad.id] = {
               points: squad.powerplayPoints?.toString() || '',
               completed: squad.powerplayCompleted || false,
