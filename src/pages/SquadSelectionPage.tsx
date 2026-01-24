@@ -38,6 +38,7 @@ import { playerPoolService, leagueService, squadService, squadPlayerUtils, leade
 import type { League, Player, SquadPlayer, LeagueSquad } from '../types/database';
 import { deleteField } from 'firebase/firestore';
 import { performAutoSlot } from '../utils/slotManagement';
+import { calculatePlayerContribution as calculatePlayerContributionUtil, calculateSquadPoints as calculateSquadPointsUtil } from '../utils/pointsCalculation';
 
 interface SelectedPlayer extends Player {
   position: 'regular' | 'bench';
@@ -291,6 +292,7 @@ const SquadSelectionPage: React.FC = () => {
            winningTeam.trim() !== '';
   };
 
+  // Use shared calculation utility for consistency across the app
   const calculateSquadPoints = (
     players: SquadPlayer[],
     captainId: string | null,
@@ -298,68 +300,15 @@ const SquadSelectionPage: React.FC = () => {
     xFactorId: string | null,
     bankedPoints: number = 0
   ): { totalPoints: number; captainPoints: number; viceCaptainPoints: number; xFactorPoints: number } => {
-    let totalPoints = 0;
-    let captainPoints = 0;
-    let viceCaptainPoints = 0;
-    let xFactorPoints = 0;
-
-    // CRITICAL: Only count starting XI (first squadSize players), exclude bench
     const squadSize = league?.squadSize || 11;
-    const startingXI = players.slice(0, squadSize);
-
-    startingXI.forEach(player => {
-      // Calculate effective points: only count points earned while in this squad
-      const pointsAtJoining = player.pointsAtJoining ?? 0;
-      const effectivePoints = Math.max(0, player.points - pointsAtJoining);
-
-      let playerPoints = 0;
-
-      if (captainId === player.playerId) {
-        // Captain gets 2x points
-        // Apply multiplier only to points earned AFTER becoming captain
-        const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
-        const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining); // Points before role
-        const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned); // Points after role
-
-        const baseContribution = basePoints * 1.0;
-        const bonusContribution = bonusPoints * 2.0;
-
-        captainPoints = baseContribution + bonusContribution;
-        playerPoints = captainPoints;
-      } else if (viceCaptainId === player.playerId) {
-        // Vice-captain gets 1.5x points
-        const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
-        const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
-        const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
-
-        const baseContribution = basePoints * 1.0;
-        const bonusContribution = bonusPoints * 1.5;
-
-        viceCaptainPoints = baseContribution + bonusContribution;
-        playerPoints = viceCaptainPoints;
-      } else if (xFactorId === player.playerId) {
-        // X-Factor gets 1.25x points
-        const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
-        const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
-        const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
-
-        const baseContribution = basePoints * 1.0;
-        const bonusContribution = bonusPoints * 1.25;
-
-        xFactorPoints = baseContribution + bonusContribution;
-        playerPoints = xFactorPoints;
-      } else {
-        // Regular player (no multiplier)
-        playerPoints = effectivePoints;
-      }
-
-      totalPoints += playerPoints;
-    });
-
-    // Add banked points from previous transfers
-    totalPoints += bankedPoints;
-
-    return { totalPoints, captainPoints, viceCaptainPoints, xFactorPoints };
+    return calculateSquadPointsUtil(
+      players,
+      squadSize,
+      captainId || undefined,
+      viceCaptainId || undefined,
+      xFactorId || undefined,
+      bankedPoints
+    );
   };
 
   const handleSubmitSquad = async () => {
@@ -629,27 +578,9 @@ const SquadSelectionPage: React.FC = () => {
     }
   };
 
-  // Helper function to calculate a player's current contribution (including role multiplier)
-  const calculatePlayerContribution = (
-    player: SquadPlayer,
-    role: 'captain' | 'viceCaptain' | 'xFactor' | 'regular'
-  ): number => {
-    const pointsAtJoining = player.pointsAtJoining ?? 0;
-    const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
-
-    const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
-    const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
-
-    if (role === 'captain') {
-      return basePoints * 1.0 + bonusPoints * 2.0;
-    } else if (role === 'viceCaptain') {
-      return basePoints * 1.0 + bonusPoints * 1.5;
-    } else if (role === 'xFactor') {
-      return basePoints * 1.0 + bonusPoints * 1.25;
-    } else {
-      return Math.max(0, player.points - pointsAtJoining);
-    }
-  };
+  // Use shared utility for calculating player contribution
+  // This ensures consistency across transfers and pool updates
+  const calculatePlayerContribution = calculatePlayerContributionUtil;
 
   const handleTransferSubmit = async (transferData: TransferData) => {
     if (!user || !league || !leagueId || !existingSquad) return;
@@ -846,14 +777,17 @@ const SquadSelectionPage: React.FC = () => {
 
         // Handle VC reassignment
         if (transferData.newViceCaptainId && transferData.newViceCaptainId !== existingSquad.viceCaptainId) {
-          // Bank the multiplier bonus from the old VC
+          // Bank the FULL contribution from the old VC
+          // This ensures all points earned by the old VC (both base + bonus) are preserved
           if (existingSquad.viceCaptainId) {
             const oldVC = updatedPlayers.find(p => p.playerId === existingSquad.viceCaptainId);
             if (oldVC) {
-              const pointsAtJoining = oldVC.pointsAtJoining ?? 0;
-              const effectivePoints = Math.max(0, oldVC.points - pointsAtJoining);
-              const multiplierBonus = effectivePoints * (1.5 - 1.0); // 0.5
-              additionalBankedPoints += multiplierBonus;
+              // FIXED: Use calculatePlayerContribution to get the correct total contribution
+              // This properly splits base points (1x) from bonus points (1.5x multiplier)
+              const vcContribution = calculatePlayerContribution(oldVC, 'viceCaptain');
+              additionalBankedPoints += vcContribution;
+
+              console.log(`🏦 Banking VC contribution: ${vcContribution.toFixed(2)} points from ${oldVC.playerName}`);
             }
           }
 
@@ -861,6 +795,7 @@ const SquadSelectionPage: React.FC = () => {
           const newVC = updatedPlayers.find(p => p.playerId === transferData.newViceCaptainId);
           if (newVC) {
             newVC.pointsWhenRoleAssigned = newVC.points;
+            console.log(`⭐ New VC assigned: ${newVC.playerName}, starting from ${newVC.points} points`);
           }
 
           updatedViceCaptainId = transferData.newViceCaptainId;
@@ -868,21 +803,24 @@ const SquadSelectionPage: React.FC = () => {
 
         // Handle X-Factor reassignment
         if (transferData.newXFactorId && transferData.newXFactorId !== existingSquad.xFactorId) {
-          // Bank the multiplier bonus from the old X
+          // Bank the FULL contribution from the old X-Factor
           if (existingSquad.xFactorId) {
             const oldX = updatedPlayers.find(p => p.playerId === existingSquad.xFactorId);
             if (oldX) {
-              const pointsAtJoining = oldX.pointsAtJoining ?? 0;
-              const effectivePoints = Math.max(0, oldX.points - pointsAtJoining);
-              const multiplierBonus = effectivePoints * (1.25 - 1.0); // 0.25
-              additionalBankedPoints += multiplierBonus;
+              // FIXED: Use calculatePlayerContribution to get the correct total contribution
+              // This properly splits base points (1x) from bonus points (1.25x multiplier)
+              const xContribution = calculatePlayerContribution(oldX, 'xFactor');
+              additionalBankedPoints += xContribution;
+
+              console.log(`🏦 Banking X-Factor contribution: ${xContribution.toFixed(2)} points from ${oldX.playerName}`);
             }
           }
 
-          // Set pointsWhenRoleAssigned for the new X
+          // Set pointsWhenRoleAssigned for the new X-Factor
           const newX = updatedPlayers.find(p => p.playerId === transferData.newXFactorId);
           if (newX) {
             newX.pointsWhenRoleAssigned = newX.points;
+            console.log(`⭐ New X-Factor assigned: ${newX.playerName}, starting from ${newX.points} points`);
           }
 
           updatedXFactorId = transferData.newXFactorId;

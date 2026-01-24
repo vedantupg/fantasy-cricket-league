@@ -36,6 +36,7 @@ import {
 import { leagueService, squadService, playerPoolService, playerPoolSnapshotService, leaderboardSnapshotService, squadPlayerUtils } from '../services/firestore';
 import type { League, LeagueSquad, LeaderboardSnapshot, PlayerPool, PlayerPoolSnapshot } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
+import TransferDataAuditTool from '../components/admin/TransferDataAuditTool';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -1618,6 +1619,7 @@ const AdminPage: React.FC = () => {
               <Tab label="Transfer Investigation" />
               <Tab label="Player Pool History" />
               <Tab label="Squad Changes" />
+              <Tab label="Data Audit & Repair" />
             </Tabs>
           </Box>
 
@@ -3075,6 +3077,11 @@ const AdminPage: React.FC = () => {
                 })()}
               </Box>
             )}
+          </TabPanel>
+
+          {/* Data Audit & Repair Tab */}
+          <TabPanel value={tabValue} index={5}>
+            <TransferDataAuditTool />
           </TabPanel>
         </Card>
       </Container>
