@@ -9,20 +9,13 @@
  * 4. Allow manual review before applying fixes
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Card,
   CardContent,
   Typography,
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Chip,
   Alert,
   AlertTitle,
@@ -34,7 +27,6 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  TextField,
 } from '@mui/material';
 import {
   ExpandMore,
@@ -45,7 +37,7 @@ import {
 } from '@mui/icons-material';
 import { leagueService, squadService } from '../../services/firestore';
 import { validateRoleTimestamp } from '../../utils/pointsCalculation';
-import type { League, LeagueSquad, SquadPlayer } from '../../types/database';
+import type { League, LeagueSquad } from '../../types/database';
 
 interface SquadIssue {
   squadId: string;
