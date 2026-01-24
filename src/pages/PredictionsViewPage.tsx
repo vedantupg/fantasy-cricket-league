@@ -184,41 +184,42 @@ const PredictionsViewPage: React.FC = () => {
     <Box>
       <AppHeader />
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3, md: 4 }, px: { xs: 2, sm: 3 } }}>
         {/* Header */}
-        <Box mb={4}>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
+        <Box mb={{ xs: 2, sm: 3, md: 4 }}>
+          <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' } }}>
             User Predictions Overview
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
             View all predictions submitted by users for the selected league
           </Typography>
         </Box>
 
         {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
+          <Alert severity="error" sx={{ mb: { xs: 2, sm: 3 }, fontSize: { xs: '0.875rem', sm: '1rem' } }}>
             {error}
           </Alert>
         )}
 
         {success && (
-          <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess('')}>
+          <Alert severity="success" sx={{ mb: { xs: 2, sm: 3 }, fontSize: { xs: '0.875rem', sm: '1rem' } }} onClose={() => setSuccess('')}>
             {success}
           </Alert>
         )}
 
         {/* League Selector */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
+        <Card sx={{ mb: { xs: 2, sm: 3 } }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
             <FormControl fullWidth>
-              <InputLabel>Select League</InputLabel>
+              <InputLabel sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>Select League</InputLabel>
               <Select
                 value={selectedLeagueId}
                 label="Select League"
                 onChange={(e) => setSelectedLeagueId(e.target.value)}
+                sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
               >
                 {leagues.map((league) => (
-                  <MenuItem key={league.id} value={league.id}>
+                  <MenuItem key={league.id} value={league.id} sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                     {league.name} - {league.tournamentName} ({league.format})
                   </MenuItem>
                 ))}
@@ -226,16 +227,18 @@ const PredictionsViewPage: React.FC = () => {
             </FormControl>
 
             {selectedLeague && (
-              <Box mt={2} display="flex" gap={2} flexWrap="wrap">
+              <Box mt={{ xs: 1.5, sm: 2 }} display="flex" gap={{ xs: 1, sm: 2 }} flexWrap="wrap">
                 <Chip
                   label={`${selectedLeague.participants.length} Participants`}
                   color="primary"
                   variant="outlined"
+                  sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, height: { xs: 28, sm: 32 } }}
                 />
                 <Chip
                   label={`${squadsWithPredictions.length} Predictions Submitted`}
                   color="success"
                   variant="outlined"
+                  sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, height: { xs: 28, sm: 32 } }}
                 />
               </Box>
             )}
@@ -244,60 +247,62 @@ const PredictionsViewPage: React.FC = () => {
 
         {/* Save All Button */}
         {squadsWithPredictions.length > 0 && (
-          <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
+          <Box sx={{ mb: { xs: 2, sm: 3 }, display: 'flex', justifyContent: { xs: 'stretch', sm: 'flex-end' } }}>
             <Button
               variant="contained"
               color="primary"
               size="large"
+              fullWidth={{ xs: true, sm: false }}
               startIcon={savingAll ? <CircularProgress size={20} color="inherit" /> : <Save />}
               onClick={handleSaveAllBonusPoints}
               disabled={savingAll || Object.keys(bonusPoints).length === 0}
+              sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, py: { xs: 1, sm: 1.5 } }}
             >
-              {savingAll ? 'Saving & Updating Leaderboard...' : 'Save All & Update Leaderboard'}
+              {savingAll ? 'Saving & Updating...' : 'Save All & Update'}
             </Button>
           </Box>
         )}
 
         {/* Predictions Table */}
         {fetchingSquads ? (
-          <Box display="flex" justifyContent="center" py={4}>
+          <Box display="flex" justifyContent="center" py={{ xs: 3, sm: 4 }}>
             <CircularProgress />
           </Box>
         ) : squadsWithPredictions.length === 0 ? (
           <Card>
-            <CardContent>
-              <Typography variant="body1" color="text.secondary" textAlign="center" py={4}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Typography variant="body1" color="text.secondary" textAlign="center" py={{ xs: 3, sm: 4 }} sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                 No predictions submitted yet for this league
               </Typography>
             </CardContent>
           </Card>
         ) : (
-          <TableContainer component={Paper} elevation={2}>
-            <Table>
+          <TableContainer component={Paper} elevation={2} sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: { xs: 600, sm: 650 } }}>
               <TableHead>
                 <TableRow sx={{ bgcolor: 'primary.main' }}>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>#</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Squad Name</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <Sports fontSize="small" />
-                      Top Run Scorer
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1, sm: 2 }, display: { xs: 'none', sm: 'table-cell' } }}>#</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1, sm: 2 } }}>Squad Name</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1, sm: 2 } }}>
+                    <Box display="flex" alignItems="center" gap={{ xs: 0.5, sm: 1 }}>
+                      <Sports sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} />
+                      <span>Top Run Scorer</span>
                     </Box>
                   </TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <TrendingUp fontSize="small" />
-                      Top Wicket Taker
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1, sm: 2 } }}>
+                    <Box display="flex" alignItems="center" gap={{ xs: 0.5, sm: 1 }}>
+                      <TrendingUp sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} />
+                      <span>Top Wicket Taker</span>
                     </Box>
                   </TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <EmojiEvents fontSize="small" />
-                      Winning Team
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1, sm: 2 } }}>
+                    <Box display="flex" alignItems="center" gap={{ xs: 0.5, sm: 1 }}>
+                      <EmojiEvents sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} />
+                      <span>Winning Team</span>
                     </Box>
                   </TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Bonus Points</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Total Points</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1, sm: 2 } }}>Bonus Points</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1, sm: 2 }, display: { xs: 'none', sm: 'table-cell' } }}>Total Points</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -309,37 +314,40 @@ const PredictionsViewPage: React.FC = () => {
                       '&:hover': { bgcolor: 'action.selected' }
                     }}
                   >
-                    <TableCell>{index + 1}</TableCell>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="600" color="primary">
+                    <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1, sm: 2 }, display: { xs: 'none', sm: 'table-cell' } }}>{index + 1}</TableCell>
+                    <TableCell sx={{ px: { xs: 1, sm: 2 } }}>
+                      <Typography variant="body2" fontWeight="600" color="primary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                         {squad.squadName}
                       </Typography>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ px: { xs: 1, sm: 2 } }}>
                       <Chip
                         label={squad.predictions?.topRunScorer || 'N/A'}
                         size="small"
                         color="primary"
                         variant="outlined"
+                        sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, height: { xs: 22, sm: 24 } }}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ px: { xs: 1, sm: 2 } }}>
                       <Chip
                         label={squad.predictions?.topWicketTaker || 'N/A'}
                         size="small"
                         color="secondary"
                         variant="outlined"
+                        sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, height: { xs: 22, sm: 24 } }}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ px: { xs: 1, sm: 2 } }}>
                       <Chip
                         label={squad.predictions?.winningTeam || squad.predictions?.seriesScoreline || 'N/A'}
                         size="small"
                         color="success"
                         variant="outlined"
+                        sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, height: { xs: 22, sm: 24 } }}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ px: { xs: 1, sm: 2 } }}>
                       <Box>
                         <TextField
                           size="small"
@@ -347,8 +355,8 @@ const PredictionsViewPage: React.FC = () => {
                           placeholder={squad.predictionBonusPoints ? `Current: ${squad.predictionBonusPoints}` : '0'}
                           value={bonusPoints[squad.id] || ''}
                           onChange={(e) => setBonusPoints({ ...bonusPoints, [squad.id]: e.target.value })}
-                          sx={{ width: 120 }}
-                          inputProps={{ min: 0, step: 10 }}
+                          sx={{ width: { xs: 90, sm: 120 } }}
+                          inputProps={{ min: 0, step: 10, style: { fontSize: '0.875rem' } }}
                           label="Bonus Points"
                         />
                         {squad.predictionBonusPoints && squad.predictionBonusPoints > 0 && (
@@ -356,13 +364,13 @@ const PredictionsViewPage: React.FC = () => {
                             label={`Current: +${squad.predictionBonusPoints}`}
                             size="small"
                             color="info"
-                            sx={{ mt: 0.5 }}
+                            sx={{ mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.7rem' }, height: { xs: 18, sm: 20 } }}
                           />
                         )}
                       </Box>
                     </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="bold" color="text.primary">
+                    <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1, sm: 2 }, display: { xs: 'none', sm: 'table-cell' } }}>
+                      <Typography variant="body2" fontWeight="bold" color="text.primary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                         {((squad.totalPoints || 0) + (squad.predictionBonusPoints || 0)).toFixed(2)}
                       </Typography>
                     </TableCell>
@@ -375,33 +383,33 @@ const PredictionsViewPage: React.FC = () => {
 
         {/* Summary Statistics */}
         {squadsWithPredictions.length > 0 && (
-          <Card sx={{ mt: 3 }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight="bold" gutterBottom>
+          <Card sx={{ mt: { xs: 2, sm: 3 } }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 Summary
               </Typography>
-              <Box display="flex" gap={3} flexWrap="wrap">
+              <Box display="flex" gap={{ xs: 2, sm: 3 }} flexWrap="wrap">
                 <Box>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                     Total Predictions
                   </Typography>
-                  <Typography variant="h5" fontWeight="bold" color="primary">
+                  <Typography variant="h5" fontWeight="bold" color="primary" sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
                     {squadsWithPredictions.length}
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                     Pending Submissions
                   </Typography>
-                  <Typography variant="h5" fontWeight="bold" color="warning.main">
+                  <Typography variant="h5" fontWeight="bold" color="warning.main" sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
                     {selectedLeague ? selectedLeague.participants.length - squadsWithPredictions.length : 0}
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                     Submission Rate
                   </Typography>
-                  <Typography variant="h5" fontWeight="bold" color="success.main">
+                  <Typography variant="h5" fontWeight="bold" color="success.main" sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
                     {selectedLeague
                       ? Math.round((squadsWithPredictions.length / selectedLeague.participants.length) * 100)
                       : 0}%

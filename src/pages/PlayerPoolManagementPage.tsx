@@ -105,14 +105,14 @@ const PlayerPoolManagementPage: React.FC = () => {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppHeader />
 
-      <Container maxWidth="xl" sx={{ py: 3 }}>
+      <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 3 }, px: { xs: 2, sm: 3 } }}>
         {/* Page Header with Actions */}
-        <Box mb={4} display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
+        <Box mb={{ xs: 2, sm: 3, md: 4 }} display="flex" justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} flexWrap="wrap" gap={{ xs: 1.5, sm: 2 }}>
           <Box>
-            <Typography variant="h4" fontWeight="bold" gutterBottom>
+            <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' } }}>
               Player Pool Management
             </Typography>
-            <Typography variant="body1" color="text.secondary">
+            <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
               Manage player pools and update points
             </Typography>
           </Box>
@@ -121,42 +121,44 @@ const PlayerPoolManagementPage: React.FC = () => {
             color="primary"
             onClick={() => setCreateDialogOpen(true)}
             startIcon={<Add />}
+            sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, py: { xs: 0.75, sm: 1 }, px: { xs: 1.5, sm: 2 } }}
+            fullWidth={{ xs: true, sm: false }}
           >
             Create Player Pool
           </Button>
         </Box>
         {error && (
-          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+          <Alert severity="error" sx={{ mb: { xs: 2, sm: 3 }, fontSize: { xs: '0.875rem', sm: '1rem' } }} onClose={() => setError('')}>
             {error}
           </Alert>
         )}
 
-        <Grid container spacing={3}>
+        <Grid container spacing={{ xs: 2, sm: 3 }}>
           {/* Left Panel - Player Pools List */}
           <Grid size={{ xs: 12, md: 4 }}>
             <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
+              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                   Player Pools ({playerPools.length})
                 </Typography>
 
                 {playerPools.length === 0 ? (
-                  <Box sx={{ textAlign: 'center', py: 4 }}>
-                    <SportsCricket sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
-                    <Typography variant="body2" color="text.secondary">
+                  <Box sx={{ textAlign: 'center', py: { xs: 3, sm: 4 } }}>
+                    <SportsCricket sx={{ fontSize: { xs: 48, sm: 60 }, color: 'text.secondary', mb: 2 }} />
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                       No player pools created yet
                     </Typography>
                     <Button
                       variant="outlined"
                       onClick={() => setCreateDialogOpen(true)}
-                      sx={{ mt: 2 }}
+                      sx={{ mt: 2, fontSize: { xs: '0.875rem', sm: '1rem' } }}
                       startIcon={<Add />}
                     >
                       Create First Pool
                     </Button>
                   </Box>
                 ) : (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 }, mt: { xs: 1.5, sm: 2 } }}>
                     {playerPools.map((pool) => (
                       <Card
                         key={pool.id}
@@ -168,13 +170,13 @@ const PlayerPoolManagementPage: React.FC = () => {
                         }}
                         onClick={() => setSelectedPool(pool)}
                       >
-                        <CardContent>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                            <Box>
-                              <Typography variant="subtitle1" fontWeight="bold">
+                        <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 1 }}>
+                            <Box sx={{ minWidth: 0, flex: 1 }}>
+                              <Typography variant="subtitle1" fontWeight="bold" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                                 {pool.name}
                               </Typography>
-                              <Typography variant="caption" color="text.secondary">
+                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                                 {pool.players.length} players
                               </Typography>
                             </Box>
@@ -182,10 +184,11 @@ const PlayerPoolManagementPage: React.FC = () => {
                               label={pool.isActive ? 'Active' : 'Inactive'}
                               color={pool.isActive ? 'success' : 'default'}
                               size="small"
+                              sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, height: { xs: 20, sm: 24 }, flexShrink: 0 }}
                             />
                           </Box>
                           {pool.description && (
-                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                               {pool.description}
                             </Typography>
                           )}
@@ -285,12 +288,12 @@ const PlayerPoolManagementPage: React.FC = () => {
               />
             ) : (
               <Card>
-                <CardContent sx={{ textAlign: 'center', py: 8 }}>
-                  <SportsCricket sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-                  <Typography variant="h6" gutterBottom>
+                <CardContent sx={{ textAlign: 'center', py: { xs: 5, sm: 6, md: 8 }, p: { xs: 2, sm: 3 } }}>
+                  <SportsCricket sx={{ fontSize: { xs: 60, sm: 70, md: 80 }, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                     Select a Player Pool
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                     Choose a player pool from the list to view and edit player points
                   </Typography>
                 </CardContent>

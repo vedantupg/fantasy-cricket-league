@@ -292,32 +292,48 @@ const LeaderboardPage: React.FC = () => {
         }}>
           <CardContent sx={{
             px: { xs: 2, sm: 3, md: 3.5 },
-            py: { xs: 1, sm: 1.25, md: 1.5 }, // 🎨 Further reduced for more compact look
+            py: { xs: 1.5, sm: 1.25, md: 1.5 },
           }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, sm: 2.5 }, justifyContent: 'space-between' }}>
+            {/* Main row - wraps on mobile */}
+            <Box sx={{
+              display: 'flex',
+              alignItems: { xs: 'flex-start', sm: 'center' },
+              gap: { xs: 2, sm: 2.5 },
+              justifyContent: 'space-between',
+              flexWrap: { xs: 'wrap', sm: 'nowrap' },
+            }}>
               {/* Left: FCL Logo + League Name */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, sm: 2.5 }, flex: 1, minWidth: 0 }}>
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: { xs: 1.5, sm: 2.5 },
+                flex: { xs: '1 1 100%', sm: '1 1 auto' },
+                minWidth: 0,
+              }}>
                 {/* FCL Logo */}
                 <Box
                   component="img"
                   src="/logo192.png"
                   alt="FCL Logo"
                   sx={{
-                    width: { xs: 45, sm: 52, md: 60 },
-                    height: { xs: 45, sm: 52, md: 60 },
+                    width: { xs: 40, sm: 52, md: 60 },
+                    height: { xs: 40, sm: 52, md: 60 },
                     borderRadius: '50%',
                     flexShrink: 0,
                   }}
                 />
 
                 {/* League Name + Format Badge */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0, flex: 1 }}>
                   <Typography
                     variant="h5"
                     fontWeight="bold"
                     sx={{
-                      fontSize: { xs: '1.15rem', sm: '1.35rem', md: '1.5rem' },
+                      fontSize: { xs: '1.1rem', sm: '1.35rem', md: '1.5rem' },
                       lineHeight: 1.2,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: { xs: 'normal', sm: 'nowrap' },
                     }}
                   >
                     {league?.name || 'League'}
@@ -330,9 +346,9 @@ const LeaderboardPage: React.FC = () => {
                         label={league.format}
                         size="small"
                         sx={{
-                          fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                          fontSize: { xs: '0.65rem', sm: '0.75rem' },
                           fontWeight: 700,
-                          height: { xs: 24, sm: 26 },
+                          height: { xs: 22, sm: 26 },
                           bgcolor: 'rgba(168,85,247,0.15)',
                           color: '#a855f7',
                           border: '1px solid rgba(168,85,247,0.3)',
@@ -346,7 +362,7 @@ const LeaderboardPage: React.FC = () => {
                 </Box>
               </Box>
 
-              {/* Right: Stats & Info - Mobile friendly with better wrapping */}
+              {/* Right: Stats & Info - Stacks on mobile */}
               <Box sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -354,7 +370,7 @@ const LeaderboardPage: React.FC = () => {
                 flexShrink: 0,
                 flexWrap: 'wrap',
                 justifyContent: { xs: 'flex-start', sm: 'flex-end' },
-                maxWidth: { xs: '100%', sm: 'auto' },
+                width: { xs: '100%', sm: 'auto' },
               }}>
                 {/* Average Score - Ocean Blue/Neon Cyan */}
                 {snapshot && snapshot.standings.length > 0 && (
@@ -362,10 +378,10 @@ const LeaderboardPage: React.FC = () => {
                     label={`Avg: ${(snapshot.standings.reduce((sum, s) => sum + s.totalPoints, 0) / snapshot.standings.length).toFixed(1)}`}
                     size="small"
                     sx={{
-                      fontSize: '0.8rem',
+                      fontSize: { xs: '0.7rem', sm: '0.8rem' },
                       fontWeight: 600,
-                      height: { xs: 26, sm: 28 },
-                      bgcolor: 'rgba(6,182,212,0.15)', // Ocean blue/cyan
+                      height: { xs: 24, sm: 28 },
+                      bgcolor: 'rgba(6,182,212,0.15)',
                       color: '#06b6d4',
                       border: '1px solid rgba(6,182,212,0.3)',
                       '&:hover': {
@@ -383,11 +399,17 @@ const LeaderboardPage: React.FC = () => {
                     variant="filled"
                     size="small"
                     sx={{
-                      fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                      fontSize: { xs: '0.65rem', sm: '0.75rem' },
                       fontWeight: 600,
-                      height: { xs: 24, sm: 26 },
+                      height: { xs: 22, sm: 26 },
+                      maxWidth: { xs: '180px', sm: 'none' },
                       bgcolor: 'rgba(63,81,181,0.8)',
                       color: 'white',
+                      '& .MuiChip-label': {
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      },
                       '&:hover': {
                         bgcolor: 'primary.dark',
                       }
@@ -400,10 +422,10 @@ const LeaderboardPage: React.FC = () => {
                   <Typography
                     variant="caption"
                     sx={{
-                      fontSize: '0.8rem',
+                      fontSize: { xs: '0.7rem', sm: '0.8rem' },
                       color: 'text.secondary',
                       fontStyle: 'italic',
-                      whiteSpace: 'nowrap',
+                      whiteSpace: { xs: 'normal', sm: 'nowrap' },
                     }}
                   >
                     {(() => {
