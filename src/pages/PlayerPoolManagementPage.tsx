@@ -121,8 +121,12 @@ const PlayerPoolManagementPage: React.FC = () => {
             color="primary"
             onClick={() => setCreateDialogOpen(true)}
             startIcon={<Add />}
-            sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, py: { xs: 0.75, sm: 1 }, px: { xs: 1.5, sm: 2 } }}
-            fullWidth={{ xs: true, sm: false }}
+            sx={{
+              fontSize: { xs: '0.875rem', sm: '1rem' },
+              py: { xs: 0.75, sm: 1 },
+              px: { xs: 1.5, sm: 2 },
+              width: { xs: '100%', sm: 'auto' }
+            }}
           >
             Create Player Pool
           </Button>

@@ -252,11 +252,14 @@ const PredictionsViewPage: React.FC = () => {
               variant="contained"
               color="primary"
               size="large"
-              fullWidth={{ xs: true, sm: false }}
               startIcon={savingAll ? <CircularProgress size={20} color="inherit" /> : <Save />}
               onClick={handleSaveAllBonusPoints}
               disabled={savingAll || Object.keys(bonusPoints).length === 0}
-              sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, py: { xs: 1, sm: 1.5 } }}
+              sx={{
+                fontSize: { xs: '0.875rem', sm: '1rem' },
+                py: { xs: 1, sm: 1.5 },
+                width: { xs: '100%', sm: 'auto' }
+              }}
             >
               {savingAll ? 'Saving & Updating...' : 'Save All & Update'}
             </Button>
