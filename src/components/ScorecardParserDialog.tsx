@@ -242,18 +242,21 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
     if (!dismissalText) return;
 
     // Pattern for catches: "c Fielder b Bowler" or "c & b Bowler" or "c Fielder1/Fielder2 b Bowler"
-    const catchPattern = /c\s+([^b]+?)\s+b\s+/i;
+    const catchPattern = /c\s+([^b]+?)\s+b\s+(.+?)(?:\s|$)/i;
     const catchMatch = dismissalText.match(catchPattern);
 
     if (catchMatch) {
       let fielderName = catchMatch[1].trim();
+      const bowlerName = catchMatch[2].trim();
 
-      // Handle "c & b" (caught and bowled)
-      if (fielderName === '&') return; // Bowler gets credit, not a separate fielder
-
-      // Handle substitutes or multiple fielders (take first name)
-      fielderName = fielderName.split('/')[0].trim();
-      fielderName = fielderName.replace(/\(sub\)/gi, '').trim();
+      // Handle "c & b" (caught and bowled) - bowler gets the catch
+      if (fielderName === '&') {
+        fielderName = bowlerName;
+      } else {
+        // Handle substitutes or multiple fielders (take first name)
+        fielderName = fielderName.split('/')[0].trim();
+        fielderName = fielderName.replace(/\(sub\)/gi, '').trim();
+      }
 
       // Add or update fielder
       const existing = fieldingMap.get(fielderName.toLowerCase());
