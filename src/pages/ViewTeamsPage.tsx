@@ -399,6 +399,80 @@ const ViewTeamsPage: React.FC = () => {
                         )}
                       </Box>
 
+                      {/* Predictions and Powerplay Info */}
+                      {(squad.predictions || squad.powerplayMatchNumber) && (
+                        <Box sx={{ mb: 2, display: 'flex', gap: { xs: 1, sm: 1.5 }, flexWrap: 'wrap' }}>
+                          {squad.predictions && (
+                            <Box sx={{
+                              flex: 1,
+                              minWidth: { xs: '100%', sm: squad.powerplayMatchNumber ? 'calc(70% - 0.75rem)' : '100%' },
+                              bgcolor: 'rgba(156, 39, 176, 0.04)',
+                              border: '1px solid',
+                              borderColor: 'rgba(156, 39, 176, 0.2)',
+                              borderRadius: 1.5,
+                              p: { xs: 1.25, sm: 1.5 }
+                            }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75 }}>
+                                <Typography sx={{ fontSize: '0.95rem' }}>🎯</Typography>
+                                <Typography variant="caption" fontWeight="600" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' }, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                  Predictions
+                                </Typography>
+                              </Box>
+                              <Box sx={{ display: 'flex', gap: { xs: 1.5, sm: 2 }, flexWrap: 'wrap' }}>
+                                <Box sx={{ flex: '1 1 auto', minWidth: 'fit-content' }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <Typography sx={{ fontSize: '0.85rem' }}>🏏</Typography>
+                                    <Typography variant="body2" fontWeight="500" sx={{ fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
+                                      {squad.predictions.topRunScorer}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                                <Box sx={{ flex: '1 1 auto', minWidth: 'fit-content' }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <Typography sx={{ fontSize: '0.85rem' }}>🔴</Typography>
+                                    <Typography variant="body2" fontWeight="500" sx={{ fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
+                                      {squad.predictions.topWicketTaker}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                                <Box sx={{ flex: '1 1 auto', minWidth: 'fit-content' }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <Typography sx={{ fontSize: '0.85rem' }}>🏆</Typography>
+                                    <Typography variant="body2" fontWeight="500" sx={{ fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
+                                      {squad.predictions.winningTeam}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                              </Box>
+                            </Box>
+                          )}
+                          {squad.powerplayMatchNumber && (
+                            <Box sx={{
+                              flex: squad.predictions ? '0 1 auto' : 1,
+                              minWidth: { xs: '100%', sm: squad.predictions ? 'calc(30% - 0.75rem)' : '100%' },
+                              bgcolor: 'rgba(25, 118, 210, 0.04)',
+                              border: '1px solid',
+                              borderColor: 'rgba(25, 118, 210, 0.2)',
+                              borderRadius: 1.5,
+                              p: { xs: 1.25, sm: 1.5 },
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'center'
+                            }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                                <Typography sx={{ fontSize: '0.95rem' }}>⚡</Typography>
+                                <Typography variant="caption" fontWeight="600" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' }, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                  Powerplay
+                                </Typography>
+                              </Box>
+                              <Typography variant="body2" fontWeight="600" color="primary" sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem' } }}>
+                                Match {squad.powerplayMatchNumber}
+                              </Typography>
+                            </Box>
+                          )}
+                        </Box>
+                      )}
+
                       <Accordion>
                         <AccordionSummary expandIcon={<ExpandMore />}>
                           <Typography variant="subtitle2" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
