@@ -409,6 +409,8 @@ const PlayerPoolDetails: React.FC<{
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [manualPoints, setManualPoints] = useState<{ [playerId: string]: string }>({});
   const [scorecardDialogOpen, setScorecardDialogOpen] = useState(false);
+  const [editPlayerDialogOpen, setEditPlayerDialogOpen] = useState(false);
+  const [selectedPlayerForEdit, setSelectedPlayerForEdit] = useState<PlayerPoolEntry | null>(null);
 
 
   // Sync editedPlayers when pool changes
@@ -475,6 +477,32 @@ const PlayerPoolDetails: React.FC<{
 
   const handleDeletePlayer = (playerId: string) => {
     setEditedPlayers(prev => prev.filter(p => p.playerId !== playerId));
+  };
+
+  const handleEditPlayer = (player: PlayerPoolEntry) => {
+    setSelectedPlayerForEdit(player);
+    setEditPlayerDialogOpen(true);
+  };
+
+  const handleSaveEditedPlayer = (updatedPlayer: PlayerPoolEntry) => {
+    setEditedPlayers(prev =>
+      prev.map(p =>
+        p.playerId === updatedPlayer.playerId ? updatedPlayer : p
+      )
+    );
+
+    // Auto-save to Firestore
+    const updatedPool = {
+      ...pool,
+      players: editedPlayers.map(p =>
+        p.playerId === updatedPlayer.playerId ? updatedPlayer : p
+      ),
+      updatedAt: new Date()
+    };
+    onUpdate(updatedPool);
+
+    setSnackbarMessage(`${updatedPlayer.name} updated successfully!`);
+    setSnackbarOpen(true);
   };
 
   const handleDeleteBattingInnings = async (playerId: string, inningsId: string) => {
@@ -918,13 +946,24 @@ const PlayerPoolDetails: React.FC<{
                     </TableCell>
                     {editMode && (
                       <TableCell align="center">
-                        <IconButton
-                          color="error"
-                          size="small"
-                          onClick={() => handleDeletePlayer(player.playerId)}
-                        >
-                          <Delete />
-                        </IconButton>
+                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                          <IconButton
+                            color="primary"
+                            size="small"
+                            onClick={() => handleEditPlayer(player)}
+                            title="Edit Player"
+                          >
+                            <Edit />
+                          </IconButton>
+                          <IconButton
+                            color="error"
+                            size="small"
+                            onClick={() => handleDeletePlayer(player.playerId)}
+                            title="Delete Player"
+                          >
+                            <Delete />
+                          </IconButton>
+                        </Box>
                       </TableCell>
                     )}
                   </TableRow>
@@ -1083,6 +1122,19 @@ const PlayerPoolDetails: React.FC<{
           setSnackbarOpen(true);
         }}
       />
+
+      {/* Edit Player Dialog */}
+      {selectedPlayerForEdit && (
+        <EditPlayerDialog
+          open={editPlayerDialogOpen}
+          onClose={() => {
+            setEditPlayerDialogOpen(false);
+            setSelectedPlayerForEdit(null);
+          }}
+          player={selectedPlayerForEdit}
+          onSave={handleSaveEditedPlayer}
+        />
+      )}
 
       {/* Add Innings Dialog - Only for automated mode */}
       {selectedPlayerForPerformance && pool.battingConfig && (
@@ -1488,6 +1540,77 @@ const AddPlayerDialog: React.FC<{
           disabled={!name.trim() || !team.trim()}
         >
           Add Player
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+// Edit Player Dialog
+const EditPlayerDialog: React.FC<{
+  open: boolean;
+  onClose: () => void;
+  player: PlayerPoolEntry;
+  onSave: (updatedPlayer: PlayerPoolEntry) => void;
+}> = ({ open, onClose, player, onSave }) => {
+  const [name, setName] = useState(player.name);
+  const [role, setRole] = useState<'batsman' | 'bowler' | 'allrounder' | 'wicketkeeper'>(player.role);
+
+  // Update state when player changes
+  useEffect(() => {
+    setName(player.name);
+    setRole(player.role);
+  }, [player]);
+
+  const handleSave = () => {
+    const updatedPlayer: PlayerPoolEntry = {
+      ...player,
+      name: name.trim(),
+      role,
+      lastUpdated: new Date()
+    };
+    onSave(updatedPlayer);
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Edit Player</DialogTitle>
+      <DialogContent>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+          <TextField
+            label="Player Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            fullWidth
+            required
+          />
+          <FormControl fullWidth>
+            <InputLabel>Role</InputLabel>
+            <Select
+              value={role}
+              label="Role"
+              onChange={(e) => setRole(e.target.value as any)}
+            >
+              <MenuItem value="batsman">Batter</MenuItem>
+              <MenuItem value="bowler">Bowler</MenuItem>
+              <MenuItem value="allrounder">All-rounder</MenuItem>
+              <MenuItem value="wicketkeeper">Wicket-keeper</MenuItem>
+            </Select>
+          </FormControl>
+          <Alert severity="info">
+            Team and points cannot be edited here. Use the point management features to update points.
+          </Alert>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button
+          onClick={handleSave}
+          variant="contained"
+          disabled={!name.trim()}
+        >
+          Save Changes
         </Button>
       </DialogActions>
     </Dialog>
