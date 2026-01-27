@@ -249,6 +249,7 @@ export interface PlayerPool {
   // Scoring Configuration (REQUIRED for 'automated' mode, optional for 'manual' mode)
   battingConfig?: BattingConfig;
   bowlingConfig?: BowlingConfig;
+  fieldingConfig?: FieldingConfig;
 
   // Update Message (optional commit message for points updates)
   lastUpdateMessage?: string; // e.g., "Test 1 - Day 1"
@@ -275,6 +276,12 @@ export interface BowlingConfig {
   penaltiesEnabled: boolean; // Whether to apply penalties for poor economy
   economyPenaltyThreshold?: number; // Economy threshold for penalty (e.g., 8) - only if penalties enabled
   minOversForEconomy: number; // Minimum overs for economy calculation (e.g., 1)
+}
+
+export interface FieldingConfig {
+  catchPoints: number; // Points per catch (e.g., 5)
+  runOutPoints: number; // Points per run out (e.g., 5)
+  stumpingPoints: number; // Points per stumping (e.g., 5)
 }
 
 export interface BattingInnings {

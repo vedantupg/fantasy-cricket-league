@@ -44,20 +44,22 @@ import {
   SportsBaseball,
   ExpandMore,
   ExpandLess,
-  ContentPaste
+  ContentPaste,
+  InfoOutlined
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import AppHeader from '../components/common/AppHeader';
 import ScorecardParserDialog from '../components/ScorecardParserDialog';
 import { playerPoolService, playerPoolSnapshotService } from '../services/firestore';
-import type { PlayerPool, PlayerPoolEntry, BattingConfig, BowlingConfig, BattingInnings, BowlingSpell } from '../types/database';
-import { DEFAULT_BATTING_CONFIG, DEFAULT_BOWLING_CONFIG, calculateBattingPoints, calculateBowlingPoints } from '../utils/pointsCalculation';
+import type { PlayerPool, PlayerPoolEntry, BattingConfig, BowlingConfig, FieldingConfig, BattingInnings, BowlingSpell } from '../types/database';
+import { DEFAULT_BATTING_CONFIG, DEFAULT_BOWLING_CONFIG, DEFAULT_FIELDING_CONFIG, calculateBattingPoints, calculateBowlingPoints } from '../utils/pointsCalculation';
 
 const PlayerPoolManagementPage: React.FC = () => {
   const [playerPools, setPlayerPools] = useState<PlayerPool[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPool, setSelectedPool] = useState<PlayerPool | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [scoringConfigDialogOpen, setScoringConfigDialogOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [error, setError] = useState<string>('');
@@ -409,6 +411,7 @@ const PlayerPoolDetails: React.FC<{
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [manualPoints, setManualPoints] = useState<{ [playerId: string]: string }>({});
   const [scorecardDialogOpen, setScorecardDialogOpen] = useState(false);
+  const [scoringConfigDialogOpen, setScoringConfigDialogOpen] = useState(false);
   const [editPlayerDialogOpen, setEditPlayerDialogOpen] = useState(false);
   const [selectedPlayerForEdit, setSelectedPlayerForEdit] = useState<PlayerPoolEntry | null>(null);
 
@@ -756,6 +759,14 @@ const PlayerPoolDetails: React.FC<{
                   startIcon={<ContentPaste />}
                 >
                   Quick Update from Scorecard
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="info"
+                  onClick={() => setScoringConfigDialogOpen(true)}
+                  startIcon={<InfoOutlined />}
+                >
+                  View Scoring Config
                 </Button>
               </>
             )}
@@ -1201,7 +1212,15 @@ const PlayerPoolDetails: React.FC<{
         poolPlayers={editedPlayers}
         battingConfig={pool.battingConfig}
         bowlingConfig={pool.bowlingConfig}
+        fieldingConfig={pool.fieldingConfig}
         onApplyUpdates={handleApplyScorecardUpdates}
+      />
+
+      {/* Scoring Configuration Dialog */}
+      <ScoringConfigDialog
+        open={scoringConfigDialogOpen}
+        onClose={() => setScoringConfigDialogOpen(false)}
+        pool={pool}
       />
 
       {/* Success Snackbar */}
@@ -1227,6 +1246,7 @@ const CreatePlayerPoolDialog: React.FC<{
   const [format, setFormat] = useState<'T20' | 'ODI' | 'Test'>('T20');
   const [battingConfig, setBattingConfig] = useState<BattingConfig>(DEFAULT_BATTING_CONFIG);
   const [bowlingConfig, setBowlingConfig] = useState<BowlingConfig>(DEFAULT_BOWLING_CONFIG);
+  const [fieldingConfig, setFieldingConfig] = useState<FieldingConfig>(DEFAULT_FIELDING_CONFIG);
   const { user } = useAuth();
 
   // Auto-determine scoring mode based on format
@@ -1246,6 +1266,7 @@ const CreatePlayerPoolDialog: React.FC<{
       ...(scoringMode === 'automated' && {
         battingConfig,
         bowlingConfig,
+        fieldingConfig,
       }),
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -1258,6 +1279,7 @@ const CreatePlayerPoolDialog: React.FC<{
     setFormat('T20');
     setBattingConfig(DEFAULT_BATTING_CONFIG);
     setBowlingConfig(DEFAULT_BOWLING_CONFIG);
+    setFieldingConfig(DEFAULT_FIELDING_CONFIG);
   };
 
   return (
@@ -1431,6 +1453,42 @@ const CreatePlayerPoolDialog: React.FC<{
                   helperText="Economy above this gets penalty (e.g., 8.0)"
                 />
               )}
+            </Box>
+          </Box>
+
+          {/* Fielding Scoring Rules */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Typography variant="subtitle2" fontWeight={600}>
+              ⚾ Fielding Scoring Rules
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <TextField
+                label="Catch Points"
+                type="number"
+                value={fieldingConfig.catchPoints}
+                onChange={(e) => setFieldingConfig(prev => ({ ...prev, catchPoints: parseInt(e.target.value) || 5 }))}
+                size="small"
+                inputProps={{ min: 0, step: 1 }}
+                helperText="Points awarded per catch (default: 5)"
+              />
+              <TextField
+                label="Run Out Points"
+                type="number"
+                value={fieldingConfig.runOutPoints}
+                onChange={(e) => setFieldingConfig(prev => ({ ...prev, runOutPoints: parseInt(e.target.value) || 5 }))}
+                size="small"
+                inputProps={{ min: 0, step: 1 }}
+                helperText="Points awarded per run out (default: 5)"
+              />
+              <TextField
+                label="Stumping Points"
+                type="number"
+                value={fieldingConfig.stumpingPoints}
+                onChange={(e) => setFieldingConfig(prev => ({ ...prev, stumpingPoints: parseInt(e.target.value) || 5 }))}
+                size="small"
+                inputProps={{ min: 0, step: 1 }}
+                helperText="Points awarded per stumping (default: 5)"
+              />
             </Box>
           </Box>
           </>
@@ -1837,6 +1895,152 @@ const AddSpellDialog: React.FC<{
         >
           Add Spell
         </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+// Scoring Configuration Dialog - Display scoring rules for a player pool
+const ScoringConfigDialog: React.FC<{
+  open: boolean;
+  onClose: () => void;
+  pool: PlayerPool;
+}> = ({ open, onClose, pool }) => {
+  const battingConfig = pool.battingConfig || DEFAULT_BATTING_CONFIG;
+  const bowlingConfig = pool.bowlingConfig || DEFAULT_BOWLING_CONFIG;
+  const fieldingConfig = pool.fieldingConfig || DEFAULT_FIELDING_CONFIG;
+  const scoringMode = pool.scoringMode || 'automated';
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <InfoOutlined color="info" />
+          <Typography variant="h6">Scoring Configuration - {pool.name}</Typography>
+        </Box>
+      </DialogTitle>
+      <DialogContent>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
+          {/* Scoring Mode */}
+          <Box>
+            <Chip
+              label={scoringMode === 'automated' ? 'Automated Scoring' : 'Manual Scoring'}
+              color={scoringMode === 'automated' ? 'success' : 'default'}
+              sx={{ mb: 1 }}
+            />
+            {pool.format && (
+              <Chip label={`Format: ${pool.format}`} color="primary" sx={{ ml: 1 }} />
+            )}
+          </Box>
+
+          {scoringMode === 'automated' ? (
+            <>
+              {/* Batting Configuration */}
+              <Box sx={{ p: 2, bgcolor: 'primary.lighter', borderRadius: 2, border: '1px solid', borderColor: 'primary.main' }}>
+                <Typography variant="h6" color="primary.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  ⚾ Batting Scoring Rules
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">Minimum Balls Threshold</Typography>
+                    <Typography variant="body1" fontWeight="bold">{battingConfig.minBallsThreshold} balls</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">Bonus SR Trigger</Typography>
+                    <Typography variant="body1" fontWeight="bold">{battingConfig.bonusSRTrigger}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">Bonus SR Baseline</Typography>
+                    <Typography variant="body1" fontWeight="bold">{battingConfig.bonusSRBaseline}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">Bonus Divisor</Typography>
+                    <Typography variant="body1" fontWeight="bold">{battingConfig.bonusDivisor}</Typography>
+                  </Box>
+                  <Box sx={{ gridColumn: '1 / -1' }}>
+                    <Typography variant="body2" color="text.secondary">Penalties Enabled</Typography>
+                    <Chip
+                      label={battingConfig.penaltiesEnabled ? 'Yes' : 'No'}
+                      color={battingConfig.penaltiesEnabled ? 'error' : 'default'}
+                      size="small"
+                    />
+                    {battingConfig.penaltiesEnabled && battingConfig.penaltySRThreshold && (
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        Penalty SR Threshold: <strong>{battingConfig.penaltySRThreshold}</strong>
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+              </Box>
+
+              {/* Bowling Configuration */}
+              <Box sx={{ p: 2, bgcolor: 'secondary.lighter', borderRadius: 2, border: '1px solid', borderColor: 'secondary.main' }}>
+                <Typography variant="h6" color="secondary.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  💨 Bowling Scoring Rules
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">Wicket Points</Typography>
+                    <Typography variant="body1" fontWeight="bold">{bowlingConfig.wicketPoints} pts</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">Economy Bonus Threshold</Typography>
+                    <Typography variant="body1" fontWeight="bold">{bowlingConfig.economyBonusThreshold}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">Economy Multiplier</Typography>
+                    <Typography variant="body1" fontWeight="bold">{bowlingConfig.economyMultiplier}x</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">Min Overs for Economy</Typography>
+                    <Typography variant="body1" fontWeight="bold">{bowlingConfig.minOversForEconomy}</Typography>
+                  </Box>
+                  <Box sx={{ gridColumn: '1 / -1' }}>
+                    <Typography variant="body2" color="text.secondary">Penalties Enabled</Typography>
+                    <Chip
+                      label={bowlingConfig.penaltiesEnabled ? 'Yes' : 'No'}
+                      color={bowlingConfig.penaltiesEnabled ? 'error' : 'default'}
+                      size="small"
+                    />
+                    {bowlingConfig.penaltiesEnabled && bowlingConfig.economyPenaltyThreshold && (
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        Economy Penalty Threshold: <strong>{bowlingConfig.economyPenaltyThreshold}</strong>
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+              </Box>
+
+              {/* Fielding Configuration */}
+              <Box sx={{ p: 2, bgcolor: 'success.lighter', borderRadius: 2, border: '1px solid', borderColor: 'success.main' }}>
+                <Typography variant="h6" color="success.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  🧤 Fielding Scoring Rules
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">Catch Points</Typography>
+                    <Typography variant="body1" fontWeight="bold">{fieldingConfig.catchPoints} pts</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">Run Out Points</Typography>
+                    <Typography variant="body1" fontWeight="bold">{fieldingConfig.runOutPoints} pts</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">Stumping Points</Typography>
+                    <Typography variant="body1" fontWeight="bold">{fieldingConfig.stumpingPoints} pts</Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </>
+          ) : (
+            <Alert severity="info">
+              This player pool uses <strong>Manual Scoring Mode</strong>. Points are added manually by admins rather than being calculated from detailed performance metrics.
+            </Alert>
+          )}
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} variant="contained">Close</Button>
       </DialogActions>
     </Dialog>
   );

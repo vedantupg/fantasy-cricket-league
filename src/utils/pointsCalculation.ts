@@ -5,7 +5,7 @@
  * AND squad points calculation with role multipliers (C/VC/X)
  */
 
-import type { BattingConfig, BowlingConfig, SquadPlayer } from '../types/database';
+import type { BattingConfig, BowlingConfig, FieldingConfig, SquadPlayer } from '../types/database';
 
 /**
  * Calculate batting points based on runs, balls, and pool's batting config
@@ -130,6 +130,12 @@ export const DEFAULT_BOWLING_CONFIG: BowlingConfig = {
   penaltiesEnabled: false,
   economyPenaltyThreshold: 8, // Not used when penalties disabled
   minOversForEconomy: 1,
+};
+
+export const DEFAULT_FIELDING_CONFIG: FieldingConfig = {
+  catchPoints: 5,
+  runOutPoints: 5,
+  stumpingPoints: 5,
 };
 
 /**
