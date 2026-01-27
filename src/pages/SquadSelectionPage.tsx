@@ -188,6 +188,12 @@ const SquadSelectionPage: React.FC = () => {
     setViceCaptainId(existingSquad.viceCaptainId || null);
     setXFactorId(existingSquad.xFactorId || null);
 
+    // Load powerplay match number if it exists
+    if (existingSquad.powerplayMatchNumber) {
+      setPowerplayMatch(existingSquad.powerplayMatchNumber.toString());
+      console.log('Powerplay match loaded:', existingSquad.powerplayMatchNumber);
+    }
+
     // Load predictions if they exist
     if (existingSquad.predictions) {
       setTopRunScorer(existingSquad.predictions.topRunScorer || '');
@@ -1431,6 +1437,20 @@ const SquadSelectionPage: React.FC = () => {
                   color: topRunScorer && topWicketTaker && winningTeam ? theme.palette.secondary.main : 'text.secondary'
                 }}
               />
+              {league?.powerplayEnabled && (
+                <Chip
+                  label={`PP Match: ${powerplayMatch.trim() !== '' ? `Match ${powerplayMatch}` : 'Not Selected'}`}
+                  variant={powerplayMatch.trim() !== '' ? 'filled' : 'outlined'}
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                    height: { xs: 28, sm: 32 },
+                    bgcolor: powerplayMatch.trim() !== '' ? alpha(theme.palette.warning.main, 0.15) : 'transparent',
+                    borderColor: powerplayMatch.trim() !== '' ? theme.palette.warning.main : alpha(theme.palette.text.secondary, 0.3),
+                    color: powerplayMatch.trim() !== '' ? theme.palette.warning.main : 'text.secondary'
+                  }}
+                />
+              )}
             </Box>
           </CardContent>
         </Card>
@@ -1479,7 +1499,9 @@ const SquadSelectionPage: React.FC = () => {
                 Make Your Predictions *
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Predict the top performers and series outcome. All predictions are required to submit your squad.
+                {existingSquad?.isSubmitted
+                  ? 'Your predictions are locked after squad submission and cannot be changed.'
+                  : 'Predict the top performers and series outcome. All predictions are required to submit your squad.'}
               </Typography>
             </Box>
 
@@ -1494,8 +1516,9 @@ const SquadSelectionPage: React.FC = () => {
                   onChange={(e) => setTopRunScorer(e.target.value)}
                   variant="outlined"
                   size="small"
-                  error={topRunScorer.trim() === ''}
-                  helperText={topRunScorer.trim() === '' ? 'Required' : ''}
+                  disabled={existingSquad?.isSubmitted}
+                  error={!existingSquad?.isSubmitted && topRunScorer.trim() === ''}
+                  helperText={!existingSquad?.isSubmitted && topRunScorer.trim() === '' ? 'Required' : ''}
                   InputProps={{
                     startAdornment: <Box sx={{ mr: 1, color: 'warning.main' }}>🏏</Box>
                   }}
@@ -1512,8 +1535,9 @@ const SquadSelectionPage: React.FC = () => {
                   onChange={(e) => setTopWicketTaker(e.target.value)}
                   variant="outlined"
                   size="small"
-                  error={topWicketTaker.trim() === ''}
-                  helperText={topWicketTaker.trim() === '' ? 'Required' : ''}
+                  disabled={existingSquad?.isSubmitted}
+                  error={!existingSquad?.isSubmitted && topWicketTaker.trim() === ''}
+                  helperText={!existingSquad?.isSubmitted && topWicketTaker.trim() === '' ? 'Required' : ''}
                   InputProps={{
                     startAdornment: <Box sx={{ mr: 1, color: 'error.main' }}>⚡</Box>
                   }}
@@ -1530,8 +1554,9 @@ const SquadSelectionPage: React.FC = () => {
                   onChange={(e) => setWinningTeam(e.target.value)}
                   variant="outlined"
                   size="small"
-                  error={winningTeam.trim() === ''}
-                  helperText={winningTeam.trim() === '' ? 'Required' : ''}
+                  disabled={existingSquad?.isSubmitted}
+                  error={!existingSquad?.isSubmitted && winningTeam.trim() === ''}
+                  helperText={!existingSquad?.isSubmitted && winningTeam.trim() === '' ? 'Required' : ''}
                   InputProps={{
                     startAdornment: <Box sx={{ mr: 1, color: 'success.main' }}>🏆</Box>
                   }}
