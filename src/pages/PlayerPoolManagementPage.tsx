@@ -59,7 +59,6 @@ const PlayerPoolManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedPool, setSelectedPool] = useState<PlayerPool | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [scoringConfigDialogOpen, setScoringConfigDialogOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [error, setError] = useState<string>('');
