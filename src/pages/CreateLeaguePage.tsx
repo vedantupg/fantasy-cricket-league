@@ -90,6 +90,8 @@ const CreateLeaguePage: React.FC = () => {
     minWicketkeepers: 1,
     hasBudget: false,
     totalBudget: 100,
+    overseasPlayersEnabled: false, // Default: OFF
+    maxOverseasPlayers: 4, // Default: 4
   });
 
   const [squadSize, setSquadSize] = useState(11);
@@ -463,6 +465,52 @@ const CreateLeaguePage: React.FC = () => {
           />
         </Grid>
 
+        {/* Overseas Player Constraint */}
+        <Grid size={12}>
+          <Card variant="outlined" sx={{ p: 2, mt: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Box>
+                <Typography variant="subtitle1" fontWeight="bold">
+                  Overseas Player Limit
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Enforce a maximum number of overseas players in each squad
+                </Typography>
+              </Box>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={squadRules.overseasPlayersEnabled || false}
+                    onChange={(e) => setSquadRules(prev => ({
+                      ...prev,
+                      overseasPlayersEnabled: e.target.checked
+                    }))}
+                    color="primary"
+                  />
+                }
+                label={squadRules.overseasPlayersEnabled ? "ON" : "OFF"}
+                labelPlacement="start"
+              />
+            </Box>
+
+            {squadRules.overseasPlayersEnabled && (
+              <TextField
+                fullWidth
+                type="number"
+                label="Maximum Overseas Players"
+                value={squadRules.maxOverseasPlayers || 4}
+                onChange={(e) => setSquadRules(prev => ({
+                  ...prev,
+                  maxOverseasPlayers: parseInt(e.target.value)
+                }))}
+                inputProps={{ min: 1, max: squadSize }}
+                helperText={`Maximum overseas players allowed per squad (1-${squadSize})`}
+                error={(squadRules.maxOverseasPlayers || 4) > squadSize}
+              />
+            )}
+          </Card>
+        </Grid>
+
         {!isValidSquadRules && (
           <Grid size={12}>
             <Alert severity="warning" sx={{ mt: 2 }}>
@@ -717,9 +765,19 @@ const CreateLeaguePage: React.FC = () => {
               <Chip label={`All-rounders: min ${squadRules.minAllrounders}`} color="success" variant="outlined" />
               <Chip label={`Wicket-keepers: min ${squadRules.minWicketkeepers}`} color="info" variant="outlined" />
             </Box>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" color="text.secondary" gutterBottom>
               Total minimum: {squadRules.minBatsmen + squadRules.minBowlers + squadRules.minAllrounders + squadRules.minWicketkeepers} / {squadSize} players
             </Typography>
+            <Box sx={{ mt: 2 }}>
+              <Chip
+                label={squadRules.overseasPlayersEnabled
+                  ? `Overseas Limit: max ${squadRules.maxOverseasPlayers} players`
+                  : 'No Overseas Limit'
+                }
+                color={squadRules.overseasPlayersEnabled ? 'warning' : 'default'}
+                variant="outlined"
+              />
+            </Box>
           </CardContent>
         </Card>
       </Grid>

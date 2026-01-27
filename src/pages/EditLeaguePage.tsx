@@ -487,31 +487,50 @@ const EditLeaguePage: React.FC = () => {
                 />
               </Grid>
 
-              {/* Overseas Players Constraint */}
+              {/* Overseas Player Constraint */}
               <Grid size={12}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={squadRules.overseasPlayersEnabled || false}
-                      onChange={(e) => setSquadRules(prev => ({ ...prev, overseasPlayersEnabled: e.target.checked }))}
-                    />
-                  }
-                  label="Enable Overseas Player Limit"
-                />
-                {squadRules.overseasPlayersEnabled && (
-                  <Box sx={{ ml: 4, mt: 1 }}>
-                    <TextField
-                      type="number"
-                      label="Max Overseas Players"
-                      value={squadRules.maxOverseasPlayers || 4}
-                      onChange={(e) => setSquadRules(prev => ({ ...prev, maxOverseasPlayers: parseInt(e.target.value) }))}
-                      size="small"
-                      inputProps={{ min: 1, max: squadSize }}
-                      sx={{ width: 200 }}
-                      helperText={`Maximum number of overseas players allowed in squad (e.g., 4)`}
+                <Card variant="outlined" sx={{ p: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight="bold">
+                        Overseas Player Limit
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Enforce a maximum number of overseas players in each squad
+                      </Typography>
+                    </Box>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={squadRules.overseasPlayersEnabled || false}
+                          onChange={(e) => setSquadRules(prev => ({
+                            ...prev,
+                            overseasPlayersEnabled: e.target.checked
+                          }))}
+                          color="primary"
+                        />
+                      }
+                      label={squadRules.overseasPlayersEnabled ? "ON" : "OFF"}
+                      labelPlacement="start"
                     />
                   </Box>
-                )}
+
+                  {squadRules.overseasPlayersEnabled && (
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Maximum Overseas Players"
+                      value={squadRules.maxOverseasPlayers || 4}
+                      onChange={(e) => setSquadRules(prev => ({
+                        ...prev,
+                        maxOverseasPlayers: parseInt(e.target.value)
+                      }))}
+                      inputProps={{ min: 1, max: squadSize }}
+                      helperText={`Maximum overseas players allowed per squad (1-${squadSize})`}
+                      error={(squadRules.maxOverseasPlayers || 4) > squadSize}
+                    />
+                  )}
+                </Card>
               </Grid>
             </Grid>
           </CardContent>
