@@ -2411,7 +2411,7 @@ const PlayerSelectionPanel: React.FC<{
             startIcon={<PersonAdd sx={{ fontSize: { xs: 14, sm: 16 } }} />}
             sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem', md: '0.875rem' }, px: { xs: 0.75, sm: 1 }, py: { xs: 0.25, sm: 0.5 } }}
           >
-            Add to Squad
+            Add to Team
           </Button>
           {league.transferTypes?.benchTransfers?.enabled && (
             <Button
