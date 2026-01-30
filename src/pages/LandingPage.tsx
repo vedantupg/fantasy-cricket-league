@@ -83,7 +83,6 @@ const LandingPage: React.FC = () => {
   const stats = [
     { number: "100+", label: "Active Players", icon: <People /> },
     { number: "15+", label: "Leagues hosted", icon: <EmojiEvents /> },
-    { number: "₹30000+", label: "Prizes Won", icon: <Star /> },
     { number: "5+ yrs", label: "Established since 2020", icon: <Timeline /> }
   ];
 
@@ -450,7 +449,7 @@ const LandingPage: React.FC = () => {
           id="stats-section"
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr 1fr', md: '1fr 1fr 1fr 1fr' },
+            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' },
             gap: 2,
             transition: 'all 0.8s ease',
             opacity: visibleSections.has('stats-section') ? 1 : 0,
