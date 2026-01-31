@@ -938,6 +938,11 @@ export const leaderboardSnapshotService = {
       if (squad.powerplayPoints !== undefined) standing.powerplayPoints = squad.powerplayPoints;
       if (squad.powerplayCompleted !== undefined) standing.powerplayCompleted = squad.powerplayCompleted;
 
+      // Add transfer data
+      if (squad.benchTransfersUsed !== undefined) standing.benchTransfersUsed = squad.benchTransfersUsed;
+      if (squad.flexibleTransfersUsed !== undefined) standing.flexibleTransfersUsed = squad.flexibleTransfersUsed;
+      if (squad.midSeasonTransfersUsed !== undefined) standing.midSeasonTransfersUsed = squad.midSeasonTransfersUsed;
+
       return standing as StandingEntry;
     });
 

@@ -26,7 +26,8 @@ import {
   Schedule,
   EmojiEvents,
   Edit as EditIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  CalendarMonth
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -252,6 +253,16 @@ const LeagueDashboardPage: React.FC = () => {
                 onClick={() => navigate(`/leagues/${leagueId}/leaderboard`)}
               >
                 View Leaderboard
+              </Button>
+
+              <Button
+                fullWidth
+                variant="outlined"
+                sx={{ mb: 2 }}
+                startIcon={<CalendarMonth />}
+                onClick={() => navigate(`/leagues/${leagueId}/schedule`)}
+              >
+                Match Schedule
               </Button>
 
               <Button

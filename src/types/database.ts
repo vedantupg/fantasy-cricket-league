@@ -27,18 +27,32 @@ export interface User {
   };
 }
 
+export interface ScheduleMatch {
+  matchNumber: number;
+  description: string; // e.g., "1st Match, Group A"
+  team1: string;
+  team2: string;
+  venue: string;
+  stadium: string;
+  date: Date;
+  timeGMT: string; // e.g., "5:30 AM (GMT)"
+  timeLocal: string; // e.g., "11:00 AM (LOCAL)"
+  stage?: string; // e.g., "Group A", "Super 8 Group 1", "Semi-Final", "Final"
+}
+
 export interface League {
   id: string;
   name: string;
   code: string; // 6-digit alphanumeric join code
   creatorId: string;
   adminIds: string[];
-  
+
   // League Settings
   format: 'T20' | 'ODI' | 'Test';
   maxParticipants: number;
   powerplayEnabled: boolean; // NEW: Powerplay feature toggle
   maxPowerplayMatches?: number; // Number of matches for powerplay dropdown (default 20)
+  matchSchedule?: ScheduleMatch[]; // Tournament match schedule
 
   // Squad Selection Settings
   squadSize: number; // default 11
@@ -521,6 +535,11 @@ export interface StandingEntry {
   // Daily Stats
   pointsGainedToday: number;
   leadFromNext?: number; // Points ahead of the next rank
+
+  // Transfer Management
+  benchTransfersUsed?: number; // Bench transfers used
+  flexibleTransfersUsed?: number; // Flexible transfers used
+  midSeasonTransfersUsed?: number; // Mid-season transfers used
 
   // Team Composition
   captainId?: string;

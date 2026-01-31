@@ -39,6 +39,8 @@ import type { League, Player, SquadPlayer, LeagueSquad } from '../types/database
 import { deleteField } from 'firebase/firestore';
 import { performAutoSlot } from '../utils/slotManagement';
 import { calculatePlayerContribution as calculatePlayerContributionUtil, calculateSquadPoints as calculateSquadPointsUtil } from '../utils/pointsCalculation';
+import themeColors from '../theme/colors';
+import { formatMatchForDropdown } from '../utils/scheduleParser';
 
 interface SelectedPlayer extends Player {
   position: 'regular' | 'bench';
@@ -1174,27 +1176,39 @@ const SquadSelectionPage: React.FC = () => {
             <Chip
               label={`${league.transferTypes.benchTransfers.maxAllowed - (existingSquad?.benchTransfersUsed || 0)} Bench Available`}
               size="small"
-              color="primary"
               variant="outlined"
-              sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, height: { xs: 20, sm: 24 } }}
+              sx={{
+                fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                height: { xs: 20, sm: 24 },
+                borderColor: '#9C27B0', // Purple - premium/informational
+                color: '#9C27B0'
+              }}
             />
           )}
           {league.transferTypes.midSeasonTransfers.enabled && (
             <Chip
               label={`Mid-Season Available`}
               size="small"
-              color="secondary"
               variant="outlined"
-              sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, height: { xs: 20, sm: 24 } }}
+              sx={{
+                fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                height: { xs: 20, sm: 24 },
+                borderColor: '#7B1FA2', // Purple - premium/informational
+                color: '#7B1FA2'
+              }}
             />
           )}
           {league.transferTypes.flexibleTransfers.enabled && (
             <Chip
               label={`Flexible Available`}
               size="small"
-              color="success"
               variant="outlined"
-              sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, height: { xs: 20, sm: 24 } }}
+              sx={{
+                fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                height: { xs: 20, sm: 24 },
+                borderColor: '#66BB6A', // Muted green - success/available
+                color: '#66BB6A'
+              }}
             />
           )}
         </Box>
@@ -1214,20 +1228,39 @@ const SquadSelectionPage: React.FC = () => {
         <Box display="flex" gap={1}>
           <Button
             variant="outlined"
-            color="primary"
             disabled={selectedPlayers.length === 0 || submitting || isDeadlinePassed}
             onClick={handleSaveDraft}
-            sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1.5, sm: 2 }, py: { xs: 0.5, sm: 1 } }}
+            sx={{
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              px: { xs: 1.5, sm: 2 },
+              py: { xs: 0.5, sm: 1 },
+              borderColor: themeColors.orange.primary,
+              color: themeColors.orange.primary,
+              fontWeight: 500,
+              '&:hover': {
+                borderColor: themeColors.orange.dark,
+                bgcolor: alpha(themeColors.orange.primary, 0.08)
+              }
+            }}
           >
             Save Draft
           </Button>
           <Button
             variant="contained"
-            color={isDeadlinePassed ? "inherit" : "success"}
             disabled={!isSquadValid() || submitting || isDeadlinePassed}
             startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <Star />}
             onClick={handleSubmitSquad}
-            sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1.5, sm: 2 }, py: { xs: 0.5, sm: 1 } }}
+            sx={{
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              px: { xs: 1.5, sm: 2 },
+              py: { xs: 0.5, sm: 1 },
+              bgcolor: isDeadlinePassed ? themeColors.grey[700] : themeColors.blue.electric,
+              color: 'white',
+              fontWeight: 600,
+              '&:hover': {
+                bgcolor: isDeadlinePassed ? themeColors.grey[600] : themeColors.blue.deep
+              }
+            }}
           >
             {getSubmitButtonText()}
           </Button>
@@ -1316,7 +1349,10 @@ const SquadSelectionPage: React.FC = () => {
           backdropFilter: 'blur(20px)',
           border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
           borderRadius: 2,
-          boxShadow: `0 4px 16px ${alpha('#000', 0.3)}`
+          boxShadow: `0 4px 16px ${alpha('#000', 0.3)}`,
+          opacity: 0.94, // Subtle opacity to reduce visual weight
+          transition: 'opacity 0.3s ease',
+          '&:hover': { opacity: 1 } // Full opacity on hover
         }}>
           <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -1717,16 +1753,16 @@ const CricketPitchFormation: React.FC<{
   const getSlotColors = (slotType: 'required' | 'flexible' | 'bench', role?: string) => {
     if (slotType === 'required') {
       switch (role) {
-        case 'batsman': return { bg: '#E8F5E9', border: '#4CAF50' };
-        case 'bowler': return { bg: '#E3F2FD', border: '#2196F3' };
-        case 'allrounder': return { bg: '#F3E5F5', border: '#9C27B0' };
-        case 'wicketkeeper': return { bg: '#FFF9C4', border: '#FFC107' };
-        default: return { bg: '#ECEFF1', border: '#607D8B' };
+        case 'batsman': return { bg: '#E8F5E9', border: '#66BB6A' }; // Muted green
+        case 'bowler': return { bg: '#EDE7F6', border: '#7B1FA2' }; // Purple
+        case 'allrounder': return { bg: '#E1F5FE', border: '#29B6F6' }; // Light blue
+        case 'wicketkeeper': return { bg: '#FFF9C4', border: '#FFC107' }; // Amber for special role
+        default: return { bg: '#ECEFF1', border: '#78909C' };
       }
     } else if (slotType === 'flexible') {
-      return { bg: '#E8EAF6', border: '#3F51B5' };
+      return { bg: '#E8EAF6', border: '#5C6BC0' }; // Indigo
     } else {
-      return { bg: '#FFF3E0', border: '#FF9800' };
+      return { bg: '#F3E5F5', border: '#9C27B0' }; // Light purple for bench (premium/informational)
     }
   };
 
@@ -1779,14 +1815,15 @@ const CricketPitchFormation: React.FC<{
           justifyContent: 'center',
           border: player ? 'none' : `2px dashed ${colors.border}`,
           borderRadius: { xs: 2, sm: 3 },
-          bgcolor: player ? 'background.paper' : colors.bg,
+          bgcolor: player ? '#1a2332' : colors.bg,
           position: 'relative',
           cursor: 'pointer',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          boxShadow: player ? '0 6px 18px rgba(0,0,0,0.35)' : 'none', // Enhanced micro elevation
           '&:hover': {
-            bgcolor: player ? 'action.hover' : colors.bg,
-            transform: 'translateY(-4px) scale(1.02)',
-            boxShadow: player ? '0 12px 24px rgba(0,0,0,0.15)' : `0 8px 16px ${colors.border}55`
+            bgcolor: player ? '#222b3d' : colors.bg,
+            transform: player ? 'translateY(-6px) scale(1.03)' : 'translateY(-2px)', // Enhanced hover lift
+            boxShadow: player ? '0 12px 28px rgba(0,0,0,0.4)' : `0 8px 16px ${colors.border}55`
           }
         }}
       >
@@ -1805,7 +1842,7 @@ const CricketPitchFormation: React.FC<{
               </IconButton>
             )}
 
-            <Avatar sx={{ width: { xs: 24, sm: 28, md: 32 }, height: { xs: 24, sm: 28, md: 32 }, mb: 0.5, bgcolor: 'primary.main', fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
+            <Avatar sx={{ width: { xs: 24, sm: 28, md: 32 }, height: { xs: 24, sm: 28, md: 32 }, mb: 0.5, bgcolor: '#090b47', color: 'white', fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' }, fontWeight: 700 }}>
               {player.name.charAt(0)}
             </Avatar>
 
@@ -1838,20 +1875,63 @@ const CricketPitchFormation: React.FC<{
               );
             })()}
 
-            {/* Captain/Vice Captain/X-Factor badges */}
+            {/* Captain/Vice Captain/X-Factor badges with special glows */}
             {isCaptain && (
               <Box sx={{ position: 'absolute', top: { xs: -4, sm: -5 }, left: { xs: -4, sm: -5 } }}>
-                <Chip label="C" size="small" color="warning" sx={{ fontSize: { xs: '0.6rem', sm: '0.7rem' }, height: { xs: 16, sm: 18 }, fontWeight: 'bold' }} />
+                <Chip
+                  label="C"
+                  size="small"
+                  sx={{
+                    fontSize: { xs: '0.6rem', sm: '0.7rem' },
+                    height: { xs: 16, sm: 18 },
+                    fontWeight: 'bold',
+                    bgcolor: '#090b47',
+                    color: themeColors.gold,
+                    boxShadow: `0 0 10px ${alpha(themeColors.gold, 0.6)}, 0 0 20px ${alpha(themeColors.gold, 0.3)}`,
+                    animation: 'pulse-gold 2s ease-in-out infinite',
+                    '@keyframes pulse-gold': {
+                      '0%, 100%': { boxShadow: `0 0 10px ${alpha(themeColors.gold, 0.6)}, 0 0 20px ${alpha(themeColors.gold, 0.3)}` },
+                      '50%': { boxShadow: `0 0 15px ${alpha(themeColors.gold, 0.8)}, 0 0 30px ${alpha(themeColors.gold, 0.4)}` }
+                    }
+                  }}
+                />
               </Box>
             )}
             {isViceCaptain && (
               <Box sx={{ position: 'absolute', top: { xs: -4, sm: -5 }, left: { xs: -4, sm: -5 } }}>
-                <Chip label="VC" size="small" color="info" sx={{ fontSize: { xs: '0.6rem', sm: '0.7rem' }, height: { xs: 16, sm: 18 }, fontWeight: 'bold' }} />
+                <Chip
+                  label="VC"
+                  size="small"
+                  sx={{
+                    fontSize: { xs: '0.6rem', sm: '0.7rem' },
+                    height: { xs: 16, sm: 18 },
+                    fontWeight: 'bold',
+                    bgcolor: '#090b47',
+                    color: themeColors.gold,
+                    boxShadow: `0 0 10px ${alpha(themeColors.gold, 0.6)}, 0 0 20px ${alpha(themeColors.gold, 0.3)}`
+                  }}
+                />
               </Box>
             )}
             {isXFactor && (
               <Box sx={{ position: 'absolute', top: { xs: -4, sm: -5 }, left: { xs: -4, sm: -5 } }}>
-                <Chip label="X" size="small" color="secondary" sx={{ fontSize: { xs: '0.6rem', sm: '0.7rem' }, height: { xs: 16, sm: 18 }, fontWeight: 'bold' }} />
+                <Chip
+                  label="X"
+                  size="small"
+                  sx={{
+                    fontSize: { xs: '0.6rem', sm: '0.7rem' },
+                    height: { xs: 16, sm: 18 },
+                    fontWeight: 'bold',
+                    bgcolor: '#090b47',
+                    color: themeColors.gold,
+                    boxShadow: `0 0 10px ${alpha(themeColors.gold, 0.6)}, 0 0 20px ${alpha(themeColors.gold, 0.3)}`,
+                    animation: 'pulse-gold-x 3s ease-in-out infinite',
+                    '@keyframes pulse-gold-x': {
+                      '0%, 100%': { boxShadow: `0 0 8px ${alpha(themeColors.gold, 0.5)}, 0 0 16px ${alpha(themeColors.gold, 0.2)}` },
+                      '50%': { boxShadow: `0 0 12px ${alpha(themeColors.gold, 0.7)}, 0 0 24px ${alpha(themeColors.gold, 0.35)}` }
+                    }
+                  }}
+                />
               </Box>
             )}
 
@@ -1900,9 +1980,9 @@ const CricketPitchFormation: React.FC<{
                     onSetSpecialRole(player.id, 'vice_captain');
                   }}
                   sx={{
-                    bgcolor: isViceCaptain ? 'info.main' : 'action.hover',
-                    color: isViceCaptain ? 'info.contrastText' : 'text.primary',
-                    '&:hover': { bgcolor: isViceCaptain ? 'info.dark' : 'info.light' },
+                    bgcolor: isViceCaptain ? '#7B1FA2' : 'action.hover', // Purple for premium
+                    color: isViceCaptain ? 'white' : 'text.primary',
+                    '&:hover': { bgcolor: isViceCaptain ? '#6A1B9A' : 'rgba(123, 31, 162, 0.1)' },
                     width: 28,
                     height: 28
                   }}
@@ -1916,9 +1996,9 @@ const CricketPitchFormation: React.FC<{
                     onSetSpecialRole(player.id, 'x_factor');
                   }}
                   sx={{
-                    bgcolor: isXFactor ? 'secondary.main' : 'action.hover',
-                    color: isXFactor ? 'secondary.contrastText' : 'text.primary',
-                    '&:hover': { bgcolor: isXFactor ? 'secondary.dark' : 'secondary.light' },
+                    bgcolor: isXFactor ? '#9C27B0' : 'action.hover', // Light Purple for accent
+                    color: isXFactor ? 'white' : 'text.primary',
+                    '&:hover': { bgcolor: isXFactor ? '#7B1FA2' : 'rgba(156, 39, 176, 0.1)' },
                     width: 28,
                     height: 28
                   }}
@@ -1976,13 +2056,50 @@ const CricketPitchFormation: React.FC<{
                 value={powerplayMatch}
                 label="Select Powerplay Match"
                 onChange={(e) => setPowerplayMatch(e.target.value)}
-                sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}
+                sx={{
+                  fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
+                  bgcolor: '#1a2332',
+                  '& .MuiSelect-select': {
+                    py: 1.5
+                  }
+                }}
               >
-                {Array.from({ length: maxPowerplayMatches }, (_, i) => i + 1).map((matchNumber) => (
-                  <MenuItem key={matchNumber} value={matchNumber.toString()} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
-                    Match {matchNumber}
-                  </MenuItem>
-                ))}
+                {league.matchSchedule && league.matchSchedule.length > 0 ? (
+                  // If match schedule exists, show detailed match info
+                  league.matchSchedule
+                    .filter(match => match.matchNumber <= maxPowerplayMatches)
+                    .map((match) => (
+                      <MenuItem
+                        key={match.matchNumber}
+                        value={match.matchNumber.toString()}
+                        sx={{
+                          fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
+                          py: 1.5,
+                          '&:hover': {
+                            bgcolor: alpha(themeColors.blue.electric, 0.08)
+                          }
+                        }}
+                      >
+                        <Box>
+                          <Typography variant="body2" fontWeight={600} fontSize="0.875rem">
+                            {formatMatchForDropdown(match)}
+                          </Typography>
+                          {match.team1 !== 'TBC' && match.team2 !== 'TBC' && (
+                            <Typography variant="caption" color="text.secondary" fontSize="0.75rem">
+                              {match.timeGMT} GMT • {match.stadium}
+                            </Typography>
+                          )}
+                        </Box>
+                      </MenuItem>
+                    ))
+                ) : (
+                  // Fallback to simple match numbers if no schedule
+                  Array.from({ length: maxPowerplayMatches }, (_, i) => i + 1).map((matchNumber) => (
+                    <MenuItem key={matchNumber} value={matchNumber.toString()} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
+                      Match {matchNumber}
+                    </MenuItem>
+                  ))
+                )}
               </Select>
             </FormControl>
           </Box>
@@ -1991,14 +2108,14 @@ const CricketPitchFormation: React.FC<{
         {/* Cricket Field Background */}
         <Box
           sx={{
-            background: 'linear-gradient(180deg, #2E7D32 0%, #1B5E20 100%)',
+            background: 'linear-gradient(180deg, #32883A 0%, #1F6B27 100%)', // Brightened by ~8%
             borderRadius: { xs: 1.5, sm: 2, md: 3 },
             position: 'relative',
             overflow: 'visible',
-            boxShadow: '0 12px 40px rgba(0,0,0,0.3)',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.3), 0 0 60px rgba(46, 125, 50, 0.4)', // Added glow
             minHeight: { xs: 500, sm: 600, md: 700, lg: 800 },
             pb: { xs: 1.5, sm: 2, md: 3 },
-            // Outer boundary rope
+            // Outer boundary rope with enhanced visibility
             '&::before': {
               content: '""',
               position: 'absolute',
@@ -2008,7 +2125,7 @@ const CricketPitchFormation: React.FC<{
               bottom: '40px',
               borderRadius: '50%',
               border: '4px solid #FFFFFF',
-              boxShadow: 'inset 0 0 20px rgba(0,0,0,0.2), 0 0 10px rgba(255,255,255,0.5)',
+              boxShadow: 'inset 0 0 20px rgba(0,0,0,0.2), 0 0 15px rgba(255,255,255,0.6)', // Enhanced glow
               zIndex: 0,
             },
             // Inner 30-yard circle
@@ -2381,17 +2498,17 @@ const PlayerSelectionPanel: React.FC<{
   });
 
   const PlayerCard: React.FC<{ player: Player }> = ({ player }) => (
-    <Card sx={{ mb: { xs: 0.75, sm: 1 }, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}>
+    <Card sx={{ mb: { xs: 0.75, sm: 1 }, cursor: 'pointer', bgcolor: '#1a2332', '&:hover': { bgcolor: '#222b3d', transform: 'translateY(-1px)', boxShadow: 3 }, transition: 'all 0.2s ease' }}>
       <CardContent sx={{ p: { xs: 1, sm: 1.5, md: 2 } }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 0.75, sm: 1 }, gap: { xs: 1, sm: 2 } }}>
-          <Avatar sx={{ width: { xs: 32, sm: 40 }, height: { xs: 32, sm: 40 }, bgcolor: 'primary.main', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+          <Avatar sx={{ width: { xs: 32, sm: 40 }, height: { xs: 32, sm: 40 }, bgcolor: '#090b47', color: 'white', fontSize: { xs: '0.875rem', sm: '1rem' }, fontWeight: 700 }}>
             {player.name.charAt(0)}
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }} noWrap>
+            <Typography variant="subtitle2" fontWeight={600} sx={{ fontSize: { xs: '0.8rem', sm: '0.9rem' }, letterSpacing: '0.01em' }} noWrap>
               {player.name}
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }} noWrap>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, opacity: 0.8 }} noWrap>
               {player.team} • {player.role}
             </Typography>
           </Box>
@@ -2399,30 +2516,59 @@ const PlayerSelectionPanel: React.FC<{
             label={player.stats[league.format].recentForm}
             size="small"
             color={player.stats[league.format].recentForm > 80 ? 'success' : player.stats[league.format].recentForm > 60 ? 'warning' : 'error'}
-            sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, height: { xs: 18, sm: 20 } }}
+            sx={{
+              fontSize: { xs: '0.7rem', sm: '0.75rem' },
+              height: { xs: 20, sm: 22 },
+              fontWeight: 600,
+              fontVariantNumeric: 'tabular-nums'
+            }}
           />
         </Box>
 
-        <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 }, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 } }}>
           <Button
             size="small"
             variant="contained"
             onClick={() => onAddPlayer(player, 'regular')}
-            startIcon={<PersonAdd sx={{ fontSize: { xs: 14, sm: 16 } }} />}
-            sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem', md: '0.875rem' }, px: { xs: 0.75, sm: 1 }, py: { xs: 0.25, sm: 0.5 } }}
+            sx={{
+              minWidth: 'auto',
+              px: { xs: 1.5, sm: 2 },
+              py: { xs: 0.6, sm: 0.8 },
+              width: league.transferTypes?.benchTransfers?.enabled ? '65%' : '100%',
+              bgcolor: themeColors.blue.electric,
+              color: 'white',
+              '&:hover': {
+                bgcolor: themeColors.blue.deep,
+                transform: 'translateY(-1px)',
+                boxShadow: themeColors.shadows.blue.md
+              },
+              transition: 'all 0.2s ease'
+            }}
           >
-            Add to Team
+            <PersonAdd sx={{ fontSize: { xs: 18, sm: 20 } }} />
           </Button>
           {league.transferTypes?.benchTransfers?.enabled && (
             <Button
               size="small"
               variant="outlined"
-              color="secondary"
               onClick={() => onAddPlayer(player, 'bench')}
               startIcon={<SwapHoriz sx={{ fontSize: { xs: 14, sm: 16 } }} />}
-              sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem', md: '0.875rem' }, px: { xs: 0.75, sm: 1 }, py: { xs: 0.25, sm: 0.5 } }}
+              sx={{
+                fontSize: { xs: '0.65rem', sm: '0.75rem', md: '0.8rem' },
+                fontWeight: 500,
+                px: { xs: 0.75, sm: 1 },
+                py: { xs: 0.4, sm: 0.6 },
+                width: '35%',
+                borderColor: themeColors.orange.primary,
+                color: themeColors.orange.primary,
+                '&:hover': {
+                  borderColor: themeColors.orange.dark,
+                  bgcolor: alpha(themeColors.orange.primary, 0.08),
+                  color: themeColors.orange.dark
+                }
+              }}
             >
-              Add to Bench
+              Bench
             </Button>
           )}
         </Box>
@@ -2431,9 +2577,9 @@ const PlayerSelectionPanel: React.FC<{
   );
 
   return (
-    <Card>
+    <Card sx={{ opacity: 0.94, transition: 'opacity 0.3s ease', '&:hover': { opacity: 1 } }}>
       <CardContent sx={{ px: { xs: 1, sm: 1.5, md: 2 }, py: { xs: 1, sm: 1.5, md: 2 } }}>
-        <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' } }}>
+        <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' }, fontWeight: 600, letterSpacing: '0.02em' }}>
           Player Selection
         </Typography>
 

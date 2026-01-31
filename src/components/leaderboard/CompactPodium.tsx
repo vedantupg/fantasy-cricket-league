@@ -1,16 +1,17 @@
 import React from 'react';
-import { Box, Avatar, Typography, Paper } from '@mui/material';
+import { Box, Avatar, Typography, Paper, Tooltip } from '@mui/material';
 import {
   ArrowUpward as ArrowUpIcon,
   ArrowDownward as ArrowDownIcon,
 } from '@mui/icons-material';
-import type { StandingEntry } from '../../types/database';
+import type { StandingEntry, League } from '../../types/database';
 
 interface CompactPodiumProps {
   topFive: StandingEntry[];
+  league?: League;
 }
 
-const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive }) => {
+const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league }) => {
   if (topFive.length === 0) return null;
 
   // Display in sequential order: 1st, 2nd, 3rd, 4th, 5th
@@ -70,6 +71,89 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive }) => {
     // - rankChange is 0 but no previousRank (first time appearing)
     // - rankChange is 0 but rankStreak < 2 (not enough history)
     return null;
+  };
+
+  // Render transfer dots
+  const renderTransferDots = (standing: StandingEntry) => {
+    if (!league?.transferTypes) return null;
+
+    const { flexibleTransfers, benchTransfers } = league.transferTypes;
+    if (!flexibleTransfers?.enabled && !benchTransfers?.enabled) return null;
+
+    const dots = [];
+
+    // Add flexible transfer dots (purple)
+    if (flexibleTransfers?.enabled) {
+      const flexUsed = standing.flexibleTransfersUsed || 0;
+      for (let i = 0; i < flexibleTransfers.maxAllowed; i++) {
+        dots.push({
+          type: 'flexible',
+          available: i >= flexUsed, // REVERSED: available (unused) = filled
+          color: '#9333ea',
+        });
+      }
+    }
+
+    // Add bench transfer dots (cyan)
+    if (benchTransfers?.enabled) {
+      const benchUsed = standing.benchTransfersUsed || 0;
+      for (let i = 0; i < benchTransfers.maxAllowed; i++) {
+        dots.push({
+          type: 'bench',
+          available: i >= benchUsed, // REVERSED: available (unused) = filled
+          color: '#06b6d4',
+        });
+      }
+    }
+
+    if (dots.length === 0) return null;
+
+    const flexUsed = standing.flexibleTransfersUsed || 0;
+    const benchUsed = standing.benchTransfersUsed || 0;
+    const flexRemaining = (flexibleTransfers?.maxAllowed || 0) - flexUsed;
+    const benchRemaining = (benchTransfers?.maxAllowed || 0) - benchUsed;
+
+    return (
+      <Tooltip
+        title={
+          <Box sx={{ fontSize: '0.7rem', lineHeight: 1.4 }}>
+            {flexibleTransfers?.enabled && (
+              <Box>Flexible: {flexRemaining}/{flexibleTransfers.maxAllowed} left</Box>
+            )}
+            {benchTransfers?.enabled && (
+              <Box>Bench: {benchRemaining}/{benchTransfers.maxAllowed} left</Box>
+            )}
+          </Box>
+        }
+        arrow
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 0.35,
+            flexWrap: 'nowrap', // Keep horizontal
+            justifyContent: 'center',
+            alignItems: 'center',
+            mt: 0.5,
+          }}
+        >
+          {dots.map((dot, index) => (
+            <Box
+              key={`${dot.type}-${index}`}
+              sx={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                bgcolor: dot.available ? dot.color : 'transparent', // REVERSED
+                border: `1.5px solid ${dot.color}`,
+                opacity: dot.available ? 1 : 0.4, // REVERSED
+                transition: 'all 0.2s ease',
+              }}
+            />
+          ))}
+        </Box>
+      </Tooltip>
+    );
   };
 
   return (
@@ -184,6 +268,9 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive }) => {
             >
               {standing.displayName}
             </Typography>
+
+            {/* Transfer Dots */}
+            {renderTransferDots(standing)}
 
             {/* Points Row: Rank Change | Points | Lead/Gap from Next */}
             <Box sx={{

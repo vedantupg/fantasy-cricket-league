@@ -82,6 +82,9 @@ const LeaderboardPage: React.FC = () => {
                 captainId: squad.captainId,
                 viceCaptainId: squad.viceCaptainId,
                 xFactorId: squad.xFactorId,
+                benchTransfersUsed: squad.benchTransfersUsed || 0,
+                flexibleTransfersUsed: squad.flexibleTransfersUsed || 0,
+                midSeasonTransfersUsed: squad.midSeasonTransfersUsed || 0,
               }))
               .sort((a, b) => b.totalPoints - a.totalPoints)
               .map((standing, index) => ({ ...standing, rank: index + 1 }));
@@ -143,6 +146,9 @@ const LeaderboardPage: React.FC = () => {
             captainId: squad.captainId,
             viceCaptainId: squad.viceCaptainId,
             xFactorId: squad.xFactorId,
+            benchTransfersUsed: squad.benchTransfersUsed || 0,
+            flexibleTransfersUsed: squad.flexibleTransfersUsed || 0,
+            midSeasonTransfersUsed: squad.midSeasonTransfersUsed || 0,
           }))
           .sort((a, b) => b.totalPoints - a.totalPoints)
           .map((standing, index) => ({ ...standing, rank: index + 1 }));
@@ -469,7 +475,7 @@ const LeaderboardPage: React.FC = () => {
         )}
 
         {/* Podium for Top 5 */}
-        {topFive.length > 0 && hasLeagueStarted && <CompactPodium topFive={topFive} />}
+        {topFive.length > 0 && hasLeagueStarted && <CompactPodium topFive={topFive} league={league} />}
 
         {/* Full Leaderboard - Grid layout */}
         {snapshot && snapshot.standings.length > 5 && hasLeagueStarted && (
@@ -495,6 +501,7 @@ const LeaderboardPage: React.FC = () => {
                   key={standing.userId}
                   standing={standing}
                   isCurrentUser={standing.userId === userData?.uid}
+                  league={league}
                 />
               ))}
             </Box>

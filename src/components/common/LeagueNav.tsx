@@ -14,7 +14,8 @@ import {
   EmojiEvents,
   Groups,
   MenuBook,
-  BarChart
+  BarChart,
+  CalendarMonth
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -63,8 +64,11 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
         return 3;
       case 'Rules':
         return 4;
-      case 'Analytics':
+      case 'Schedule':
+      case 'Match Schedule':
         return 5;
+      case 'Analytics':
+        return 6;
       default:
         return false;
     }
@@ -88,6 +92,9 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
         navigate(`/leagues/${leagueId}/rules`);
         break;
       case 5:
+        navigate(`/leagues/${leagueId}/schedule`);
+        break;
+      case 6:
         navigate(`/leagues/${leagueId}/analytics`);
         break;
     }
@@ -293,8 +300,21 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
           </Button>
           <Button
             variant={getTabValue() === 5 ? 'contained' : 'text'}
-            startIcon={<BarChart />}
+            startIcon={<CalendarMonth />}
             onClick={() => handleTabChange({} as React.SyntheticEvent, 5)}
+            sx={{
+              px: { xs: 1.5, sm: 2 },
+              py: { xs: 0.75, sm: 1 },
+              fontSize: { xs: '0.65rem', sm: '0.75rem' },
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {!isSmallMobile && 'Schedule'}
+          </Button>
+          <Button
+            variant={getTabValue() === 6 ? 'contained' : 'text'}
+            startIcon={<BarChart />}
+            onClick={() => handleTabChange({} as React.SyntheticEvent, 6)}
             sx={{
               px: { xs: 1.5, sm: 2 },
               py: { xs: 0.75, sm: 1 },
