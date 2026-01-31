@@ -30,8 +30,8 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league }) => {
       case 1: return '#FFD700'; // 🎨 1st Place - Gold (try: #F7B731, #FFC312, #FFDD59)
       case 2: return '#C0C0C0'; // 🎨 2nd Place - Silver (try: #A6ACAF, #BDC3C7, #95A5A6)
       case 3: return '#CD7F32'; // 🎨 3rd Place - Bronze (try: #E67E22, #D68910, #B87333)
-      case 4: return '#3f51b5'; // 🎨 4th Place - Pink/Primary (MUI primary.main)
-      case 5: return '#3f51b5'; // 🎨 5th Place - Pink/Primary (MUI primary.main)
+      case 4: return '#1E88E5'; // 🎨 4th Place - Electric Blue (brand primary)
+      case 5: return '#1E88E5'; // 🎨 5th Place - Electric Blue (brand primary)
       default: return '#757575';
     }
   };

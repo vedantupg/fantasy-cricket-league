@@ -80,19 +80,19 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
               sx={{
                 px: { xs: 1.25, sm: 1.5 },
                 py: { xs: 1, sm: 1.25 },
-                background: 'linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(33, 150, 243, 0.03) 100%)',
+                background: 'linear-gradient(135deg, rgba(1, 98, 147, 0.25) 0%, rgba(1, 98, 147, 0.1) 100%)', // Deep blue gradient
                 border: '2px solid',
-                borderColor: 'primary.main',
+                borderColor: '#016293', // Deep blue border
                 borderRadius: 2,
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 } }}>
-                <TrophyIcon sx={{ fontSize: { xs: 18, sm: 20 }, color: 'primary.main' }} />
+                <TrophyIcon sx={{ fontSize: { xs: 18, sm: 20 }, color: '#1E88E5' }} />
                 <Typography
                   variant="subtitle2"
                   sx={{
                     fontWeight: 'bold',
-                    color: 'primary.main',
+                    color: '#1E88E5', // Electric blue for text
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
                     fontSize: { xs: '0.7rem', sm: '0.8rem' },
@@ -110,7 +110,7 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
                     width: { xs: 36, sm: 42 },
                     height: { xs: 36, sm: 42 },
                     border: '2px solid',
-                    borderColor: 'primary.main',
+                    borderColor: '#1E88E5', // Electric blue
                   }}
                 />
 
@@ -129,7 +129,7 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
                     alignItems: 'center',
                     px: { xs: 1, sm: 1.25 },
                     py: { xs: 0.4, sm: 0.5 },
-                    backgroundColor: 'primary.main',
+                    backgroundColor: '#1E88E5', // Electric blue badge
                     borderRadius: 1.5,
                   }}
                 >
@@ -157,19 +157,19 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
               sx={{
                 px: { xs: 1.25, sm: 1.5 },
                 py: { xs: 1, sm: 1.25 },
-                background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.03) 100%)',
+                background: 'linear-gradient(135deg, rgba(255, 152, 0, 0.2) 0%, rgba(255, 152, 0, 0.08) 100%)', // Orange gradient
                 border: '2px solid',
-                borderColor: 'success.main',
+                borderColor: '#FF9800', // Orange border
                 borderRadius: 2,
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 } }}>
-                <TrendingUpIcon sx={{ fontSize: { xs: 18, sm: 20 }, color: 'success.main' }} />
+                <TrendingUpIcon sx={{ fontSize: { xs: 18, sm: 20 }, color: '#FF9800' }} />
                 <Typography
                   variant="subtitle2"
                   sx={{
                     fontWeight: 'bold',
-                    color: 'success.main',
+                    color: '#FF9800', // Orange text
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
                     fontSize: { xs: '0.7rem', sm: '0.8rem' },
@@ -187,7 +187,7 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
                     width: { xs: 36, sm: 42 },
                     height: { xs: 36, sm: 42 },
                     border: '2px solid',
-                    borderColor: 'success.main',
+                    borderColor: '#FF9800', // Orange
                   }}
                 />
 
@@ -206,7 +206,7 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
                     alignItems: 'center',
                     px: { xs: 1, sm: 1.25 },
                     py: { xs: 0.4, sm: 0.5 },
-                    backgroundColor: 'success.main',
+                    backgroundColor: '#FF9800', // Orange badge
                     borderRadius: 1.5,
                   }}
                 >

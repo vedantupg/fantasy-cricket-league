@@ -20,9 +20,9 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
       const colors = ['#FFD700', '#C0C0C0', '#CD7F32'];
       return colors[rank - 1];
     }
-    // Special colors for 4th and 5th place matching your screenshot
-    if (rank === 4) return '#9333ea'; // Purple for 4th
-    if (rank === 5) return '#3b82f6'; // Blue for 5th
+    // Special colors for 4th and 5th place - Electric Blue (brand primary)
+    if (rank === 4) return '#1E88E5'; // Electric Blue for 4th
+    if (rank === 5) return '#1E88E5'; // Electric Blue for 5th
     return 'text.primary'; // Use theme text color for all other ranks
   };
 
@@ -31,8 +31,8 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
   // Border colors matching your design
   const getBorderColor = (rank: number) => {
     if (rank <= 3) return rankColor;
-    if (rank === 4) return '#9333ea'; // Purple for 4th
-    if (rank === 5) return '#3b82f6'; // Blue for 5th
+    if (rank === 4) return '#1E88E5'; // Electric Blue for 4th
+    if (rank === 5) return '#1E88E5'; // Electric Blue for 5th
     return 'rgba(255, 255, 255, 0.12)'; // Subtle border for others
   };
 
@@ -171,9 +171,9 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
       case 3:
         return 'linear-gradient(135deg, rgba(205, 127, 50, 0.15) 0%, rgba(205, 127, 50, 0.04) 100%)'; // Bronze
       case 4:
-        return 'linear-gradient(135deg, rgba(147, 51, 234, 0.15) 0%, rgba(147, 51, 234, 0.04) 100%)'; // Purple
+        return 'linear-gradient(135deg, rgba(30, 136, 229, 0.15) 0%, rgba(30, 136, 229, 0.04) 100%)'; // Electric Blue
       case 5:
-        return 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.04) 100%)'; // Blue
+        return 'linear-gradient(135deg, rgba(30, 136, 229, 0.15) 0%, rgba(30, 136, 229, 0.04) 100%)'; // Electric Blue
       default:
         // Subtle gradient for ranks 6+
         return 'linear-gradient(135deg, rgba(100, 100, 100, 0.08) 0%, rgba(80, 80, 80, 0.02) 100%)';
@@ -194,9 +194,9 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
       case 3:
         return 'linear-gradient(135deg, rgba(205, 127, 50, 0.20) 0%, rgba(205, 127, 50, 0.06) 100%)';
       case 4:
-        return 'linear-gradient(135deg, rgba(147, 51, 234, 0.20) 0%, rgba(147, 51, 234, 0.06) 100%)';
+        return 'linear-gradient(135deg, rgba(30, 136, 229, 0.20) 0%, rgba(30, 136, 229, 0.06) 100%)'; // Electric Blue
       case 5:
-        return 'linear-gradient(135deg, rgba(59, 130, 246, 0.20) 0%, rgba(59, 130, 246, 0.06) 100%)';
+        return 'linear-gradient(135deg, rgba(30, 136, 229, 0.20) 0%, rgba(30, 136, 229, 0.06) 100%)'; // Electric Blue
       default:
         return 'linear-gradient(135deg, rgba(100, 100, 100, 0.12) 0%, rgba(80, 80, 80, 0.04) 100%)';
     }

@@ -120,7 +120,7 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: { xs: 'wrap', sm: 'nowrap' },
-          gap: { xs: 1, sm: 2 }
+          gap: { xs: 1, sm: 2 },
         }}
       >
       {/* Left side - Back button and Breadcrumb */}

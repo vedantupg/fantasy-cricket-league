@@ -289,12 +289,12 @@ const LeaderboardPage: React.FC = () => {
         {/* 🎨 CUSTOMIZATION ZONE - LEAGUE INFO CARD */}
         <Card sx={{
           mb: { xs: 2, sm: 3, md: 4 },
-          // 🎨 Gradient Background with transparency
-          background: 'linear-gradient(135deg, rgba(99,110,250,0.1) 0%, rgba(168,85,247,0.08) 100%)',
+          // 🎨 Deep Blue Gradient Background
+          background: 'linear-gradient(135deg, rgba(11, 19, 59, 0.5) 0%, rgba(11, 19, 59, 0.3) 100%)',
           backdropFilter: 'blur(10px)', // Glass morphism effect
-          border: '1px solid rgba(99,110,250,0.2)', // Subtle border
+          border: '2px solid #0b133b', // Deep blue border
           borderRadius: 4, // 🎨 Increased from default (1) to 4 for smoother corners
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)', // Subtle shadow for depth
+          boxShadow: '4px 4px 8px rgba(0, 0, 0, 0.3)', // Fine shadow on left-bottom side
         }}>
           <CardContent sx={{
             px: { xs: 2, sm: 3, md: 3.5 },
@@ -401,7 +401,6 @@ const LeaderboardPage: React.FC = () => {
                 {snapshot?.playerPoolVersion && (
                   <Chip
                     label={snapshot.playerPoolVersion}
-                    color="primary"
                     variant="filled"
                     size="small"
                     sx={{
@@ -409,7 +408,7 @@ const LeaderboardPage: React.FC = () => {
                       fontWeight: 600,
                       height: { xs: 22, sm: 26 },
                       maxWidth: { xs: '180px', sm: 'none' },
-                      bgcolor: 'rgba(63,81,181,0.8)',
+                      bgcolor: '#bf7402', // Custom orange
                       color: 'white',
                       '& .MuiChip-label': {
                         overflow: 'hidden',
@@ -417,7 +416,7 @@ const LeaderboardPage: React.FC = () => {
                         whiteSpace: 'nowrap',
                       },
                       '&:hover': {
-                        bgcolor: 'primary.dark',
+                        bgcolor: '#a56302',
                       }
                     }}
                   />

@@ -40,6 +40,12 @@ export const colors = {
     light: '#9CCC65',       // Lighter success
   },
 
+  green: {
+    primary: '#4CAF50',     // Green states, completed
+    dark: '#388E3C',        // Emphasis
+    light: '#66BB6A',       // Lighter green
+  },
+
   warning: {
     primary: '#FFA726',     // Warnings, deadlines approaching
     dark: '#F57C00',        // Critical warnings
