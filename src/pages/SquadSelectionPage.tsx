@@ -781,23 +781,91 @@ const SquadSelectionPage: React.FC = () => {
           }
         }
       } else if (transferData.changeType === 'roleReassignment') {
-        // ROLE REASSIGNMENT: Change VC or X-Factor
+        // ROLE REASSIGNMENT: Change C/VC/X with AUTOMATIC ROLE SWAPPING
+        // If new role holder currently has a different role, those roles SWAP automatically
+        // This ensures no player loses their role without getting a new one
+
+        // Handle Captain reassignment (only allowed for Bench transfers)
+        if (transferData.newCaptainId && transferData.newCaptainId !== existingSquad.captainId) {
+          // Bank the FULL contribution from the old Captain
+          if (existingSquad.captainId) {
+            const oldCaptain = updatedPlayers.find(p => p.playerId === existingSquad.captainId);
+            if (oldCaptain) {
+              const captainContribution = calculatePlayerContribution(oldCaptain, 'captain');
+              additionalBankedPoints += captainContribution;
+              console.log(`🏦 Banking Captain contribution: ${captainContribution.toFixed(2)} points from ${oldCaptain.playerName}`);
+            }
+          }
+
+          // AUTOMATIC SWAP LOGIC: Check if new Captain currently has VC or X-Factor role
+          if (transferData.newCaptainId === existingSquad.viceCaptainId) {
+            // New Captain is current VC → Swap: old Captain becomes VC
+            if (existingSquad.captainId) {
+              updatedViceCaptainId = existingSquad.captainId;
+              const newVC = updatedPlayers.find(p => p.playerId === existingSquad.captainId);
+              if (newVC) {
+                newVC.pointsWhenRoleAssigned = newVC.points;
+                console.log(`🔄 SWAP: Old Captain becomes new VC: ${newVC.playerName}`);
+              }
+            }
+          } else if (transferData.newCaptainId === existingSquad.xFactorId) {
+            // New Captain is current X-Factor → Swap: old Captain becomes X-Factor
+            if (existingSquad.captainId) {
+              updatedXFactorId = existingSquad.captainId;
+              const newX = updatedPlayers.find(p => p.playerId === existingSquad.captainId);
+              if (newX) {
+                newX.pointsWhenRoleAssigned = newX.points;
+                console.log(`🔄 SWAP: Old Captain becomes new X-Factor: ${newX.playerName}`);
+              }
+            }
+          }
+          // If new Captain has NO role, old Captain just loses Captain role (no swap)
+
+          // Set pointsWhenRoleAssigned for the new Captain
+          const newCaptain = updatedPlayers.find(p => p.playerId === transferData.newCaptainId);
+          if (newCaptain) {
+            newCaptain.pointsWhenRoleAssigned = newCaptain.points;
+            console.log(`⭐ New Captain assigned: ${newCaptain.playerName}, starting from ${newCaptain.points} points`);
+          }
+
+          updatedCaptainId = transferData.newCaptainId;
+        }
 
         // Handle VC reassignment
         if (transferData.newViceCaptainId && transferData.newViceCaptainId !== existingSquad.viceCaptainId) {
           // Bank the FULL contribution from the old VC
-          // This ensures all points earned by the old VC (both base + bonus) are preserved
           if (existingSquad.viceCaptainId) {
             const oldVC = updatedPlayers.find(p => p.playerId === existingSquad.viceCaptainId);
             if (oldVC) {
-              // FIXED: Use calculatePlayerContribution to get the correct total contribution
-              // This properly splits base points (1x) from bonus points (1.5x multiplier)
               const vcContribution = calculatePlayerContribution(oldVC, 'viceCaptain');
               additionalBankedPoints += vcContribution;
-
               console.log(`🏦 Banking VC contribution: ${vcContribution.toFixed(2)} points from ${oldVC.playerName}`);
             }
           }
+
+          // AUTOMATIC SWAP LOGIC: Check if new VC currently has Captain or X-Factor role
+          if (transferData.newViceCaptainId === existingSquad.captainId) {
+            // New VC is current Captain → Swap: old VC becomes Captain
+            if (existingSquad.viceCaptainId) {
+              updatedCaptainId = existingSquad.viceCaptainId;
+              const newCaptain = updatedPlayers.find(p => p.playerId === existingSquad.viceCaptainId);
+              if (newCaptain) {
+                newCaptain.pointsWhenRoleAssigned = newCaptain.points;
+                console.log(`🔄 SWAP: Old VC becomes new Captain: ${newCaptain.playerName}`);
+              }
+            }
+          } else if (transferData.newViceCaptainId === existingSquad.xFactorId) {
+            // New VC is current X-Factor → Swap: old VC becomes X-Factor
+            if (existingSquad.viceCaptainId) {
+              updatedXFactorId = existingSquad.viceCaptainId;
+              const newX = updatedPlayers.find(p => p.playerId === existingSquad.viceCaptainId);
+              if (newX) {
+                newX.pointsWhenRoleAssigned = newX.points;
+                console.log(`🔄 SWAP: Old VC becomes new X-Factor: ${newX.playerName}`);
+              }
+            }
+          }
+          // If new VC has NO role, old VC just loses VC role (no swap)
 
           // Set pointsWhenRoleAssigned for the new VC
           const newVC = updatedPlayers.find(p => p.playerId === transferData.newViceCaptainId);
@@ -815,14 +883,35 @@ const SquadSelectionPage: React.FC = () => {
           if (existingSquad.xFactorId) {
             const oldX = updatedPlayers.find(p => p.playerId === existingSquad.xFactorId);
             if (oldX) {
-              // FIXED: Use calculatePlayerContribution to get the correct total contribution
-              // This properly splits base points (1x) from bonus points (1.25x multiplier)
               const xContribution = calculatePlayerContribution(oldX, 'xFactor');
               additionalBankedPoints += xContribution;
-
               console.log(`🏦 Banking X-Factor contribution: ${xContribution.toFixed(2)} points from ${oldX.playerName}`);
             }
           }
+
+          // AUTOMATIC SWAP LOGIC: Check if new X-Factor currently has Captain or VC role
+          if (transferData.newXFactorId === existingSquad.captainId) {
+            // New X-Factor is current Captain → Swap: old X-Factor becomes Captain
+            if (existingSquad.xFactorId) {
+              updatedCaptainId = existingSquad.xFactorId;
+              const newCaptain = updatedPlayers.find(p => p.playerId === existingSquad.xFactorId);
+              if (newCaptain) {
+                newCaptain.pointsWhenRoleAssigned = newCaptain.points;
+                console.log(`🔄 SWAP: Old X-Factor becomes new Captain: ${newCaptain.playerName}`);
+              }
+            }
+          } else if (transferData.newXFactorId === existingSquad.viceCaptainId) {
+            // New X-Factor is current VC → Swap: old X-Factor becomes VC
+            if (existingSquad.xFactorId) {
+              updatedViceCaptainId = existingSquad.xFactorId;
+              const newVC = updatedPlayers.find(p => p.playerId === existingSquad.xFactorId);
+              if (newVC) {
+                newVC.pointsWhenRoleAssigned = newVC.points;
+                console.log(`🔄 SWAP: Old X-Factor becomes new VC: ${newVC.playerName}`);
+              }
+            }
+          }
+          // If new X-Factor has NO role, old X-Factor just loses X-Factor role (no swap)
 
           // Set pointsWhenRoleAssigned for the new X-Factor
           const newX = updatedPlayers.find(p => p.playerId === transferData.newXFactorId);

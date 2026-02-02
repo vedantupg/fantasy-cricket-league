@@ -111,7 +111,9 @@ export interface SquadRules {
 }
 
 export interface TransferTypeConfig {
-  // Bench transfers - can be used anytime during active matches
+  // Bench transfers - Most powerful, limited availability
+  // Option 1: Player Substitution - Swap any playing XI player with a bench player (can remove Captain)
+  // Option 2: Role Assignment - Change Captain/Vice-Captain/X-Factor assignments
   benchTransfers: {
     enabled: boolean;
     maxAllowed: number;
@@ -119,7 +121,9 @@ export interface TransferTypeConfig {
     benchSlots: number; // Number of bench player slots available
   };
 
-  // Mid-season transfers - major changes during breaks
+  // Mid-season transfers - Available during breaks (same rules as flexible)
+  // Option 1: Player Substitution - Replace any player except Captain (follows min batter/bowler rules)
+  // Option 2: Role Assignment - Change Vice-Captain/X-Factor only (NOT Captain)
   midSeasonTransfers: {
     enabled: boolean;
     maxAllowed: number;
@@ -129,7 +133,9 @@ export interface TransferTypeConfig {
     deadlines?: Date[]; // specific windows when these can be used
   };
 
-  // Flexible transfers - can be saved and used strategically
+  // Flexible transfers - Can be saved and used strategically
+  // Option 1: Player Substitution - Replace any player except Captain (follows min batter/bowler rules)
+  // Option 2: Role Assignment - Change Vice-Captain/X-Factor only (NOT Captain)
   flexibleTransfers: {
     enabled: boolean;
     maxAllowed: number;
@@ -198,10 +204,18 @@ export interface TransferHistoryEntry {
   timestamp: Date;
   transferType: 'bench' | 'flexible' | 'midSeason';
   changeType: 'playerSubstitution' | 'roleReassignment';
-  playerOut?: string;
-  playerIn?: string;
-  newViceCaptainId?: string;
-  newXFactorId?: string;
+
+  // Player Substitution fields
+  playerOut?: string; // Player removed from squad
+  playerIn?: string; // Player added to squad
+
+  // Role Reassignment fields
+  newCaptainId?: string; // New captain (only for bench transfers)
+  oldCaptainId?: string; // Previous captain (for history tracking)
+  newViceCaptainId?: string; // New vice-captain
+  oldViceCaptainId?: string; // Previous vice-captain (for history tracking)
+  newXFactorId?: string; // New X-Factor
+  oldXFactorId?: string; // Previous X-Factor (for history tracking)
 }
 
 export interface SquadPlayer {
