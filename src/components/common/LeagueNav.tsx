@@ -15,7 +15,8 @@ import {
   Groups,
   MenuBook,
   BarChart,
-  CalendarMonth
+  CalendarMonth,
+  SportsScore
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -69,6 +70,8 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
         return 5;
       case 'Analytics':
         return 6;
+      case 'Scoring System':
+        return 7;
       default:
         return false;
     }
@@ -96,6 +99,9 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
         break;
       case 6:
         navigate(`/leagues/${leagueId}/analytics`);
+        break;
+      case 7:
+        navigate(`/leagues/${leagueId}/scoring`);
         break;
     }
   };
@@ -323,6 +329,19 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
             }}
           >
             {!isSmallMobile && 'Analytics'}
+          </Button>
+          <Button
+            variant={getTabValue() === 7 ? 'contained' : 'text'}
+            startIcon={<SportsScore />}
+            onClick={() => handleTabChange({} as React.SyntheticEvent, 7)}
+            sx={{
+              px: { xs: 1.5, sm: 2 },
+              py: { xs: 0.75, sm: 1 },
+              fontSize: { xs: '0.65rem', sm: '0.75rem' },
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {!isSmallMobile && 'Scoring System'}
           </Button>
         </Box>
       </Box>
