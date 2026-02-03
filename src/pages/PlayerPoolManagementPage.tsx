@@ -30,9 +30,7 @@ import {
   Snackbar,
   FormControlLabel,
   Checkbox,
-  Collapse,
-  Tabs,
-  Tab
+  Collapse
 } from '@mui/material';
 import {
   Add,
@@ -417,7 +415,6 @@ const PlayerPoolDetails: React.FC<{
   const [scoringConfigDialogOpen, setScoringConfigDialogOpen] = useState(false);
   const [editPlayerDialogOpen, setEditPlayerDialogOpen] = useState(false);
   const [selectedPlayerForEdit, setSelectedPlayerForEdit] = useState<PlayerPoolEntry | null>(null);
-  const [currentTab, setCurrentTab] = useState(0);
 
 
   // Sync editedPlayers when pool changes

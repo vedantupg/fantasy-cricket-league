@@ -21,7 +21,6 @@ import {
   Stepper,
   Step,
   StepLabel,
-  CircularProgress,
 } from '@mui/material';
 import {
   ContentPaste,

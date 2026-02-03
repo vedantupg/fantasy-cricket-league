@@ -13,7 +13,7 @@ import { useParams } from 'react-router-dom';
 import { leagueService, playerPoolService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
-import type { League, PlayerPool, BattingConfig, BowlingConfig, FieldingConfig } from '../types/database';
+import type { League, PlayerPool } from '../types/database';
 import { DEFAULT_BATTING_CONFIG, DEFAULT_BOWLING_CONFIG, DEFAULT_FIELDING_CONFIG } from '../utils/pointsCalculation';
 import { InfoOutlined } from '@mui/icons-material';
 
