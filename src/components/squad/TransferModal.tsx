@@ -108,12 +108,12 @@ const TransferModal: React.FC<TransferModalProps> = ({
     setError('');
 
     if (activeStep === 0 && !selectedTransferType) {
-      setError('Please select a transfer type');
+      setError('Please select a transfer type to continue');
       return;
     }
 
     if (activeStep === 1 && !selectedChangeType) {
-      setError('Please select a change type');
+      setError('Please choose what you want to change');
       return;
     }
 
@@ -121,7 +121,7 @@ const TransferModal: React.FC<TransferModalProps> = ({
       // Validate the selected change
       if (selectedChangeType === 'playerSubstitution') {
         if (!playerOut || !playerIn) {
-          setError('Please select both players to swap');
+          setError('Select both: which player to remove and which player to bring in');
           return;
         }
         // Validate player substitution rules
@@ -135,18 +135,18 @@ const TransferModal: React.FC<TransferModalProps> = ({
         const rolesSelected = [newCaptain, newViceCaptain, newXFactor].filter(Boolean).length;
 
         if (rolesSelected === 0) {
-          setError('Please select one role to reassign');
+          setError('Select ONE role to reassign (Captain, Vice-Captain, or X-Factor)');
           return;
         }
 
         if (rolesSelected > 1) {
-          setError('You can only reassign ONE role per transfer (Captain, VC, or X-Factor)');
+          setError('Only ONE role can be changed per transfer. Please deselect the others.');
           return;
         }
 
         // NEW RULES: Flexible/Mid-Season cannot reassign Captain
         if ((selectedTransferType === 'flexible' || selectedTransferType === 'midSeason') && newCaptain) {
-          setError('Cannot reassign Captain with Flexible/Mid-Season transfers. Use a Bench transfer instead.');
+          setError(`Captain can only be changed with a Bench transfer. You have ${availableTransfers.bench} bench transfer${availableTransfers.bench !== 1 ? 's' : ''} available.`);
           return;
         }
 
@@ -176,12 +176,13 @@ const TransferModal: React.FC<TransferModalProps> = ({
 
   const validatePlayerSubstitution = (): string | null => {
     const playerOutData = existingSquad.players.find(p => p.playerId === playerOut);
-    if (!playerOutData) return 'Invalid player selection';
+    if (!playerOutData) return 'Player not found in your squad';
 
     // NEW RULES - FLEXIBLE & MID-SEASON: CANNOT remove Captain (but CAN remove VC or X-Factor)
     if (selectedTransferType === 'flexible' || selectedTransferType === 'midSeason') {
       if (playerOut === existingSquad.captainId) {
-        return 'Cannot remove the Captain with Flexible/Mid-Season transfers. Use a Bench transfer instead.';
+        const playerName = playerOutData.playerName;
+        return `${playerName} is your Captain. Captain cannot be removed with this transfer type. Use a Bench transfer or change Captain first.`;
       }
       // VC and X-Factor CAN be removed with flexible/mid-season transfers
     }
@@ -192,7 +193,7 @@ const TransferModal: React.FC<TransferModalProps> = ({
       const benchPlayers = existingSquad.players.filter((p, index) => index >= league.squadSize);
       const benchPlayerIds = benchPlayers.map(p => p.playerId);
       if (!benchPlayerIds.includes(playerIn)) {
-        return 'Bench transfer must bring in a player from your bench';
+        return 'Bench transfers can only bring in players from your bench. Choose a bench player.';
       }
     }
 
