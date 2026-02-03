@@ -39,7 +39,7 @@ export function calculateBattingPoints(
       strikeRateBonus = (runs * (SR - config.bonusSRBaseline)) / config.bonusDivisor;
     } else if (SR < config.penaltySRThreshold) {
       // Penalty zone (results in negative bonus)
-      strikeRateBonus = (runs * (SR - config.penaltySRThreshold)) / config.bonusDivisor;
+      strikeRateBonus = (runs * (SR - config.bonusSRBaseline)) / config.bonusDivisor;
     }
     // Neutral zone: between penaltySRThreshold and bonusSRBaseline
   } else {
