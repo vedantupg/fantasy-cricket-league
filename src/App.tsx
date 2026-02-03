@@ -29,6 +29,9 @@ import MatchSchedulePage from './pages/MatchSchedulePage';
 import ScheduleUploadPage from './pages/ScheduleUploadPage';
 import ScoringSystemPage from './pages/ScoringSystemPage';
 
+// Layouts
+import LeagueLayout from './components/layouts/LeagueLayout';
+
 // Create Material-UI theme with Montserrat font
 const theme = createTheme({
   palette: {
@@ -127,7 +130,9 @@ function App() {
             
             <Route path="/leagues/:leagueId" element={
               <ProtectedRoute>
-                <LeagueDashboardPage />
+                <LeagueLayout>
+                  <LeagueDashboardPage />
+                </LeagueLayout>
               </ProtectedRoute>
             } />
 
@@ -139,13 +144,17 @@ function App() {
 
             <Route path="/leagues/:leagueId/squad" element={
               <ProtectedRoute>
-                <SquadSelectionPage />
+                <LeagueLayout>
+                  <SquadSelectionPage />
+                </LeagueLayout>
               </ProtectedRoute>
             } />
             
             <Route path="/leagues/:leagueId/leaderboard" element={
               <ProtectedRoute>
-                <LeaderboardPage />
+                <LeagueLayout>
+                  <LeaderboardPage />
+                </LeagueLayout>
               </ProtectedRoute>
             } />
 
