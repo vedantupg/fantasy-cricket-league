@@ -216,6 +216,23 @@ export interface TransferHistoryEntry {
   oldViceCaptainId?: string; // Previous vice-captain (for history tracking)
   newXFactorId?: string; // New X-Factor
   oldXFactorId?: string; // Previous X-Factor (for history tracking)
+
+  // Enhanced Tracking (Added 2026-02-03)
+  bankedAmount?: number; // Points banked in this transfer
+  totalBankedAfter?: number; // Total banked points after this transfer
+  pointsBefore?: number; // Total squad points before transfer
+  pointsAfter?: number; // Total squad points after transfer
+
+  // Pre-Transfer Snapshot for Rollback (Added 2026-02-03)
+  preTransferSnapshot?: {
+    players: SquadPlayer[]; // Deep copy of players array before transfer
+    captainId: string | null;
+    viceCaptainId: string | null;
+    xFactorId: string | null;
+    bankedPoints: number;
+    totalPoints: number;
+    timestamp: Date;
+  };
 }
 
 export interface SquadPlayer {
