@@ -83,8 +83,11 @@ const LeagueListPage: React.FC = () => {
     const deadlinePassed = now > new Date(league.squadDeadline);
     const leagueStarted = now > new Date(league.startDate);
 
-    // League is completed
-    if (league.status === 'completed') {
+    // Check if league has ended (using endDate if available, otherwise fall back to status)
+    const leagueEnded = league.endDate ? now > new Date(league.endDate) : league.status === 'completed';
+
+    // League is completed (ended)
+    if (leagueEnded) {
       const rank = squad?.rank || '-';
       return {
         label: `🏁 Completed - Rank #${rank}`,
@@ -93,13 +96,13 @@ const LeagueListPage: React.FC = () => {
       };
     }
 
-    // League is active
-    if (leagueStarted && league.status === 'active') {
+    // League is in progress (started but not ended)
+    if (leagueStarted && !leagueEnded) {
       const rank = squad?.rank || '-';
       return {
-        label: `Active - Rank #${rank}`,
+        label: `📊 In Progress - Rank #${rank}`,
         color: 'success' as const,
-        icon: ''
+        icon: '📊'
       };
     }
 

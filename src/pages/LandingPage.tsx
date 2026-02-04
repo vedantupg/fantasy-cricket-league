@@ -448,12 +448,34 @@ const LandingPage: React.FC = () => {
                             }}
                           />
                           <Chip
-                            label={league.status === 'active' ? 'Active' : 'Completed'}
+                            label={(() => {
+                              const now = new Date();
+                              const leagueEnded = league.endDate ? now > new Date(league.endDate) : league.status === 'completed';
+                              const leagueStarted = now > new Date(league.startDate);
+
+                              if (leagueEnded) return '🏁 Completed';
+                              if (leagueStarted && !leagueEnded) return '📊 In Progress';
+                              return 'Upcoming';
+                            })()}
                             size="small"
                             variant="outlined"
                             sx={{
-                              borderColor: league.status === 'active' ? colors.success.primary : colors.grey[500],
-                              color: league.status === 'active' ? colors.success.primary : colors.grey[500]
+                              borderColor: (() => {
+                                const now = new Date();
+                                const leagueEnded = league.endDate ? now > new Date(league.endDate) : league.status === 'completed';
+                                const leagueStarted = now > new Date(league.startDate);
+                                if (leagueEnded) return colors.grey[500];
+                                if (leagueStarted && !leagueEnded) return colors.success.primary;
+                                return colors.orange.primary;
+                              })(),
+                              color: (() => {
+                                const now = new Date();
+                                const leagueEnded = league.endDate ? now > new Date(league.endDate) : league.status === 'completed';
+                                const leagueStarted = now > new Date(league.startDate);
+                                if (leagueEnded) return colors.grey[500];
+                                if (leagueStarted && !leagueEnded) return colors.success.primary;
+                                return colors.orange.primary;
+                              })()
                             }}
                           />
                         </Box>

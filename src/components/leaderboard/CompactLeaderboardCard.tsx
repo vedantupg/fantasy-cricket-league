@@ -90,7 +90,7 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
       for (let i = 0; i < flexibleTransfers.maxAllowed; i++) {
         dots.push({
           type: 'flexible',
-          available: i >= flexUsed, // REVERSED: available (unused) = filled
+          available: i >= flexUsed, // available (remaining) = filled
           color: '#9333ea',
         });
       }
@@ -102,7 +102,7 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
       for (let i = 0; i < benchTransfers.maxAllowed; i++) {
         dots.push({
           type: 'bench',
-          available: i >= benchUsed, // REVERSED: available (unused) = filled
+          available: i >= benchUsed, // available (remaining) = filled
           color: '#06b6d4',
         });
       }

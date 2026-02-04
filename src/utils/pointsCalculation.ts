@@ -34,14 +34,14 @@ export function calculateBattingPoints(
 
   if (config.penaltiesEnabled && config.penaltySRThreshold) {
     // GENERALIZED MODE: Bonuses AND Penalties
-    if (SR > config.bonusSRBaseline) {
-      // Bonus zone
+    if (SR >= config.bonusSRTrigger) {
+      // Bonus zone: SR meets or exceeds trigger threshold
       strikeRateBonus = (runs * (SR - config.bonusSRBaseline)) / config.bonusDivisor;
     } else if (SR < config.penaltySRThreshold) {
-      // Penalty zone (results in negative bonus)
+      // Penalty zone: SR below penalty threshold (results in negative bonus)
       strikeRateBonus = (runs * (SR - config.bonusSRBaseline)) / config.bonusDivisor;
     }
-    // Neutral zone: between penaltySRThreshold and bonusSRBaseline
+    // Neutral zone: between penaltySRThreshold and bonusSRTrigger (no bonus/penalty)
   } else {
     // BONUS-ONLY MODE (No Penalties)
     if (SR >= config.bonusSRTrigger) {

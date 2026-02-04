@@ -382,6 +382,32 @@ const EditLeaguePage: React.FC = () => {
                 />
               </Grid>
 
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  type="datetime-local"
+                  label="League Start Date"
+                  value={formatDateTimeLocal(leagueData.startDate)}
+                  onChange={(e) => setLeagueData(prev => ({ ...prev, startDate: new Date(e.target.value) }))}
+                  required
+                  InputLabelProps={{ shrink: true }}
+                  helperText="When the league officially starts"
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  type="datetime-local"
+                  label="League End Date"
+                  value={formatDateTimeLocal(leagueData.endDate)}
+                  onChange={(e) => setLeagueData(prev => ({ ...prev, endDate: new Date(e.target.value) }))}
+                  required
+                  InputLabelProps={{ shrink: true }}
+                  helperText="When the league ends (determines 'Completed' status)"
+                />
+              </Grid>
+
               <Grid size={12}>
                 <FormControlLabel
                   control={
