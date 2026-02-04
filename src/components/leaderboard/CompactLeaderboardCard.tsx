@@ -1,28 +1,42 @@
 import React from 'react';
-import { Box, Avatar, Typography, Paper, Chip } from '@mui/material';
+import { Box, Avatar, Typography, Paper, Chip, Tooltip } from '@mui/material';
 import {
   ArrowUpward as ArrowUpIcon,
   ArrowDownward as ArrowDownIcon,
 } from '@mui/icons-material';
 import type { StandingEntry } from '../../types/database';
+import type { League } from '../../types/database';
 
 interface CompactLeaderboardCardProps {
   standing: StandingEntry;
   isCurrentUser?: boolean;
+  league?: League; // Optional league data for transfer limits
 }
 
-const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standing, isCurrentUser = false }) => {
+const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standing, isCurrentUser = false, league }) => {
   // 🎨 COLOR CUSTOMIZATION ZONE - LEADERBOARD CARD COLORS
   const getRankColor = (rank: number) => {
     if (rank <= 3) {
       const colors = ['#FFD700', '#C0C0C0', '#CD7F32'];
       return colors[rank - 1];
     }
+    // Special colors for 4th and 5th place - Electric Blue (brand primary)
+    if (rank === 4) return '#1E88E5'; // Electric Blue for 4th
+    if (rank === 5) return '#1E88E5'; // Electric Blue for 5th
     return 'text.primary'; // Use theme text color for all other ranks
   };
 
   const rankColor = getRankColor(standing.rank);
-  const borderColor = standing.rank <= 3 ? rankColor : 'rgba(255, 255, 255, 0.12)'; // 🎨 Border for non-podium (try: rgba(99,110,250,0.3))
+
+  // Border colors matching your design
+  const getBorderColor = (rank: number) => {
+    if (rank <= 3) return rankColor;
+    if (rank === 4) return '#1E88E5'; // Electric Blue for 4th
+    if (rank === 5) return '#1E88E5'; // Electric Blue for 5th
+    return 'rgba(255, 255, 255, 0.12)'; // Subtle border for others
+  };
+
+  const borderColor = getBorderColor(standing.rank);
 
   const getRankChangeIcon = () => {
     // Priority 1: Check if rank changed (moved up or down)
@@ -61,15 +75,140 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
     return null;
   };
 
+  // Render transfer dots
+  const renderTransferDots = () => {
+    if (!league?.transferTypes) return null;
+
+    const { flexibleTransfers, benchTransfers } = league.transferTypes;
+    if (!flexibleTransfers?.enabled && !benchTransfers?.enabled) return null;
+
+    const dots = [];
+
+    // Add flexible transfer dots (purple)
+    if (flexibleTransfers?.enabled) {
+      const flexUsed = standing.flexibleTransfersUsed || 0;
+      for (let i = 0; i < flexibleTransfers.maxAllowed; i++) {
+        dots.push({
+          type: 'flexible',
+          available: i >= flexUsed, // REVERSED: available (unused) = filled
+          color: '#9333ea',
+        });
+      }
+    }
+
+    // Add bench transfer dots (cyan)
+    if (benchTransfers?.enabled) {
+      const benchUsed = standing.benchTransfersUsed || 0;
+      for (let i = 0; i < benchTransfers.maxAllowed; i++) {
+        dots.push({
+          type: 'bench',
+          available: i >= benchUsed, // REVERSED: available (unused) = filled
+          color: '#06b6d4',
+        });
+      }
+    }
+
+    if (dots.length === 0) return null;
+
+    const flexUsed = standing.flexibleTransfersUsed || 0;
+    const benchUsed = standing.benchTransfersUsed || 0;
+    const flexRemaining = (flexibleTransfers?.maxAllowed || 0) - flexUsed;
+    const benchRemaining = (benchTransfers?.maxAllowed || 0) - benchUsed;
+
+    return (
+      <Tooltip
+        title={
+          <Box sx={{ fontSize: '0.7rem', lineHeight: 1.4 }}>
+            {flexibleTransfers?.enabled && (
+              <Box>Flexible: {flexRemaining}/{flexibleTransfers.maxAllowed} left</Box>
+            )}
+            {benchTransfers?.enabled && (
+              <Box>Bench: {benchRemaining}/{benchTransfers.maxAllowed} left</Box>
+            )}
+          </Box>
+        }
+        arrow
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 0.3,
+            flexWrap: 'nowrap', // Keep horizontal
+            alignItems: 'center',
+          }}
+        >
+          {dots.map((dot, index) => (
+            <Box
+              key={`${dot.type}-${index}`}
+              sx={{
+                width: 5,
+                height: 5,
+                borderRadius: '50%',
+                bgcolor: dot.available ? dot.color : 'transparent', // REVERSED
+                border: `1px solid ${dot.color}`,
+                opacity: dot.available ? 1 : 0.4, // REVERSED
+                transition: 'all 0.2s ease',
+              }}
+            />
+          ))}
+        </Box>
+      </Tooltip>
+    );
+  };
+
+  // Get subtle background gradient based on rank
+  const getBackgroundGradient = () => {
+    if (isCurrentUser) {
+      return 'linear-gradient(135deg, rgba(63, 81, 181, 0.12) 0%, rgba(33, 150, 243, 0.06) 100%)';
+    }
+
+    // More visible gradients for top 5
+    switch (standing.rank) {
+      case 1:
+        return 'linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 215, 0, 0.04) 100%)'; // Gold
+      case 2:
+        return 'linear-gradient(135deg, rgba(192, 192, 192, 0.15) 0%, rgba(192, 192, 192, 0.04) 100%)'; // Silver
+      case 3:
+        return 'linear-gradient(135deg, rgba(205, 127, 50, 0.15) 0%, rgba(205, 127, 50, 0.04) 100%)'; // Bronze
+      case 4:
+        return 'linear-gradient(135deg, rgba(30, 136, 229, 0.15) 0%, rgba(30, 136, 229, 0.04) 100%)'; // Electric Blue
+      case 5:
+        return 'linear-gradient(135deg, rgba(30, 136, 229, 0.15) 0%, rgba(30, 136, 229, 0.04) 100%)'; // Electric Blue
+      default:
+        // Subtle gradient for ranks 6+
+        return 'linear-gradient(135deg, rgba(100, 100, 100, 0.08) 0%, rgba(80, 80, 80, 0.02) 100%)';
+    }
+  };
+
+  const getHoverBackgroundGradient = () => {
+    if (isCurrentUser) {
+      return 'linear-gradient(135deg, rgba(63, 81, 181, 0.18) 0%, rgba(33, 150, 243, 0.10) 100%)';
+    }
+
+    // More visible on hover
+    switch (standing.rank) {
+      case 1:
+        return 'linear-gradient(135deg, rgba(255, 215, 0, 0.20) 0%, rgba(255, 215, 0, 0.06) 100%)';
+      case 2:
+        return 'linear-gradient(135deg, rgba(192, 192, 192, 0.20) 0%, rgba(192, 192, 192, 0.06) 100%)';
+      case 3:
+        return 'linear-gradient(135deg, rgba(205, 127, 50, 0.20) 0%, rgba(205, 127, 50, 0.06) 100%)';
+      case 4:
+        return 'linear-gradient(135deg, rgba(30, 136, 229, 0.20) 0%, rgba(30, 136, 229, 0.06) 100%)'; // Electric Blue
+      case 5:
+        return 'linear-gradient(135deg, rgba(30, 136, 229, 0.20) 0%, rgba(30, 136, 229, 0.06) 100%)'; // Electric Blue
+      default:
+        return 'linear-gradient(135deg, rgba(100, 100, 100, 0.12) 0%, rgba(80, 80, 80, 0.04) 100%)';
+    }
+  };
+
   return (
     <Paper
       elevation={isCurrentUser ? 6 : 2}
       sx={{
         p: { xs: 1, sm: 1.25 },
-        // 🎨 CARD BACKGROUND - Current user vs regular
-        background: isCurrentUser
-          ? 'linear-gradient(135deg, rgba(63, 81, 181, 0.12) 0%, rgba(33, 150, 243, 0.06) 100%)' // 🎨 Current user bg
-          : 'rgba(255, 255, 255, 0.03)', // 🎨 Regular card bg (try: rgba(30,30,30,0.4), rgba(99,110,250,0.05))
+        // 🎨 CARD BACKGROUND - Subtle gradient based on rank
+        background: getBackgroundGradient(),
         border: isCurrentUser ? '2px solid' : '1px solid',
         borderColor: isCurrentUser ? 'primary.main' : borderColor,
         borderLeft: `4px solid`,
@@ -84,14 +223,12 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
         '&:hover': {
           transform: 'translateY(-4px)',
           boxShadow: 6,
-          // 🎨 HOVER BACKGROUND (try different rgba values)
-          background: isCurrentUser
-            ? 'linear-gradient(135deg, rgba(63, 81, 181, 0.15) 0%, rgba(33, 150, 243, 0.08) 100%)'
-            : 'rgba(255, 255, 255, 0.06)',
+          // 🎨 HOVER BACKGROUND - Slightly enhanced gradient
+          background: getHoverBackgroundGradient(),
         },
       }}
     >
-      {/* Top Row: Rank, Avatar, Name, You chip */}
+      {/* Top Row: Rank, Avatar, Name, Transfer Dots, You chip */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.75, sm: 1 }, minWidth: 0 }}>
         {/* Rank */}
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: { xs: 28, sm: 32 }, flexShrink: 0 }}>
@@ -138,6 +275,9 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
             {standing.displayName}
           </Typography>
         </Box>
+
+        {/* Transfer Dots */}
+        {renderTransferDots()}
 
         {/* You chip */}
         {isCurrentUser && (

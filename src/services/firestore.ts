@@ -29,6 +29,7 @@ import type {
   StandingEntry,
   User,
 } from '../types/database';
+import { calculateSquadPoints } from '../utils/pointsCalculation';
 
 // Collection References
 const COLLECTIONS = {
@@ -95,8 +96,18 @@ export const leagueService = {
       where('participants', 'array-contains', userId)
     );
     const querySnapshot = await getDocs(q);
-    
-    return querySnapshot.docs.map(doc => 
+
+    return querySnapshot.docs.map(doc =>
+      convertTimestamps({ id: doc.id, ...doc.data() }) as League
+    );
+  },
+
+  // Get all leagues (admin only)
+  async getAll(): Promise<League[]> {
+    const q = query(collection(db, COLLECTIONS.LEAGUES));
+    const querySnapshot = await getDocs(q);
+
+    return querySnapshot.docs.map(doc =>
       convertTimestamps({ id: doc.id, ...doc.data() }) as League
     );
   },
@@ -622,12 +633,6 @@ export const playerPoolService = {
         const batch = writeBatch(db);
 
         for (const squad of squads) {
-          // Recalculate total points for this squad
-          let totalPoints = 0;
-          let captainPoints = 0;
-          let viceCaptainPoints = 0;
-          let xFactorPoints = 0;
-
           // Update player points in the squad to match current pool
           const updatedPlayers = squad.players.map(squadPlayer => {
             const poolPlayer = playerPool.players.find(p => p.playerId === squadPlayer.playerId);
@@ -641,59 +646,18 @@ export const playerPoolService = {
             return squadPlayer;
           });
 
-          // Calculate total points with multipliers
-          // Only count starting XI (first squadSize players), exclude bench
-          const startingXI = updatedPlayers.slice(0, league.squadSize);
-          startingXI.forEach(player => {
-            // Calculate effective points: only count points earned while in this squad
-            const pointsAtJoining = player.pointsAtJoining ?? 0;
-            const effectivePoints = Math.max(0, player.points - pointsAtJoining);
+          // FIXED: Use shared calculation utility for consistency
+          // This ensures pool updates use the SAME formula as transfers
+          const calculatedPoints = calculateSquadPoints(
+            updatedPlayers,
+            league.squadSize,
+            squad.captainId,
+            squad.viceCaptainId,
+            squad.xFactorId,
+            squad.bankedPoints || 0
+          );
 
-            let playerPoints = effectivePoints;
-
-            if (squad.captainId === player.playerId) {
-              // Captain gets 2x points
-              // Apply multiplier only to points earned AFTER becoming captain
-              const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
-              const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining); // Points before role
-              const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned); // Points after role
-
-              const baseContribution = basePoints * 1.0;
-              const bonusContribution = bonusPoints * 2.0;
-
-              captainPoints = baseContribution + bonusContribution;
-              playerPoints = captainPoints;
-            } else if (squad.viceCaptainId === player.playerId) {
-              // Vice-captain gets 1.5x points
-              const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
-              const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
-              const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
-
-              const baseContribution = basePoints * 1.0;
-              const bonusContribution = bonusPoints * 1.5;
-
-              viceCaptainPoints = baseContribution + bonusContribution;
-              playerPoints = viceCaptainPoints;
-            } else if (squad.xFactorId === player.playerId) {
-              // X-Factor gets 1.25x points
-              const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
-              const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
-              const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
-
-              const baseContribution = basePoints * 1.0;
-              const bonusContribution = bonusPoints * 1.25;
-
-              xFactorPoints = baseContribution + bonusContribution;
-              playerPoints = xFactorPoints;
-            }
-
-            totalPoints += playerPoints;
-          });
-
-          // CRITICAL: Add banked points to total
-          // Banked points are accumulated from transferred-out players
-          const bankedPoints = squad.bankedPoints || 0;
-          totalPoints += bankedPoints;
+          const { totalPoints, captainPoints, viceCaptainPoints, xFactorPoints } = calculatedPoints;
 
           // Always update every squad on each player pool save
           const squadRef = doc(db, COLLECTIONS.SQUADS, squad.id);
@@ -973,6 +937,11 @@ export const leaderboardSnapshotService = {
       if (xFactor?.playerName) standing.xFactorName = xFactor.playerName;
       if (squad.powerplayPoints !== undefined) standing.powerplayPoints = squad.powerplayPoints;
       if (squad.powerplayCompleted !== undefined) standing.powerplayCompleted = squad.powerplayCompleted;
+
+      // Add transfer data
+      if (squad.benchTransfersUsed !== undefined) standing.benchTransfersUsed = squad.benchTransfersUsed;
+      if (squad.flexibleTransfersUsed !== undefined) standing.flexibleTransfersUsed = squad.flexibleTransfersUsed;
+      if (squad.midSeasonTransfersUsed !== undefined) standing.midSeasonTransfersUsed = squad.midSeasonTransfersUsed;
 
       return standing as StandingEntry;
     });
@@ -1316,11 +1285,6 @@ export const playerPoolUpdateService = {
     newViceCaptainPoints: number;
     newXFactorPoints: number;
   } {
-    let totalPoints = 0;
-    let captainPoints = 0;
-    let viceCaptainPoints = 0;
-    let xFactorPoints = 0;
-
     // Update player points in the squad
     const updatedPlayers = squad.players.map(player => {
       const update = playerUpdates.find(u => u.playerId === player.playerId);
@@ -1334,40 +1298,23 @@ export const playerPoolUpdateService = {
       return player;
     });
 
-    // Calculate total points with captain/vice-captain/X-factor multipliers
-    // Only count starting XI (first squadSize players), exclude bench
-    const startingXI = updatedPlayers.slice(0, squadSize);
-    startingXI.forEach(player => {
-      // Calculate effective points: only count points earned while in this squad
-      // If pointsAtJoining is not set (backward compatibility), default to 0
-      const pointsAtJoining = player.pointsAtJoining ?? 0;
-      const effectivePoints = Math.max(0, player.points - pointsAtJoining);
-
-      let playerPoints = effectivePoints;
-
-      if (squad.captainId === player.playerId) {
-        // Captain gets 2x points
-        captainPoints = effectivePoints * 2;
-        playerPoints = captainPoints;
-      } else if (squad.viceCaptainId === player.playerId) {
-        // Vice-captain gets 1.5x points
-        viceCaptainPoints = effectivePoints * 1.5;
-        playerPoints = viceCaptainPoints;
-      } else if (squad.xFactorId === player.playerId) {
-        // X-Factor gets 1.25x points
-        xFactorPoints = effectivePoints * 1.25;
-        playerPoints = xFactorPoints;
-      }
-
-      totalPoints += playerPoints;
-    });
+    // FIXED: Use shared calculation utility for consistency
+    // This ensures cascade updates use the SAME formula as transfers
+    const calculatedPoints = calculateSquadPoints(
+      updatedPlayers,
+      squadSize,
+      squad.captainId,
+      squad.viceCaptainId,
+      squad.xFactorId,
+      squad.bankedPoints || 0
+    );
 
     return {
       updatedPlayers,
-      newTotalPoints: totalPoints,
-      newCaptainPoints: captainPoints,
-      newViceCaptainPoints: viceCaptainPoints,
-      newXFactorPoints: xFactorPoints,
+      newTotalPoints: calculatedPoints.totalPoints,
+      newCaptainPoints: calculatedPoints.captainPoints,
+      newViceCaptainPoints: calculatedPoints.viceCaptainPoints,
+      newXFactorPoints: calculatedPoints.xFactorPoints,
     };
   },
 };

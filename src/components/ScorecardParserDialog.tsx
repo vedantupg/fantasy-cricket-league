@@ -22,7 +22,7 @@ import {
   Switch,
 } from '@mui/material';
 import { Check, Close, Warning } from '@mui/icons-material';
-import type { PlayerPoolEntry, BattingConfig, BowlingConfig } from '../types/database';
+import type { PlayerPoolEntry, BattingConfig, BowlingConfig, FieldingConfig } from '../types/database';
 import { calculateBattingPoints, calculateBowlingPoints } from '../utils/pointsCalculation';
 
 interface ParsedBattingPerformance {
@@ -58,6 +58,7 @@ interface ScorecardParserDialogProps {
   poolPlayers: PlayerPoolEntry[];
   battingConfig?: BattingConfig;
   bowlingConfig?: BowlingConfig;
+  fieldingConfig?: FieldingConfig;
   onApplyUpdates: (
     updates: {
       playerId: string;
@@ -76,6 +77,7 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
   poolPlayers,
   battingConfig,
   bowlingConfig,
+  fieldingConfig,
   onApplyUpdates,
 }) => {
   const [scorecardText, setScorecardText] = useState('');
@@ -242,18 +244,21 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
     if (!dismissalText) return;
 
     // Pattern for catches: "c Fielder b Bowler" or "c & b Bowler" or "c Fielder1/Fielder2 b Bowler"
-    const catchPattern = /c\s+([^b]+?)\s+b\s+/i;
+    const catchPattern = /c\s+([^b]+?)\s+b\s+(.+?)(?:\s|$)/i;
     const catchMatch = dismissalText.match(catchPattern);
 
     if (catchMatch) {
       let fielderName = catchMatch[1].trim();
+      const bowlerName = catchMatch[2].trim();
 
-      // Handle "c & b" (caught and bowled)
-      if (fielderName === '&') return; // Bowler gets credit, not a separate fielder
-
-      // Handle substitutes or multiple fielders (take first name)
-      fielderName = fielderName.split('/')[0].trim();
-      fielderName = fielderName.replace(/\(sub\)/gi, '').trim();
+      // Handle "c & b" (caught and bowled) - bowler gets the catch
+      if (fielderName === '&') {
+        fielderName = bowlerName;
+      } else {
+        // Handle substitutes or multiple fielders (take first name)
+        fielderName = fielderName.split('/')[0].trim();
+        fielderName = fielderName.replace(/\(sub\)/gi, '').trim();
+      }
 
       // Add or update fielder
       const existing = fieldingMap.get(fielderName.toLowerCase());
@@ -576,21 +581,39 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
 
     // Include fielding if enabled
     if (includeFielding) {
+      // Use fielding config or default values
+      const CATCH_POINTS = fieldingConfig?.catchPoints ?? 5;
+      const RUNOUT_POINTS = fieldingConfig?.runOutPoints ?? 5;
+      const STUMPING_POINTS = fieldingConfig?.stumpingPoints ?? 5;
+
       parsedFielding.forEach((perf) => {
         if (perf.matchedPlayer) {
           const existing = updates.find(u => u.playerId === perf.matchedPlayer!.playerId);
           const fieldingParts = [];
-          if (perf.catches > 0) fieldingParts.push(`${perf.catches} catch${perf.catches > 1 ? 'es' : ''}`);
-          if (perf.runOuts > 0) fieldingParts.push(`${perf.runOuts} run out${perf.runOuts > 1 ? 's' : ''}`);
-          if (perf.stumpings > 0) fieldingParts.push(`${perf.stumpings} stumping${perf.stumpings > 1 ? 's' : ''}`);
+
+          // Calculate fielding points
+          let fieldingPoints = 0;
+          if (perf.catches > 0) {
+            fieldingParts.push(`${perf.catches} catch${perf.catches > 1 ? 'es' : ''}`);
+            fieldingPoints += perf.catches * CATCH_POINTS;
+          }
+          if (perf.runOuts > 0) {
+            fieldingParts.push(`${perf.runOuts} run out${perf.runOuts > 1 ? 's' : ''}`);
+            fieldingPoints += perf.runOuts * RUNOUT_POINTS;
+          }
+          if (perf.stumpings > 0) {
+            fieldingParts.push(`${perf.stumpings} stumping${perf.stumpings > 1 ? 's' : ''}`);
+            fieldingPoints += perf.stumpings * STUMPING_POINTS;
+          }
           const fieldingStr = fieldingParts.join(', ');
 
           if (existing) {
             existing.performance += `, ${fieldingStr}`;
+            existing.pointsToAdd += fieldingPoints;
           } else {
             updates.push({
               playerId: perf.matchedPlayer.playerId,
-              pointsToAdd: 0, // No points assigned for fielding yet (would need league config)
+              pointsToAdd: fieldingPoints,
               performance: fieldingStr,
             });
           }

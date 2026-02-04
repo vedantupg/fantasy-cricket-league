@@ -34,6 +34,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { leagueService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
 import type { League } from '../types/database';
+import colors from '../theme/colors';
 
 const LandingPage: React.FC = () => {
   const theme = useTheme();
@@ -175,7 +176,7 @@ const LandingPage: React.FC = () => {
     >
       <AppHeader hideNavigation={!user} />
 
-      {/* Hero Section - Compact viewport with animated gradient */}
+      {/* Hero Section - Navy gradient with Electric Blue accents */}
       <Box
         sx={{
           minHeight: { xs: '85vh', md: '75vh' },
@@ -184,9 +185,7 @@ const LandingPage: React.FC = () => {
           justifyContent: 'center',
           position: 'relative',
           overflow: 'hidden',
-          background: `linear-gradient(135deg,
-            ${alpha(theme.palette.background.default, 0.9)} 0%,
-            ${alpha('#1a0a1f', 0.9)} 100%)`,
+          background: colors.gradients.hero, // Navy gradient: #0A1929 → #003E5C → #016293
           '&::before': {
             content: '""',
             position: 'absolute',
@@ -194,8 +193,8 @@ const LandingPage: React.FC = () => {
             left: '-50%',
             width: '200%',
             height: '200%',
-            background: `radial-gradient(circle, ${alpha(theme.palette.primary.main, 0.2)} 0%, transparent 70%),
-                         radial-gradient(circle at 80% 20%, ${alpha(theme.palette.secondary.main, 0.2)} 0%, transparent 50%)`,
+            background: `radial-gradient(circle, ${alpha(colors.blue.electric, 0.15)} 0%, transparent 70%),
+                         radial-gradient(circle at 80% 20%, ${alpha(colors.orange.primary, 0.12)} 0%, transparent 50%)`,
             animation: 'gradientShift 15s ease infinite',
             pointerEvents: 'none'
           },
@@ -213,15 +212,15 @@ const LandingPage: React.FC = () => {
                   variant="h1"
                   sx={{
                     fontWeight: 900,
-                    mb: 2,
+                    mb: 5,
                     fontSize: { xs: '2.5rem', md: '3.5rem', lg: '4rem' },
-                    background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main}, ${theme.palette.primary.main})`,
+                    background: colors.gradients.title, // Electric Blue → Cyan gradient
                     backgroundSize: '200% 200%',
                     backgroundClip: 'text',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
                     animation: 'gradientFlow 8s ease infinite',
-                    textShadow: `0 0 80px ${alpha(theme.palette.primary.main, 0.5)}`,
+                    textShadow: `0 0 80px ${alpha(colors.blue.electric, 0.5)}`,
                     '@keyframes gradientFlow': {
                       '0%, 100%': { backgroundPosition: '0% 50%' },
                       '50%': { backgroundPosition: '100% 50%' }
@@ -236,17 +235,16 @@ const LandingPage: React.FC = () => {
                 <Typography
                   variant="h5"
                   sx={{
-                    mb: 4,
+                    mb: 6,
                     maxWidth: '700px',
                     mx: 'auto',
-                    color: alpha(theme.palette.text.primary, 0.8),
-                    fontWeight: 400,
+                    color: colors.orange.primary,
+                    fontWeight: 500,
                     lineHeight: 1.6,
-                    fontSize: { xs: '1rem', md: '1.2rem' }
+                    fontSize: { xs: '1rem', md: '1.125rem' } // 16-18px
                   }}
                 >
-                  Pick once, vibe all season! No daily stress, just you vs your squad dominating tournaments.
-                  Time to show your friends who's the real cricket main character! 🏆
+                  Pick once. Vibe all season
                 </Typography>
               </Slide>
 
@@ -259,15 +257,19 @@ const LandingPage: React.FC = () => {
                     startIcon={<PlayArrow />}
                     sx={{
                       borderRadius: 3,
-                      px: 5,
-                      py: 2,
-                      fontSize: '1.2rem',
+                      px: 6,
+                      py: 2.5,
+                      fontSize: '1.25rem',
                       fontWeight: 600,
-                      boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.4)}`,
+                      bgcolor: colors.blue.electric,
+                      color: 'white',
+                      boxShadow: colors.shadows.blue.lg,
                       transition: 'all 0.3s ease',
+                      textTransform: 'none',
                       '&:hover': {
+                        bgcolor: colors.blue.deep,
                         transform: 'translateY(-4px)',
-                        boxShadow: `0 12px 48px ${alpha(theme.palette.primary.main, 0.6)}`
+                        boxShadow: `0 12px 48px ${alpha(colors.blue.electric, 0.6)}, ${colors.shadows.blue.glow}`
                       }
                     }}
                   >
@@ -318,13 +320,11 @@ const LandingPage: React.FC = () => {
           <Fade in timeout={1000}>
             <Card
               sx={{
-                background: `linear-gradient(135deg,
-                  ${alpha(theme.palette.primary.main, 0.08)},
-                  ${alpha(theme.palette.secondary.main, 0.05)})`,
+                background: colors.background.paper, // Navy background
                 backdropFilter: 'blur(20px)',
-                border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                border: `1px solid ${colors.border.default}`,
                 borderRadius: 3,
-                boxShadow: `0 8px 32px ${alpha('#000', 0.4)}`
+                boxShadow: colors.shadows.navy.lg
               }}
             >
             <CardContent sx={{ p: 5 }}>
@@ -334,8 +334,9 @@ const LandingPage: React.FC = () => {
                   sx={{
                     width: 80,
                     height: 80,
-                    bgcolor: theme.palette.primary.main,
-                    boxShadow: `0 8px 24px ${alpha(theme.palette.primary.main, 0.4)}`
+                    background: `linear-gradient(135deg, ${colors.blue.deep}, ${colors.blue.electric})`,
+                    border: `2px solid ${colors.blue.electric}`,
+                    boxShadow: colors.shadows.blue.md
                   }}
                 >
                   {userData?.displayName?.charAt(0) || user.email?.charAt(0)}
@@ -352,10 +353,18 @@ const LandingPage: React.FC = () => {
 
               <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
                 <Button
-                  variant="contained"
+                  variant="outlined"
                   startIcon={<Dashboard />}
                   onClick={() => navigate('/dashboard')}
-                  sx={{ borderRadius: 2 }}
+                  sx={{
+                    borderRadius: 2,
+                    borderColor: colors.blue.electric,
+                    color: colors.blue.electric,
+                    '&:hover': {
+                      borderColor: colors.blue.light,
+                      bgcolor: alpha(colors.blue.electric, 0.08)
+                    }
+                  }}
                 >
                   Go to My Leagues
                 </Button>
@@ -363,7 +372,13 @@ const LandingPage: React.FC = () => {
                   variant="contained"
                   startIcon={<GroupAdd />}
                   onClick={() => navigate('/leagues/join')}
-                  sx={{ borderRadius: 2 }}
+                  sx={{
+                    borderRadius: 2,
+                    bgcolor: colors.orange.primary,
+                    '&:hover': {
+                      bgcolor: colors.orange.dark
+                    }
+                  }}
                 >
                   Join League
                 </Button>
@@ -371,7 +386,15 @@ const LandingPage: React.FC = () => {
                   variant="outlined"
                   startIcon={<Settings />}
                   onClick={() => navigate('/profile')}
-                  sx={{ borderRadius: 2 }}
+                  sx={{
+                    borderRadius: 2,
+                    borderColor: colors.grey[600],
+                    color: colors.grey[400],
+                    '&:hover': {
+                      borderColor: colors.grey[500],
+                      bgcolor: alpha(colors.grey[600], 0.08)
+                    }
+                  }}
                 >
                   Edit Profile
                 </Button>
@@ -394,12 +417,14 @@ const LandingPage: React.FC = () => {
                       sx={{
                         minWidth: 240,
                         cursor: 'pointer',
-                        background: alpha(theme.palette.background.paper, 0.6),
+                        background: `linear-gradient(135deg, ${colors.blue.deep}, ${alpha(colors.blue.navy, 0.8)})`,
                         backdropFilter: 'blur(10px)',
+                        border: `1px solid ${colors.border.subtle}`,
                         transition: 'all 0.3s ease',
                         '&:hover': {
                           transform: 'translateY(-4px)',
-                          boxShadow: `0 12px 24px ${alpha(theme.palette.primary.main, 0.3)}`
+                          border: `1px solid ${colors.border.strong}`,
+                          boxShadow: colors.shadows.blue.md
                         }
                       }}
                       onClick={() => navigate(`/leagues/${league.id}`)}
@@ -412,11 +437,24 @@ const LandingPage: React.FC = () => {
                           {league.tournamentName}
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                          <Chip label={league.format} size="small" />
+                          <Chip
+                            label={league.format}
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              borderColor: colors.orange.primary,
+                              color: colors.orange.primary,
+                              fontWeight: 600
+                            }}
+                          />
                           <Chip
                             label={league.status === 'active' ? 'Active' : 'Completed'}
                             size="small"
-                            color={league.status === 'active' ? 'success' : 'default'}
+                            variant="outlined"
+                            sx={{
+                              borderColor: league.status === 'active' ? colors.success.primary : colors.grey[500],
+                              color: league.status === 'active' ? colors.success.primary : colors.grey[500]
+                            }}
                           />
                         </Box>
                       </CardContent>

@@ -27,18 +27,32 @@ export interface User {
   };
 }
 
+export interface ScheduleMatch {
+  matchNumber: number;
+  description: string; // e.g., "1st Match, Group A"
+  team1: string;
+  team2: string;
+  venue: string;
+  stadium: string;
+  date: Date;
+  timeGMT: string; // e.g., "5:30 AM (GMT)"
+  timeLocal: string; // e.g., "11:00 AM (LOCAL)"
+  stage?: string; // e.g., "Group A", "Super 8 Group 1", "Semi-Final", "Final"
+}
+
 export interface League {
   id: string;
   name: string;
   code: string; // 6-digit alphanumeric join code
   creatorId: string;
   adminIds: string[];
-  
+
   // League Settings
   format: 'T20' | 'ODI' | 'Test';
   maxParticipants: number;
   powerplayEnabled: boolean; // NEW: Powerplay feature toggle
   maxPowerplayMatches?: number; // Number of matches for powerplay dropdown (default 20)
+  matchSchedule?: ScheduleMatch[]; // Tournament match schedule
 
   // Squad Selection Settings
   squadSize: number; // default 11
@@ -97,7 +111,9 @@ export interface SquadRules {
 }
 
 export interface TransferTypeConfig {
-  // Bench transfers - can be used anytime during active matches
+  // Bench transfers - Most powerful, limited availability
+  // Option 1: Player Substitution - Swap any playing XI player with a bench player (can remove Captain)
+  // Option 2: Role Assignment - Change Captain/Vice-Captain/X-Factor assignments
   benchTransfers: {
     enabled: boolean;
     maxAllowed: number;
@@ -105,7 +121,9 @@ export interface TransferTypeConfig {
     benchSlots: number; // Number of bench player slots available
   };
 
-  // Mid-season transfers - major changes during breaks
+  // Mid-season transfers - Available during breaks (same rules as flexible)
+  // Option 1: Player Substitution - Replace any player except Captain (follows min batter/bowler rules)
+  // Option 2: Role Assignment - Change Vice-Captain/X-Factor only (NOT Captain)
   midSeasonTransfers: {
     enabled: boolean;
     maxAllowed: number;
@@ -115,7 +133,9 @@ export interface TransferTypeConfig {
     deadlines?: Date[]; // specific windows when these can be used
   };
 
-  // Flexible transfers - can be saved and used strategically
+  // Flexible transfers - Can be saved and used strategically
+  // Option 1: Player Substitution - Replace any player except Captain (follows min batter/bowler rules)
+  // Option 2: Role Assignment - Change Vice-Captain/X-Factor only (NOT Captain)
   flexibleTransfers: {
     enabled: boolean;
     maxAllowed: number;
@@ -184,10 +204,35 @@ export interface TransferHistoryEntry {
   timestamp: Date;
   transferType: 'bench' | 'flexible' | 'midSeason';
   changeType: 'playerSubstitution' | 'roleReassignment';
-  playerOut?: string;
-  playerIn?: string;
-  newViceCaptainId?: string;
-  newXFactorId?: string;
+
+  // Player Substitution fields
+  playerOut?: string; // Player removed from squad
+  playerIn?: string; // Player added to squad
+
+  // Role Reassignment fields
+  newCaptainId?: string; // New captain (only for bench transfers)
+  oldCaptainId?: string; // Previous captain (for history tracking)
+  newViceCaptainId?: string; // New vice-captain
+  oldViceCaptainId?: string; // Previous vice-captain (for history tracking)
+  newXFactorId?: string; // New X-Factor
+  oldXFactorId?: string; // Previous X-Factor (for history tracking)
+
+  // Enhanced Tracking (Added 2026-02-03)
+  bankedAmount?: number; // Points banked in this transfer
+  totalBankedAfter?: number; // Total banked points after this transfer
+  pointsBefore?: number; // Total squad points before transfer
+  pointsAfter?: number; // Total squad points after transfer
+
+  // Pre-Transfer Snapshot for Rollback (Added 2026-02-03)
+  preTransferSnapshot?: {
+    players: SquadPlayer[]; // Deep copy of players array before transfer
+    captainId: string | null;
+    viceCaptainId: string | null;
+    xFactorId: string | null;
+    bankedPoints: number;
+    totalPoints: number;
+    timestamp: Date;
+  };
 }
 
 export interface SquadPlayer {
@@ -249,6 +294,7 @@ export interface PlayerPool {
   // Scoring Configuration (REQUIRED for 'automated' mode, optional for 'manual' mode)
   battingConfig?: BattingConfig;
   bowlingConfig?: BowlingConfig;
+  fieldingConfig?: FieldingConfig;
 
   // Update Message (optional commit message for points updates)
   lastUpdateMessage?: string; // e.g., "Test 1 - Day 1"
@@ -275,6 +321,12 @@ export interface BowlingConfig {
   penaltiesEnabled: boolean; // Whether to apply penalties for poor economy
   economyPenaltyThreshold?: number; // Economy threshold for penalty (e.g., 8) - only if penalties enabled
   minOversForEconomy: number; // Minimum overs for economy calculation (e.g., 1)
+}
+
+export interface FieldingConfig {
+  catchPoints: number; // Points per catch (e.g., 5)
+  runOutPoints: number; // Points per run out (e.g., 5)
+  stumpingPoints: number; // Points per stumping (e.g., 5)
 }
 
 export interface BattingInnings {
@@ -514,6 +566,11 @@ export interface StandingEntry {
   // Daily Stats
   pointsGainedToday: number;
   leadFromNext?: number; // Points ahead of the next rank
+
+  // Transfer Management
+  benchTransfersUsed?: number; // Bench transfers used
+  flexibleTransfersUsed?: number; // Flexible transfers used
+  midSeasonTransfersUsed?: number; // Mid-season transfers used
 
   // Team Composition
   captainId?: string;

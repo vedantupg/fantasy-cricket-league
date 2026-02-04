@@ -26,13 +26,15 @@ import {
   Schedule,
   EmojiEvents,
   Edit as EditIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  CalendarMonth
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { leagueService, userService, squadService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
 import type { League, User } from '../types/database';
+import colors from '../theme/colors';
 
 interface ParticipantInfo {
   userId: string;
@@ -194,28 +196,28 @@ const LeagueDashboardPage: React.FC = () => {
       <Grid container spacing={3}>
         {/* League Info */}
         <Grid size={{ xs: 12, md: 8 }}>
-          <Card>
+          <Card sx={{ bgcolor: '#1a2332', border: `1px solid ${colors.border.subtle}` }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" gutterBottom fontWeight={600}>
                 League Information
               </Typography>
-              
+
               <Box display="flex" alignItems="center" gap={1} mb={2}>
-                <People fontSize="small" color="action" />
+                <People fontSize="small" sx={{ color: colors.grey[400] }} />
                 <Typography variant="body2">
                   {league.participants.length}/{league.maxParticipants} participants
                 </Typography>
               </Box>
 
               <Box display="flex" alignItems="center" gap={1} mb={2}>
-                <Schedule fontSize="small" color="action" />
+                <Schedule fontSize="small" sx={{ color: colors.grey[400] }} />
                 <Typography variant="body2">
                   Tournament: {new Date(league.startDate).toLocaleDateString()} - {new Date(league.endDate).toLocaleDateString()}
                 </Typography>
               </Box>
 
               <Box display="flex" alignItems="center" gap={1} mb={2}>
-                <EmojiEvents fontSize="small" color="action" />
+                <EmojiEvents fontSize="small" sx={{ color: colors.grey[400] }} />
                 <Typography variant="body2">
                   {league.maxTransfers} transfers allowed
                 </Typography>
@@ -230,16 +232,22 @@ const LeagueDashboardPage: React.FC = () => {
 
         {/* Quick Actions */}
         <Grid size={{ xs: 12, md: 4 }}>
-          <Card>
+          <Card sx={{ bgcolor: '#1a2332', border: `1px solid ${colors.border.subtle}` }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" gutterBottom fontWeight={600}>
                 Quick Actions
               </Typography>
 
               <Button
                 fullWidth
                 variant="contained"
-                sx={{ mb: 2 }}
+                sx={{
+                  mb: 2,
+                  bgcolor: colors.blue.electric,
+                  '&:hover': {
+                    bgcolor: colors.blue.deep,
+                  }
+                }}
                 onClick={() => navigate(`/leagues/${leagueId}/squad`)}
               >
                 Manage Squad
@@ -248,7 +256,15 @@ const LeagueDashboardPage: React.FC = () => {
               <Button
                 fullWidth
                 variant="outlined"
-                sx={{ mb: 2 }}
+                sx={{
+                  mb: 2,
+                  borderColor: colors.orange.primary,
+                  color: colors.orange.primary,
+                  '&:hover': {
+                    borderColor: colors.orange.light,
+                    bgcolor: 'rgba(255, 152, 0, 0.08)',
+                  }
+                }}
                 onClick={() => navigate(`/leagues/${leagueId}/leaderboard`)}
               >
                 View Leaderboard
@@ -257,6 +273,32 @@ const LeagueDashboardPage: React.FC = () => {
               <Button
                 fullWidth
                 variant="outlined"
+                sx={{
+                  mb: 2,
+                  borderColor: colors.orange.primary,
+                  color: colors.orange.primary,
+                  '&:hover': {
+                    borderColor: colors.orange.light,
+                    bgcolor: 'rgba(255, 152, 0, 0.08)',
+                  }
+                }}
+                startIcon={<CalendarMonth />}
+                onClick={() => navigate(`/leagues/${leagueId}/schedule`)}
+              >
+                Match Schedule
+              </Button>
+
+              <Button
+                fullWidth
+                variant="outlined"
+                sx={{
+                  borderColor: colors.orange.primary,
+                  color: colors.orange.primary,
+                  '&:hover': {
+                    borderColor: colors.orange.light,
+                    bgcolor: 'rgba(255, 152, 0, 0.08)',
+                  }
+                }}
                 onClick={() => navigate('/dashboard')}
               >
                 Back to Leagues
@@ -266,9 +308,9 @@ const LeagueDashboardPage: React.FC = () => {
 
           {/* Admin Actions - Only visible to league admins */}
           {isAdmin && (
-            <Card sx={{ mt: 3 }}>
+            <Card sx={{ mt: 3, bgcolor: '#1a2332', border: `1px solid ${colors.border.subtle}` }}>
               <CardContent>
-                <Typography variant="h6" gutterBottom>
+                <Typography variant="h6" gutterBottom fontWeight={600}>
                   Admin Actions
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -279,7 +321,15 @@ const LeagueDashboardPage: React.FC = () => {
                   fullWidth
                   variant="outlined"
                   startIcon={<EditIcon />}
-                  sx={{ mb: 2 }}
+                  sx={{
+                    mb: 2,
+                    borderColor: colors.orange.primary,
+                    color: colors.orange.primary,
+                    '&:hover': {
+                      borderColor: colors.orange.light,
+                      bgcolor: 'rgba(255, 152, 0, 0.08)',
+                    }
+                  }}
                   onClick={handleEditLeague}
                 >
                   Edit League
@@ -302,13 +352,13 @@ const LeagueDashboardPage: React.FC = () => {
 
       {/* Participants List - Admin Only */}
       {isAdmin && (
-        <Card sx={{ mt: 3 }}>
+        <Card sx={{ mt: 3, bgcolor: '#1a2332', border: `1px solid ${colors.border.subtle}` }}>
           <CardContent>
             <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-              <Typography variant="h6">
+              <Typography variant="h6" fontWeight={600}>
                 Participants ({league.participants.length}/{league.maxParticipants})
               </Typography>
-              {loadingParticipants && <CircularProgress size={20} />}
+              {loadingParticipants && <CircularProgress size={20} color="primary" />}
             </Box>
 
             {participants.length === 0 && !loadingParticipants ? (
@@ -322,7 +372,7 @@ const LeagueDashboardPage: React.FC = () => {
                     key={participant.userId}
                     sx={{
                       borderBottom: index < participants.length - 1 ? '1px solid' : 'none',
-                      borderColor: 'divider',
+                      borderColor: colors.border.subtle,
                       px: 0,
                       py: 1.5
                     }}
@@ -344,6 +394,11 @@ const LeagueDashboardPage: React.FC = () => {
                       label={participant.hasSubmittedSquad ? 'Squad Submitted' : 'Not Submitted'}
                       color={participant.hasSubmittedSquad ? 'success' : 'default'}
                       size="small"
+                      sx={{
+                        bgcolor: participant.hasSubmittedSquad ? colors.green.primary : 'rgba(255, 255, 255, 0.08)',
+                        color: participant.hasSubmittedSquad ? 'white' : colors.text.secondary,
+                        fontWeight: 600,
+                      }}
                     />
                   </ListItem>
                 ))}

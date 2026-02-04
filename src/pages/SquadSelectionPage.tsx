@@ -38,6 +38,10 @@ import { playerPoolService, leagueService, squadService, squadPlayerUtils, leade
 import type { League, Player, SquadPlayer, LeagueSquad } from '../types/database';
 import { deleteField } from 'firebase/firestore';
 import { performAutoSlot } from '../utils/slotManagement';
+import { calculatePlayerContribution as calculatePlayerContributionUtil, calculateSquadPoints as calculateSquadPointsUtil } from '../utils/pointsCalculation';
+import themeColors from '../theme/colors';
+import { formatMatchForDropdown } from '../utils/scheduleParser';
+import EnhancedAlert, { SquadStatusItem, EnhancedAlertAction } from '../components/common/EnhancedAlert';
 
 interface SelectedPlayer extends Player {
   position: 'regular' | 'bench';
@@ -58,6 +62,19 @@ const SquadSelectionPage: React.FC = () => {
   const [filterRole, setFilterRole] = useState<string>('all');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+
+  // Enhanced error state
+  const [enhancedError, setEnhancedError] = useState<{
+    severity: 'error' | 'warning' | 'info';
+    title: string;
+    message: string;
+    squadStatus?: SquadStatusItem[];
+    suggestions?: string[];
+    actions?: EnhancedAlertAction[];
+    errorCode?: string;
+    isCriticalError?: boolean;
+  } | null>(null);
+
   const [existingSquad, setExistingSquad] = useState<LeagueSquad | null>(null);
   const [isDeadlinePassed, setIsDeadlinePassed] = useState(false);
   const [transferModalOpen, setTransferModalOpen] = useState(false);
@@ -187,6 +204,12 @@ const SquadSelectionPage: React.FC = () => {
     setViceCaptainId(existingSquad.viceCaptainId || null);
     setXFactorId(existingSquad.xFactorId || null);
 
+    // Load powerplay match number if it exists
+    if (existingSquad.powerplayMatchNumber) {
+      setPowerplayMatch(existingSquad.powerplayMatchNumber.toString());
+      console.log('Powerplay match loaded:', existingSquad.powerplayMatchNumber);
+    }
+
     // Load predictions if they exist
     if (existingSquad.predictions) {
       setTopRunScorer(existingSquad.predictions.topRunScorer || '');
@@ -291,6 +314,132 @@ const SquadSelectionPage: React.FC = () => {
            winningTeam.trim() !== '';
   };
 
+  // Get detailed validation errors for enhanced error display
+  const getDetailedValidationErrors = (): {
+    squadStatus: SquadStatusItem[];
+    suggestions: string[];
+    isValid: boolean;
+  } => {
+    if (!league) return { squadStatus: [], suggestions: [], isValid: false };
+
+    const counts = getPositionCounts();
+    const mainSquadCount = counts.batsman + counts.bowler + counts.allrounder + counts.wicketkeeper;
+    const benchRequired = league.transferTypes?.benchTransfers?.enabled ? league.transferTypes.benchTransfers.benchSlots : 0;
+
+    const mainSquadPlayers = selectedPlayers.filter(p => p.position !== 'bench');
+    const overseasCount = mainSquadPlayers.filter((p: any) => p.isOverseas).length;
+    const maxOverseas = league.squadRules.maxOverseasPlayers || 4;
+
+    const squadStatus: SquadStatusItem[] = [
+      {
+        label: 'Main Squad',
+        current: mainSquadCount,
+        required: league.squadSize,
+        isValid: mainSquadCount === league.squadSize
+      },
+      {
+        label: 'Batsmen',
+        current: counts.batsman,
+        required: league.squadRules.minBatsmen,
+        isValid: counts.batsman >= league.squadRules.minBatsmen
+      },
+      {
+        label: 'Bowlers',
+        current: counts.bowler,
+        required: league.squadRules.minBowlers,
+        isValid: counts.bowler >= league.squadRules.minBowlers
+      },
+      {
+        label: 'Wicketkeepers',
+        current: counts.wicketkeeper,
+        required: league.squadRules.minWicketkeepers,
+        isValid: counts.wicketkeeper >= league.squadRules.minWicketkeepers
+      }
+    ];
+
+    if (benchRequired > 0) {
+      squadStatus.push({
+        label: 'Bench',
+        current: counts.bench,
+        required: benchRequired,
+        isValid: counts.bench >= benchRequired
+      });
+    }
+
+    if (league.squadRules.overseasPlayersEnabled) {
+      squadStatus.push({
+        label: 'Overseas',
+        current: overseasCount,
+        required: maxOverseas,
+        isValid: overseasCount <= maxOverseas
+      });
+    }
+
+    // Build suggestions
+    const suggestions: string[] = [];
+
+    if (mainSquadCount < league.squadSize) {
+      suggestions.push(`Add ${league.squadSize - mainSquadCount} more player${league.squadSize - mainSquadCount > 1 ? 's' : ''} to main squad`);
+    } else if (mainSquadCount > league.squadSize) {
+      suggestions.push(`Remove ${mainSquadCount - league.squadSize} player${mainSquadCount - league.squadSize > 1 ? 's' : ''} from main squad or move to bench`);
+    }
+
+    if (counts.batsman < league.squadRules.minBatsmen) {
+      suggestions.push(`Add ${league.squadRules.minBatsmen - counts.batsman} more batsmen`);
+    }
+
+    if (counts.bowler < league.squadRules.minBowlers) {
+      suggestions.push(`Add ${league.squadRules.minBowlers - counts.bowler} more bowler${league.squadRules.minBowlers - counts.bowler > 1 ? 's' : ''}`);
+    }
+
+    if (counts.wicketkeeper < league.squadRules.minWicketkeepers) {
+      suggestions.push(`Add ${league.squadRules.minWicketkeepers - counts.wicketkeeper} more wicketkeeper${league.squadRules.minWicketkeepers - counts.wicketkeeper > 1 ? 's' : ''}`);
+    }
+
+    if (benchRequired > 0 && counts.bench < benchRequired) {
+      suggestions.push(`Add ${benchRequired - counts.bench} more bench player${benchRequired - counts.bench > 1 ? 's' : ''}`);
+    }
+
+    if (league.squadRules.overseasPlayersEnabled && overseasCount > maxOverseas) {
+      suggestions.push(`Remove ${overseasCount - maxOverseas} overseas player${overseasCount - maxOverseas > 1 ? 's' : ''} or replace with local player${overseasCount - maxOverseas > 1 ? 's' : ''}`);
+    }
+
+    if (!captainId) {
+      suggestions.push('Select a Captain');
+    }
+
+    if (!viceCaptainId) {
+      suggestions.push('Select a Vice-Captain');
+    }
+
+    if (!xFactorId) {
+      suggestions.push('Select an X-Factor');
+    }
+
+    if (league.powerplayEnabled && powerplayMatch.trim() === '') {
+      suggestions.push('Select a Powerplay match');
+    }
+
+    if (topRunScorer.trim() === '') {
+      suggestions.push('Enter your Top Run Scorer prediction');
+    }
+
+    if (topWicketTaker.trim() === '') {
+      suggestions.push('Enter your Top Wicket Taker prediction');
+    }
+
+    if (winningTeam.trim() === '') {
+      suggestions.push('Enter your Winning Team prediction');
+    }
+
+    return {
+      squadStatus,
+      suggestions,
+      isValid: isSquadValid()
+    };
+  };
+
+  // Use shared calculation utility for consistency across the app
   const calculateSquadPoints = (
     players: SquadPlayer[],
     captainId: string | null,
@@ -298,77 +447,37 @@ const SquadSelectionPage: React.FC = () => {
     xFactorId: string | null,
     bankedPoints: number = 0
   ): { totalPoints: number; captainPoints: number; viceCaptainPoints: number; xFactorPoints: number } => {
-    let totalPoints = 0;
-    let captainPoints = 0;
-    let viceCaptainPoints = 0;
-    let xFactorPoints = 0;
-
-    // CRITICAL: Only count starting XI (first squadSize players), exclude bench
     const squadSize = league?.squadSize || 11;
-    const startingXI = players.slice(0, squadSize);
-
-    startingXI.forEach(player => {
-      // Calculate effective points: only count points earned while in this squad
-      const pointsAtJoining = player.pointsAtJoining ?? 0;
-      const effectivePoints = Math.max(0, player.points - pointsAtJoining);
-
-      let playerPoints = 0;
-
-      if (captainId === player.playerId) {
-        // Captain gets 2x points
-        // Apply multiplier only to points earned AFTER becoming captain
-        const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
-        const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining); // Points before role
-        const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned); // Points after role
-
-        const baseContribution = basePoints * 1.0;
-        const bonusContribution = bonusPoints * 2.0;
-
-        captainPoints = baseContribution + bonusContribution;
-        playerPoints = captainPoints;
-      } else if (viceCaptainId === player.playerId) {
-        // Vice-captain gets 1.5x points
-        const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
-        const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
-        const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
-
-        const baseContribution = basePoints * 1.0;
-        const bonusContribution = bonusPoints * 1.5;
-
-        viceCaptainPoints = baseContribution + bonusContribution;
-        playerPoints = viceCaptainPoints;
-      } else if (xFactorId === player.playerId) {
-        // X-Factor gets 1.25x points
-        const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
-        const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
-        const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
-
-        const baseContribution = basePoints * 1.0;
-        const bonusContribution = bonusPoints * 1.25;
-
-        xFactorPoints = baseContribution + bonusContribution;
-        playerPoints = xFactorPoints;
-      } else {
-        // Regular player (no multiplier)
-        playerPoints = effectivePoints;
-      }
-
-      totalPoints += playerPoints;
-    });
-
-    // Add banked points from previous transfers
-    totalPoints += bankedPoints;
-
-    return { totalPoints, captainPoints, viceCaptainPoints, xFactorPoints };
+    return calculateSquadPointsUtil(
+      players,
+      squadSize,
+      captainId || undefined,
+      viceCaptainId || undefined,
+      xFactorId || undefined,
+      bankedPoints
+    );
   };
 
   const handleSubmitSquad = async () => {
     if (!user || !league || !leagueId) return;
-    if (!isSquadValid()) return;
+
+    // Show detailed validation errors if squad is not valid
+    if (!isSquadValid()) {
+      const validationResult = getDetailedValidationErrors();
+      setEnhancedError({
+        severity: 'error',
+        title: 'Cannot Submit Squad',
+        message: 'Your squad doesn\'t meet the requirements. Please fix the issues below:',
+        squadStatus: validationResult.squadStatus,
+        suggestions: validationResult.suggestions
+      });
+      return;
+    }
 
     try {
       setSubmitting(true);
       setSubmitError('');
+      setEnhancedError(null);
 
       // Sort players: main squad first, then bench
       // This ensures consistent order for loading
@@ -495,7 +604,47 @@ const SquadSelectionPage: React.FC = () => {
       navigate(`/leagues/${leagueId}`);
     } catch (error: any) {
       console.error('Error submitting squad:', error);
-      setSubmitError(error.message || 'Failed to submit squad');
+
+      // Check if it's a network/connection error
+      const isNetworkError = error.code === 'unavailable' || error.message?.toLowerCase().includes('network') || error.message?.toLowerCase().includes('connection');
+
+      setEnhancedError({
+        severity: 'error',
+        title: isNetworkError ? 'Connection Error' : 'Failed to Submit Squad',
+        message: isNetworkError
+          ? 'We couldn\'t save your squad due to a network issue.'
+          : 'An error occurred while submitting your squad.',
+        suggestions: isNetworkError
+          ? [
+              'Check your internet connection',
+              'Try again in a moment',
+              'Your squad data is safe - just resubmit when ready'
+            ]
+          : [
+              'Try submitting again',
+              'If the problem persists, contact the league admin',
+              'Your progress has been saved as a draft'
+            ],
+        actions: [
+          {
+            label: 'Try Again',
+            onClick: () => {
+              setEnhancedError(null);
+              handleSubmitSquad();
+            },
+            variant: 'contained',
+            color: 'primary'
+          },
+          {
+            label: 'Save Draft Instead',
+            onClick: () => {
+              setEnhancedError(null);
+              handleSaveDraft();
+            },
+            variant: 'outlined'
+          }
+        ]
+      });
     } finally {
       setSubmitting(false);
     }
@@ -629,27 +778,9 @@ const SquadSelectionPage: React.FC = () => {
     }
   };
 
-  // Helper function to calculate a player's current contribution (including role multiplier)
-  const calculatePlayerContribution = (
-    player: SquadPlayer,
-    role: 'captain' | 'viceCaptain' | 'xFactor' | 'regular'
-  ): number => {
-    const pointsAtJoining = player.pointsAtJoining ?? 0;
-    const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
-
-    const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
-    const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
-
-    if (role === 'captain') {
-      return basePoints * 1.0 + bonusPoints * 2.0;
-    } else if (role === 'viceCaptain') {
-      return basePoints * 1.0 + bonusPoints * 1.5;
-    } else if (role === 'xFactor') {
-      return basePoints * 1.0 + bonusPoints * 1.25;
-    } else {
-      return Math.max(0, player.points - pointsAtJoining);
-    }
-  };
+  // Use shared utility for calculating player contribution
+  // This ensures consistency across transfers and pool updates
+  const calculatePlayerContribution = calculatePlayerContributionUtil;
 
   const handleTransferSubmit = async (transferData: TransferData) => {
     if (!user || !league || !leagueId || !existingSquad) return;
@@ -685,8 +816,12 @@ const SquadSelectionPage: React.FC = () => {
           const playerOutIndex = updatedPlayers.findIndex(p => p.playerId === transferData.playerOut);
           const playerInIndex = updatedPlayers.findIndex(p => p.playerId === transferData.playerIn);
 
-          if (playerOutIndex === -1) throw new Error('Player to remove not found');
-          if (playerInIndex === -1) throw new Error('Bench player not found');
+          if (playerOutIndex === -1) {
+            throw new Error('Transfer failed: The player you want to remove is no longer in your squad. Please refresh and try again.');
+          }
+          if (playerInIndex === -1) {
+            throw new Error('Transfer failed: The bench player is no longer available. Please refresh and try again.');
+          }
 
           // Calculate points to bank from the player moving to bench
           const playerMovingToBench = updatedPlayers[playerOutIndex];
@@ -739,7 +874,9 @@ const SquadSelectionPage: React.FC = () => {
         } else {
           // FLEXIBLE/MID-SEASON TRANSFER: Replace with a player from pool OR bench
           const playerOutIndex = updatedPlayers.findIndex(p => p.playerId === transferData.playerOut);
-          if (playerOutIndex === -1) throw new Error('Player to remove not found');
+          if (playerOutIndex === -1) {
+            throw new Error('Transfer failed: The player you want to remove is no longer in your squad. Please refresh and try again.');
+          }
 
           // Check if incoming player is from bench
           const benchPlayerIds = updatedPlayers.slice(league.squadSize).map(p => p.playerId);
@@ -748,7 +885,9 @@ const SquadSelectionPage: React.FC = () => {
           if (isIncomingPlayerFromBench) {
             // BENCH PLAYER TO MAIN SQUAD: Use auto-slotting to place bench player, remove from bench
             const playerInIndex = updatedPlayers.findIndex(p => p.playerId === transferData.playerIn);
-            if (playerInIndex === -1) throw new Error('Bench player not found');
+            if (playerInIndex === -1) {
+              throw new Error('Transfer failed: The bench player is no longer available. Please refresh and try again.');
+            }
 
             // Calculate points to bank from the player leaving the squad
             const playerLeaving = updatedPlayers[playerOutIndex];
@@ -808,7 +947,9 @@ const SquadSelectionPage: React.FC = () => {
 
             // Get the full player data for the incoming player
             const incomingPlayer = availablePlayers.find(p => p.id === transferData.playerIn);
-            if (!incomingPlayer) throw new Error('Incoming player not found');
+            if (!incomingPlayer) {
+              throw new Error('Transfer failed: The player you selected is no longer available. Please refresh and try again.');
+            }
 
             // Create new squad player using transfer method (snapshots current points)
             const newSquadPlayer = squadPlayerUtils.createTransferSquadPlayer({
@@ -842,25 +983,129 @@ const SquadSelectionPage: React.FC = () => {
           }
         }
       } else if (transferData.changeType === 'roleReassignment') {
-        // ROLE REASSIGNMENT: Change VC or X-Factor
+        // ROLE REASSIGNMENT: Change C/VC/X with AUTOMATIC ROLE SWAPPING
+        // If new role holder currently has a different role, those roles SWAP automatically
+        // This ensures no player loses their role without getting a new one
+
+        // Handle Captain reassignment (only allowed for Bench transfers)
+        if (transferData.newCaptainId && transferData.newCaptainId !== existingSquad.captainId) {
+          // Bank the FULL contribution from the old Captain
+          if (existingSquad.captainId) {
+            const oldCaptain = updatedPlayers.find(p => p.playerId === existingSquad.captainId);
+            if (oldCaptain) {
+              const captainContribution = calculatePlayerContribution(oldCaptain, 'captain');
+              additionalBankedPoints += captainContribution;
+              console.log(`🏦 Banking Captain contribution: ${captainContribution.toFixed(2)} points from ${oldCaptain.playerName}`);
+            }
+          }
+
+          // AUTOMATIC SWAP LOGIC: Check if new Captain currently has VC or X-Factor role
+          if (transferData.newCaptainId === existingSquad.viceCaptainId) {
+            // New Captain is current VC → Swap: old Captain becomes VC
+            // CRITICAL FIX: Bank the VC's contribution BEFORE promoting them to Captain
+            const playerBecomingCaptain = updatedPlayers.find(p => p.playerId === transferData.newCaptainId);
+            if (playerBecomingCaptain) {
+              const vcContribution = calculatePlayerContribution(playerBecomingCaptain, 'viceCaptain');
+              additionalBankedPoints += vcContribution;
+              console.log(`🏦 Banking VC contribution BEFORE promotion to Captain: ${vcContribution.toFixed(2)} points from ${playerBecomingCaptain.playerName}`);
+            }
+
+            if (existingSquad.captainId) {
+              updatedViceCaptainId = existingSquad.captainId;
+              const newVC = updatedPlayers.find(p => p.playerId === existingSquad.captainId);
+              if (newVC) {
+                newVC.pointsWhenRoleAssigned = newVC.points;
+                console.log(`🔄 SWAP: Old Captain becomes new VC: ${newVC.playerName}`);
+              }
+            }
+          } else if (transferData.newCaptainId === existingSquad.xFactorId) {
+            // New Captain is current X-Factor → Swap: old Captain becomes X-Factor
+            // CRITICAL FIX: Bank the X-Factor's contribution BEFORE promoting them to Captain
+            const playerBecomingCaptain = updatedPlayers.find(p => p.playerId === transferData.newCaptainId);
+            if (playerBecomingCaptain) {
+              const xContribution = calculatePlayerContribution(playerBecomingCaptain, 'xFactor');
+              additionalBankedPoints += xContribution;
+              console.log(`🏦 Banking X-Factor contribution BEFORE promotion to Captain: ${xContribution.toFixed(2)} points from ${playerBecomingCaptain.playerName}`);
+            }
+
+            if (existingSquad.captainId) {
+              updatedXFactorId = existingSquad.captainId;
+              const newX = updatedPlayers.find(p => p.playerId === existingSquad.captainId);
+              if (newX) {
+                newX.pointsWhenRoleAssigned = newX.points;
+                console.log(`🔄 SWAP: Old Captain becomes new X-Factor: ${newX.playerName}`);
+              }
+            }
+          }
+          // If new Captain has NO role, old Captain just loses Captain role (no swap)
+
+          // Set pointsWhenRoleAssigned for the new Captain
+          const newCaptain = updatedPlayers.find(p => p.playerId === transferData.newCaptainId);
+          if (newCaptain) {
+            newCaptain.pointsWhenRoleAssigned = newCaptain.points;
+            console.log(`⭐ New Captain assigned: ${newCaptain.playerName}, starting from ${newCaptain.points} points`);
+          }
+
+          updatedCaptainId = transferData.newCaptainId;
+        }
 
         // Handle VC reassignment
         if (transferData.newViceCaptainId && transferData.newViceCaptainId !== existingSquad.viceCaptainId) {
-          // Bank the multiplier bonus from the old VC
+          // Bank the FULL contribution from the old VC
           if (existingSquad.viceCaptainId) {
             const oldVC = updatedPlayers.find(p => p.playerId === existingSquad.viceCaptainId);
             if (oldVC) {
-              const pointsAtJoining = oldVC.pointsAtJoining ?? 0;
-              const effectivePoints = Math.max(0, oldVC.points - pointsAtJoining);
-              const multiplierBonus = effectivePoints * (1.5 - 1.0); // 0.5
-              additionalBankedPoints += multiplierBonus;
+              const vcContribution = calculatePlayerContribution(oldVC, 'viceCaptain');
+              additionalBankedPoints += vcContribution;
+              console.log(`🏦 Banking VC contribution: ${vcContribution.toFixed(2)} points from ${oldVC.playerName}`);
             }
           }
+
+          // AUTOMATIC SWAP LOGIC: Check if new VC currently has Captain or X-Factor role
+          if (transferData.newViceCaptainId === existingSquad.captainId) {
+            // New VC is current Captain → Swap: old VC becomes Captain
+            // CRITICAL FIX: Bank the Captain's contribution BEFORE demoting them to VC
+            const playerBecomingVC = updatedPlayers.find(p => p.playerId === transferData.newViceCaptainId);
+            if (playerBecomingVC) {
+              const captainContribution = calculatePlayerContribution(playerBecomingVC, 'captain');
+              additionalBankedPoints += captainContribution;
+              console.log(`🏦 Banking Captain contribution BEFORE demotion to VC: ${captainContribution.toFixed(2)} points from ${playerBecomingVC.playerName}`);
+            }
+
+            if (existingSquad.viceCaptainId) {
+              updatedCaptainId = existingSquad.viceCaptainId;
+              const newCaptain = updatedPlayers.find(p => p.playerId === existingSquad.viceCaptainId);
+              if (newCaptain) {
+                newCaptain.pointsWhenRoleAssigned = newCaptain.points;
+                console.log(`🔄 SWAP: Old VC becomes new Captain: ${newCaptain.playerName}`);
+              }
+            }
+          } else if (transferData.newViceCaptainId === existingSquad.xFactorId) {
+            // New VC is current X-Factor → Swap: old VC becomes X-Factor
+            // CRITICAL FIX: Bank the X-Factor's contribution BEFORE changing them to VC
+            const playerBecomingVC = updatedPlayers.find(p => p.playerId === transferData.newViceCaptainId);
+            if (playerBecomingVC) {
+              const xContribution = calculatePlayerContribution(playerBecomingVC, 'xFactor');
+              additionalBankedPoints += xContribution;
+              console.log(`🏦 Banking X-Factor contribution BEFORE change to VC: ${xContribution.toFixed(2)} points from ${playerBecomingVC.playerName}`);
+            }
+
+            if (existingSquad.viceCaptainId) {
+              updatedXFactorId = existingSquad.viceCaptainId;
+              const newX = updatedPlayers.find(p => p.playerId === existingSquad.viceCaptainId);
+              if (newX) {
+                newX.pointsWhenRoleAssigned = newX.points;
+                console.log(`🔄 SWAP: Old VC becomes new X-Factor: ${newX.playerName}`);
+              }
+            }
+          }
+          // If new VC has NO role, old VC just loses VC role (no swap)
 
           // Set pointsWhenRoleAssigned for the new VC
           const newVC = updatedPlayers.find(p => p.playerId === transferData.newViceCaptainId);
           if (newVC) {
             newVC.pointsWhenRoleAssigned = newVC.points;
+            console.log(`⭐ New VC assigned: ${newVC.playerName}, starting from ${newVC.points} points`);
           }
 
           updatedViceCaptainId = transferData.newViceCaptainId;
@@ -868,21 +1113,61 @@ const SquadSelectionPage: React.FC = () => {
 
         // Handle X-Factor reassignment
         if (transferData.newXFactorId && transferData.newXFactorId !== existingSquad.xFactorId) {
-          // Bank the multiplier bonus from the old X
+          // Bank the FULL contribution from the old X-Factor
           if (existingSquad.xFactorId) {
             const oldX = updatedPlayers.find(p => p.playerId === existingSquad.xFactorId);
             if (oldX) {
-              const pointsAtJoining = oldX.pointsAtJoining ?? 0;
-              const effectivePoints = Math.max(0, oldX.points - pointsAtJoining);
-              const multiplierBonus = effectivePoints * (1.25 - 1.0); // 0.25
-              additionalBankedPoints += multiplierBonus;
+              const xContribution = calculatePlayerContribution(oldX, 'xFactor');
+              additionalBankedPoints += xContribution;
+              console.log(`🏦 Banking X-Factor contribution: ${xContribution.toFixed(2)} points from ${oldX.playerName}`);
             }
           }
 
-          // Set pointsWhenRoleAssigned for the new X
+          // AUTOMATIC SWAP LOGIC: Check if new X-Factor currently has Captain or VC role
+          if (transferData.newXFactorId === existingSquad.captainId) {
+            // New X-Factor is current Captain → Swap: old X-Factor becomes Captain
+            // CRITICAL FIX: Bank the Captain's contribution BEFORE changing them to X-Factor
+            const playerBecomingX = updatedPlayers.find(p => p.playerId === transferData.newXFactorId);
+            if (playerBecomingX) {
+              const captainContribution = calculatePlayerContribution(playerBecomingX, 'captain');
+              additionalBankedPoints += captainContribution;
+              console.log(`🏦 Banking Captain contribution BEFORE change to X-Factor: ${captainContribution.toFixed(2)} points from ${playerBecomingX.playerName}`);
+            }
+
+            if (existingSquad.xFactorId) {
+              updatedCaptainId = existingSquad.xFactorId;
+              const newCaptain = updatedPlayers.find(p => p.playerId === existingSquad.xFactorId);
+              if (newCaptain) {
+                newCaptain.pointsWhenRoleAssigned = newCaptain.points;
+                console.log(`🔄 SWAP: Old X-Factor becomes new Captain: ${newCaptain.playerName}`);
+              }
+            }
+          } else if (transferData.newXFactorId === existingSquad.viceCaptainId) {
+            // New X-Factor is current VC → Swap: old X-Factor becomes VC
+            // CRITICAL FIX: Bank the VC's contribution BEFORE changing them to X-Factor
+            const playerBecomingX = updatedPlayers.find(p => p.playerId === transferData.newXFactorId);
+            if (playerBecomingX) {
+              const vcContribution = calculatePlayerContribution(playerBecomingX, 'viceCaptain');
+              additionalBankedPoints += vcContribution;
+              console.log(`🏦 Banking VC contribution BEFORE change to X-Factor: ${vcContribution.toFixed(2)} points from ${playerBecomingX.playerName}`);
+            }
+
+            if (existingSquad.xFactorId) {
+              updatedViceCaptainId = existingSquad.xFactorId;
+              const newVC = updatedPlayers.find(p => p.playerId === existingSquad.xFactorId);
+              if (newVC) {
+                newVC.pointsWhenRoleAssigned = newVC.points;
+                console.log(`🔄 SWAP: Old X-Factor becomes new VC: ${newVC.playerName}`);
+              }
+            }
+          }
+          // If new X-Factor has NO role, old X-Factor just loses X-Factor role (no swap)
+
+          // Set pointsWhenRoleAssigned for the new X-Factor
           const newX = updatedPlayers.find(p => p.playerId === transferData.newXFactorId);
           if (newX) {
             newX.pointsWhenRoleAssigned = newX.points;
+            console.log(`⭐ New X-Factor assigned: ${newX.playerName}, starting from ${newX.points} points`);
           }
 
           updatedXFactorId = transferData.newXFactorId;
@@ -932,6 +1217,17 @@ const SquadSelectionPage: React.FC = () => {
       // Calculate new banked points total
       const newBankedPoints = (existingSquad.bankedPoints || 0) + additionalBankedPoints;
 
+      // ENHANCEMENT: Create pre-transfer snapshot for rollback capability
+      const preTransferSnapshot = {
+        players: JSON.parse(JSON.stringify(existingSquad.players)), // Deep copy
+        captainId: existingSquad.captainId || null,
+        viceCaptainId: existingSquad.viceCaptainId || null,
+        xFactorId: existingSquad.xFactorId || null,
+        bankedPoints: existingSquad.bankedPoints || 0,
+        totalPoints: 0, // Will be calculated below
+        timestamp: new Date(),
+      };
+
       // Calculate OLD points for verification (before changes)
       const oldCalculatedPoints = calculateSquadPoints(
         existingSquad.players,
@@ -940,6 +1236,9 @@ const SquadSelectionPage: React.FC = () => {
         existingSquad.xFactorId || null,
         existingSquad.bankedPoints || 0
       );
+
+      // Store total points in snapshot
+      preTransferSnapshot.totalPoints = oldCalculatedPoints.totalPoints;
 
       // Calculate new points (including banked points)
       const calculatedPoints = calculateSquadPoints(
@@ -972,9 +1271,48 @@ const SquadSelectionPage: React.FC = () => {
           });
 
           throw new Error(
-            `BENCH TRANSFER BUG DETECTED!\n\n` +
-            `Points changed by ${(calculatedPoints.totalPoints - oldCalculatedPoints.totalPoints).toFixed(2)} when they should stay the same.\n\n` +
-            `This indicates a calculation error. Please report this to the admin with the above console logs.`
+            `SYSTEM_ERROR:POINT_STABILITY:A point calculation error was detected. Your squad has not been changed. Please contact the league admin with error code PT-001.`
+          );
+        }
+      }
+
+      // CRITICAL VALIDATION: For role reassignments, points should also be stable
+      // Role swaps should only move points between banked/active, not change total
+      if (transferData.changeType === 'roleReassignment') {
+        const pointsDifference = Math.abs(calculatedPoints.totalPoints - oldCalculatedPoints.totalPoints);
+        if (pointsDifference > 0.1) {
+          console.error('🚨 ROLE REASSIGNMENT POINT STABILITY VIOLATION 🚨');
+          console.error(`Old Total: ${oldCalculatedPoints.totalPoints}`);
+          console.error(`New Total: ${calculatedPoints.totalPoints}`);
+          console.error(`Difference: ${calculatedPoints.totalPoints - oldCalculatedPoints.totalPoints}`);
+          console.error(`Old Banked: ${existingSquad.bankedPoints || 0}`);
+          console.error(`New Banked: ${newBankedPoints}`);
+          console.error(`Additional Banked: ${additionalBankedPoints}`);
+          console.error('Old Captain:', existingSquad.captainId);
+          console.error('New Captain:', transferData.newCaptainId);
+          console.error('Old VC:', existingSquad.viceCaptainId);
+          console.error('New VC:', transferData.newViceCaptainId);
+          console.error('Old X-Factor:', existingSquad.xFactorId);
+          console.error('New X-Factor:', transferData.newXFactorId);
+
+          // Log detailed role breakdown
+          console.error('Role changes:');
+          const oldC = existingSquad.players.find(p => p.playerId === existingSquad.captainId);
+          const oldVC = existingSquad.players.find(p => p.playerId === existingSquad.viceCaptainId);
+          const oldX = existingSquad.players.find(p => p.playerId === existingSquad.xFactorId);
+          const newC = updatedPlayers.find(p => p.playerId === updatedCaptainId);
+          const newVC = updatedPlayers.find(p => p.playerId === updatedViceCaptainId);
+          const newX = updatedPlayers.find(p => p.playerId === updatedXFactorId);
+
+          console.error(`  Old C: ${oldC?.playerName} (pts=${oldC?.points}, whenRole=${oldC?.pointsWhenRoleAssigned})`);
+          console.error(`  New C: ${newC?.playerName} (pts=${newC?.points}, whenRole=${newC?.pointsWhenRoleAssigned})`);
+          console.error(`  Old VC: ${oldVC?.playerName} (pts=${oldVC?.points}, whenRole=${oldVC?.pointsWhenRoleAssigned})`);
+          console.error(`  New VC: ${newVC?.playerName} (pts=${newVC?.points}, whenRole=${newVC?.pointsWhenRoleAssigned})`);
+          console.error(`  Old X: ${oldX?.playerName} (pts=${oldX?.points}, whenRole=${oldX?.pointsWhenRoleAssigned})`);
+          console.error(`  New X: ${newX?.playerName} (pts=${newX?.points}, whenRole=${newX?.pointsWhenRoleAssigned})`);
+
+          throw new Error(
+            `SYSTEM_ERROR:ROLE_REASSIGNMENT:A role banking error was detected. Your squad has not been changed. Please contact the league admin with error code PT-002.`
           );
         }
       }
@@ -991,6 +1329,17 @@ const SquadSelectionPage: React.FC = () => {
       if (transferData.playerIn) transferHistoryEntry.playerIn = transferData.playerIn;
       if (transferData.newViceCaptainId) transferHistoryEntry.newViceCaptainId = transferData.newViceCaptainId;
       if (transferData.newXFactorId) transferHistoryEntry.newXFactorId = transferData.newXFactorId;
+
+      // ENHANCEMENT #2: Add banking amount tracking (Added 2026-02-03)
+      transferHistoryEntry.bankedAmount = additionalBankedPoints;
+      transferHistoryEntry.totalBankedAfter = newBankedPoints;
+      transferHistoryEntry.pointsBefore = oldCalculatedPoints.totalPoints;
+      transferHistoryEntry.pointsAfter = calculatedPoints.totalPoints;
+
+      // ENHANCEMENT #3: Add pre-transfer snapshot for rollback (Added 2026-02-03)
+      transferHistoryEntry.preTransferSnapshot = preTransferSnapshot;
+
+      console.log(`📊 Transfer Tracking: Banked ${additionalBankedPoints.toFixed(2)} pts, Total Banked: ${newBankedPoints.toFixed(2)} pts`);
 
       // CRITICAL: Clean up players array before saving to Firebase
       // Firebase strips undefined fields, so we need to ensure all fields are defined
@@ -1072,9 +1421,37 @@ const SquadSelectionPage: React.FC = () => {
 
       // Show success message
       setSubmitError('');
+      setEnhancedError(null);
     } catch (error: any) {
       console.error('Error submitting transfer:', error);
-      throw error; // Re-throw to let the modal handle it
+
+      // Check if it's a critical system error
+      const errorMessage = error.message || '';
+      const isCriticalError = errorMessage.startsWith('SYSTEM_ERROR:');
+
+      if (isCriticalError) {
+        // Parse the error: SYSTEM_ERROR:ERROR_TYPE:User message
+        const parts = errorMessage.split(':');
+        const errorCode = parts[1] || 'UNKNOWN';
+        const userMessage = parts.slice(2).join(':') || 'A system error occurred. Please contact the admin.';
+
+        setEnhancedError({
+          severity: 'error',
+          title: 'System Error Detected',
+          message: userMessage,
+          suggestions: [
+            'Your squad has not been changed',
+            'This error has been logged for the admin',
+            'Try refreshing the page'
+          ],
+          errorCode,
+          isCriticalError: true
+        });
+        return; // Don't re-throw, we've handled it
+      }
+
+      // For other errors, re-throw to let the modal handle it
+      throw error;
     }
   };
 
@@ -1230,27 +1607,39 @@ const SquadSelectionPage: React.FC = () => {
             <Chip
               label={`${league.transferTypes.benchTransfers.maxAllowed - (existingSquad?.benchTransfersUsed || 0)} Bench Available`}
               size="small"
-              color="primary"
               variant="outlined"
-              sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, height: { xs: 20, sm: 24 } }}
+              sx={{
+                fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                height: { xs: 20, sm: 24 },
+                borderColor: '#9C27B0', // Purple - premium/informational
+                color: '#9C27B0'
+              }}
             />
           )}
           {league.transferTypes.midSeasonTransfers.enabled && (
             <Chip
               label={`Mid-Season Available`}
               size="small"
-              color="secondary"
               variant="outlined"
-              sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, height: { xs: 20, sm: 24 } }}
+              sx={{
+                fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                height: { xs: 20, sm: 24 },
+                borderColor: '#7B1FA2', // Purple - premium/informational
+                color: '#7B1FA2'
+              }}
             />
           )}
           {league.transferTypes.flexibleTransfers.enabled && (
             <Chip
               label={`Flexible Available`}
               size="small"
-              color="success"
               variant="outlined"
-              sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, height: { xs: 20, sm: 24 } }}
+              sx={{
+                fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                height: { xs: 20, sm: 24 },
+                borderColor: '#66BB6A', // Muted green - success/available
+                color: '#66BB6A'
+              }}
             />
           )}
         </Box>
@@ -1270,20 +1659,39 @@ const SquadSelectionPage: React.FC = () => {
         <Box display="flex" gap={1}>
           <Button
             variant="outlined"
-            color="primary"
             disabled={selectedPlayers.length === 0 || submitting || isDeadlinePassed}
             onClick={handleSaveDraft}
-            sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1.5, sm: 2 }, py: { xs: 0.5, sm: 1 } }}
+            sx={{
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              px: { xs: 1.5, sm: 2 },
+              py: { xs: 0.5, sm: 1 },
+              borderColor: themeColors.orange.primary,
+              color: themeColors.orange.primary,
+              fontWeight: 500,
+              '&:hover': {
+                borderColor: themeColors.orange.dark,
+                bgcolor: alpha(themeColors.orange.primary, 0.08)
+              }
+            }}
           >
             Save Draft
           </Button>
           <Button
             variant="contained"
-            color={isDeadlinePassed ? "inherit" : "success"}
             disabled={!isSquadValid() || submitting || isDeadlinePassed}
             startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <Star />}
             onClick={handleSubmitSquad}
-            sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1.5, sm: 2 }, py: { xs: 0.5, sm: 1 } }}
+            sx={{
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              px: { xs: 1.5, sm: 2 },
+              py: { xs: 0.5, sm: 1 },
+              bgcolor: isDeadlinePassed ? themeColors.grey[700] : themeColors.blue.electric,
+              color: 'white',
+              fontWeight: 600,
+              '&:hover': {
+                bgcolor: isDeadlinePassed ? themeColors.grey[600] : themeColors.blue.deep
+              }
+            }}
           >
             {getSubmitButtonText()}
           </Button>
@@ -1357,7 +1765,26 @@ const SquadSelectionPage: React.FC = () => {
           </Box>
         )}
 
-        {submitError && (
+        {/* Enhanced Error Alert */}
+        {enhancedError && (
+          <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+            <EnhancedAlert
+              open={true}
+              onClose={() => setEnhancedError(null)}
+              severity={enhancedError.severity}
+              title={enhancedError.title}
+              message={enhancedError.message}
+              squadStatus={enhancedError.squadStatus}
+              suggestions={enhancedError.suggestions}
+              actions={enhancedError.actions}
+              errorCode={enhancedError.errorCode}
+              isCriticalError={enhancedError.isCriticalError}
+            />
+          </Box>
+        )}
+
+        {/* Simple Error Alert (backward compatibility) */}
+        {submitError && !enhancedError && (
           <Box sx={{ mb: { xs: 2, sm: 3 } }}>
             <Alert severity="error" onClose={() => setSubmitError('')} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 0.5, sm: 1 } }}>
               {submitError}
@@ -1372,7 +1799,10 @@ const SquadSelectionPage: React.FC = () => {
           backdropFilter: 'blur(20px)',
           border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
           borderRadius: 2,
-          boxShadow: `0 4px 16px ${alpha('#000', 0.3)}`
+          boxShadow: `0 4px 16px ${alpha('#000', 0.3)}`,
+          opacity: 0.94, // Subtle opacity to reduce visual weight
+          transition: 'opacity 0.3s ease',
+          '&:hover': { opacity: 1 } // Full opacity on hover
         }}>
           <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -1493,6 +1923,20 @@ const SquadSelectionPage: React.FC = () => {
                   color: topRunScorer && topWicketTaker && winningTeam ? theme.palette.secondary.main : 'text.secondary'
                 }}
               />
+              {league?.powerplayEnabled && (
+                <Chip
+                  label={`PP Match: ${powerplayMatch.trim() !== '' ? `Match ${powerplayMatch}` : 'Not Selected'}`}
+                  variant={powerplayMatch.trim() !== '' ? 'filled' : 'outlined'}
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                    height: { xs: 28, sm: 32 },
+                    bgcolor: powerplayMatch.trim() !== '' ? alpha(theme.palette.warning.main, 0.15) : 'transparent',
+                    borderColor: powerplayMatch.trim() !== '' ? theme.palette.warning.main : alpha(theme.palette.text.secondary, 0.3),
+                    color: powerplayMatch.trim() !== '' ? theme.palette.warning.main : 'text.secondary'
+                  }}
+                />
+              )}
             </Box>
           </CardContent>
         </Card>
@@ -1541,7 +1985,9 @@ const SquadSelectionPage: React.FC = () => {
                 Make Your Predictions *
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Predict the top performers and series outcome. All predictions are required to submit your squad.
+                {existingSquad?.isSubmitted
+                  ? 'Your predictions are locked after squad submission and cannot be changed.'
+                  : 'Predict the top performers and series outcome. All predictions are required to submit your squad.'}
               </Typography>
             </Box>
 
@@ -1556,8 +2002,9 @@ const SquadSelectionPage: React.FC = () => {
                   onChange={(e) => setTopRunScorer(e.target.value)}
                   variant="outlined"
                   size="small"
-                  error={topRunScorer.trim() === ''}
-                  helperText={topRunScorer.trim() === '' ? 'Required' : ''}
+                  disabled={existingSquad?.isSubmitted}
+                  error={!existingSquad?.isSubmitted && topRunScorer.trim() === ''}
+                  helperText={!existingSquad?.isSubmitted && topRunScorer.trim() === '' ? 'Required' : ''}
                   InputProps={{
                     startAdornment: <Box sx={{ mr: 1, color: 'warning.main' }}>🏏</Box>
                   }}
@@ -1574,8 +2021,9 @@ const SquadSelectionPage: React.FC = () => {
                   onChange={(e) => setTopWicketTaker(e.target.value)}
                   variant="outlined"
                   size="small"
-                  error={topWicketTaker.trim() === ''}
-                  helperText={topWicketTaker.trim() === '' ? 'Required' : ''}
+                  disabled={existingSquad?.isSubmitted}
+                  error={!existingSquad?.isSubmitted && topWicketTaker.trim() === ''}
+                  helperText={!existingSquad?.isSubmitted && topWicketTaker.trim() === '' ? 'Required' : ''}
                   InputProps={{
                     startAdornment: <Box sx={{ mr: 1, color: 'error.main' }}>⚡</Box>
                   }}
@@ -1592,8 +2040,9 @@ const SquadSelectionPage: React.FC = () => {
                   onChange={(e) => setWinningTeam(e.target.value)}
                   variant="outlined"
                   size="small"
-                  error={winningTeam.trim() === ''}
-                  helperText={winningTeam.trim() === '' ? 'Required' : ''}
+                  disabled={existingSquad?.isSubmitted}
+                  error={!existingSquad?.isSubmitted && winningTeam.trim() === ''}
+                  helperText={!existingSquad?.isSubmitted && winningTeam.trim() === '' ? 'Required' : ''}
                   InputProps={{
                     startAdornment: <Box sx={{ mr: 1, color: 'success.main' }}>🏆</Box>
                   }}
@@ -1754,16 +2203,16 @@ const CricketPitchFormation: React.FC<{
   const getSlotColors = (slotType: 'required' | 'flexible' | 'bench', role?: string) => {
     if (slotType === 'required') {
       switch (role) {
-        case 'batsman': return { bg: '#E8F5E9', border: '#4CAF50' };
-        case 'bowler': return { bg: '#E3F2FD', border: '#2196F3' };
-        case 'allrounder': return { bg: '#F3E5F5', border: '#9C27B0' };
-        case 'wicketkeeper': return { bg: '#FFF9C4', border: '#FFC107' };
-        default: return { bg: '#ECEFF1', border: '#607D8B' };
+        case 'batsman': return { bg: '#E8F5E9', border: '#66BB6A' }; // Muted green
+        case 'bowler': return { bg: '#EDE7F6', border: '#7B1FA2' }; // Purple
+        case 'allrounder': return { bg: '#E1F5FE', border: '#29B6F6' }; // Light blue
+        case 'wicketkeeper': return { bg: '#FFF9C4', border: '#FFC107' }; // Amber for special role
+        default: return { bg: '#ECEFF1', border: '#78909C' };
       }
     } else if (slotType === 'flexible') {
-      return { bg: '#E8EAF6', border: '#3F51B5' };
+      return { bg: '#E8EAF6', border: '#5C6BC0' }; // Indigo
     } else {
-      return { bg: '#FFF3E0', border: '#FF9800' };
+      return { bg: '#F3E5F5', border: '#9C27B0' }; // Light purple for bench (premium/informational)
     }
   };
 
@@ -1816,14 +2265,15 @@ const CricketPitchFormation: React.FC<{
           justifyContent: 'center',
           border: player ? 'none' : `2px dashed ${colors.border}`,
           borderRadius: { xs: 2, sm: 3 },
-          bgcolor: player ? 'background.paper' : colors.bg,
+          bgcolor: player ? '#1a2332' : colors.bg,
           position: 'relative',
           cursor: 'pointer',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          boxShadow: player ? '0 6px 18px rgba(0,0,0,0.35)' : 'none', // Enhanced micro elevation
           '&:hover': {
-            bgcolor: player ? 'action.hover' : colors.bg,
-            transform: 'translateY(-4px) scale(1.02)',
-            boxShadow: player ? '0 12px 24px rgba(0,0,0,0.15)' : `0 8px 16px ${colors.border}55`
+            bgcolor: player ? '#222b3d' : colors.bg,
+            transform: player ? 'translateY(-6px) scale(1.03)' : 'translateY(-2px)', // Enhanced hover lift
+            boxShadow: player ? '0 12px 28px rgba(0,0,0,0.4)' : `0 8px 16px ${colors.border}55`
           }
         }}
       >
@@ -1842,7 +2292,7 @@ const CricketPitchFormation: React.FC<{
               </IconButton>
             )}
 
-            <Avatar sx={{ width: { xs: 24, sm: 28, md: 32 }, height: { xs: 24, sm: 28, md: 32 }, mb: 0.5, bgcolor: 'primary.main', fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
+            <Avatar sx={{ width: { xs: 24, sm: 28, md: 32 }, height: { xs: 24, sm: 28, md: 32 }, mb: 0.5, bgcolor: '#090b47', color: 'white', fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' }, fontWeight: 700 }}>
               {player.name.charAt(0)}
             </Avatar>
 
@@ -1875,20 +2325,63 @@ const CricketPitchFormation: React.FC<{
               );
             })()}
 
-            {/* Captain/Vice Captain/X-Factor badges */}
+            {/* Captain/Vice Captain/X-Factor badges with special glows */}
             {isCaptain && (
               <Box sx={{ position: 'absolute', top: { xs: -4, sm: -5 }, left: { xs: -4, sm: -5 } }}>
-                <Chip label="C" size="small" color="warning" sx={{ fontSize: { xs: '0.6rem', sm: '0.7rem' }, height: { xs: 16, sm: 18 }, fontWeight: 'bold' }} />
+                <Chip
+                  label="C"
+                  size="small"
+                  sx={{
+                    fontSize: { xs: '0.6rem', sm: '0.7rem' },
+                    height: { xs: 16, sm: 18 },
+                    fontWeight: 'bold',
+                    bgcolor: '#090b47',
+                    color: themeColors.gold,
+                    boxShadow: `0 0 10px ${alpha(themeColors.gold, 0.6)}, 0 0 20px ${alpha(themeColors.gold, 0.3)}`,
+                    animation: 'pulse-gold 2s ease-in-out infinite',
+                    '@keyframes pulse-gold': {
+                      '0%, 100%': { boxShadow: `0 0 10px ${alpha(themeColors.gold, 0.6)}, 0 0 20px ${alpha(themeColors.gold, 0.3)}` },
+                      '50%': { boxShadow: `0 0 15px ${alpha(themeColors.gold, 0.8)}, 0 0 30px ${alpha(themeColors.gold, 0.4)}` }
+                    }
+                  }}
+                />
               </Box>
             )}
             {isViceCaptain && (
               <Box sx={{ position: 'absolute', top: { xs: -4, sm: -5 }, left: { xs: -4, sm: -5 } }}>
-                <Chip label="VC" size="small" color="info" sx={{ fontSize: { xs: '0.6rem', sm: '0.7rem' }, height: { xs: 16, sm: 18 }, fontWeight: 'bold' }} />
+                <Chip
+                  label="VC"
+                  size="small"
+                  sx={{
+                    fontSize: { xs: '0.6rem', sm: '0.7rem' },
+                    height: { xs: 16, sm: 18 },
+                    fontWeight: 'bold',
+                    bgcolor: '#090b47',
+                    color: themeColors.gold,
+                    boxShadow: `0 0 10px ${alpha(themeColors.gold, 0.6)}, 0 0 20px ${alpha(themeColors.gold, 0.3)}`
+                  }}
+                />
               </Box>
             )}
             {isXFactor && (
               <Box sx={{ position: 'absolute', top: { xs: -4, sm: -5 }, left: { xs: -4, sm: -5 } }}>
-                <Chip label="X" size="small" color="secondary" sx={{ fontSize: { xs: '0.6rem', sm: '0.7rem' }, height: { xs: 16, sm: 18 }, fontWeight: 'bold' }} />
+                <Chip
+                  label="X"
+                  size="small"
+                  sx={{
+                    fontSize: { xs: '0.6rem', sm: '0.7rem' },
+                    height: { xs: 16, sm: 18 },
+                    fontWeight: 'bold',
+                    bgcolor: '#090b47',
+                    color: themeColors.gold,
+                    boxShadow: `0 0 10px ${alpha(themeColors.gold, 0.6)}, 0 0 20px ${alpha(themeColors.gold, 0.3)}`,
+                    animation: 'pulse-gold-x 3s ease-in-out infinite',
+                    '@keyframes pulse-gold-x': {
+                      '0%, 100%': { boxShadow: `0 0 8px ${alpha(themeColors.gold, 0.5)}, 0 0 16px ${alpha(themeColors.gold, 0.2)}` },
+                      '50%': { boxShadow: `0 0 12px ${alpha(themeColors.gold, 0.7)}, 0 0 24px ${alpha(themeColors.gold, 0.35)}` }
+                    }
+                  }}
+                />
               </Box>
             )}
 
@@ -1937,9 +2430,9 @@ const CricketPitchFormation: React.FC<{
                     onSetSpecialRole(player.id, 'vice_captain');
                   }}
                   sx={{
-                    bgcolor: isViceCaptain ? 'info.main' : 'action.hover',
-                    color: isViceCaptain ? 'info.contrastText' : 'text.primary',
-                    '&:hover': { bgcolor: isViceCaptain ? 'info.dark' : 'info.light' },
+                    bgcolor: isViceCaptain ? '#7B1FA2' : 'action.hover', // Purple for premium
+                    color: isViceCaptain ? 'white' : 'text.primary',
+                    '&:hover': { bgcolor: isViceCaptain ? '#6A1B9A' : 'rgba(123, 31, 162, 0.1)' },
                     width: 28,
                     height: 28
                   }}
@@ -1953,9 +2446,9 @@ const CricketPitchFormation: React.FC<{
                     onSetSpecialRole(player.id, 'x_factor');
                   }}
                   sx={{
-                    bgcolor: isXFactor ? 'secondary.main' : 'action.hover',
-                    color: isXFactor ? 'secondary.contrastText' : 'text.primary',
-                    '&:hover': { bgcolor: isXFactor ? 'secondary.dark' : 'secondary.light' },
+                    bgcolor: isXFactor ? '#9C27B0' : 'action.hover', // Light Purple for accent
+                    color: isXFactor ? 'white' : 'text.primary',
+                    '&:hover': { bgcolor: isXFactor ? '#7B1FA2' : 'rgba(156, 39, 176, 0.1)' },
                     width: 28,
                     height: 28
                   }}
@@ -2013,13 +2506,50 @@ const CricketPitchFormation: React.FC<{
                 value={powerplayMatch}
                 label="Select Powerplay Match"
                 onChange={(e) => setPowerplayMatch(e.target.value)}
-                sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}
+                sx={{
+                  fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
+                  bgcolor: '#1a2332',
+                  '& .MuiSelect-select': {
+                    py: 1.5
+                  }
+                }}
               >
-                {Array.from({ length: maxPowerplayMatches }, (_, i) => i + 1).map((matchNumber) => (
-                  <MenuItem key={matchNumber} value={matchNumber.toString()} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
-                    Match {matchNumber}
-                  </MenuItem>
-                ))}
+                {league.matchSchedule && league.matchSchedule.length > 0 ? (
+                  // If match schedule exists, show detailed match info
+                  league.matchSchedule
+                    .filter(match => match.matchNumber <= maxPowerplayMatches)
+                    .map((match) => (
+                      <MenuItem
+                        key={match.matchNumber}
+                        value={match.matchNumber.toString()}
+                        sx={{
+                          fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
+                          py: 1.5,
+                          '&:hover': {
+                            bgcolor: alpha(themeColors.blue.electric, 0.08)
+                          }
+                        }}
+                      >
+                        <Box>
+                          <Typography variant="body2" fontWeight={600} fontSize="0.875rem">
+                            {formatMatchForDropdown(match)}
+                          </Typography>
+                          {match.team1 !== 'TBC' && match.team2 !== 'TBC' && (
+                            <Typography variant="caption" color="text.secondary" fontSize="0.75rem">
+                              {match.timeGMT} GMT • {match.stadium}
+                            </Typography>
+                          )}
+                        </Box>
+                      </MenuItem>
+                    ))
+                ) : (
+                  // Fallback to simple match numbers if no schedule
+                  Array.from({ length: maxPowerplayMatches }, (_, i) => i + 1).map((matchNumber) => (
+                    <MenuItem key={matchNumber} value={matchNumber.toString()} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
+                      Match {matchNumber}
+                    </MenuItem>
+                  ))
+                )}
               </Select>
             </FormControl>
           </Box>
@@ -2028,14 +2558,14 @@ const CricketPitchFormation: React.FC<{
         {/* Cricket Field Background */}
         <Box
           sx={{
-            background: 'linear-gradient(180deg, #2E7D32 0%, #1B5E20 100%)',
+            background: 'linear-gradient(180deg, #32883A 0%, #1F6B27 100%)', // Brightened by ~8%
             borderRadius: { xs: 1.5, sm: 2, md: 3 },
             position: 'relative',
             overflow: 'visible',
-            boxShadow: '0 12px 40px rgba(0,0,0,0.3)',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.3), 0 0 60px rgba(46, 125, 50, 0.4)', // Added glow
             minHeight: { xs: 500, sm: 600, md: 700, lg: 800 },
             pb: { xs: 1.5, sm: 2, md: 3 },
-            // Outer boundary rope
+            // Outer boundary rope with enhanced visibility
             '&::before': {
               content: '""',
               position: 'absolute',
@@ -2045,7 +2575,7 @@ const CricketPitchFormation: React.FC<{
               bottom: '40px',
               borderRadius: '50%',
               border: '4px solid #FFFFFF',
-              boxShadow: 'inset 0 0 20px rgba(0,0,0,0.2), 0 0 10px rgba(255,255,255,0.5)',
+              boxShadow: 'inset 0 0 20px rgba(0,0,0,0.2), 0 0 15px rgba(255,255,255,0.6)', // Enhanced glow
               zIndex: 0,
             },
             // Inner 30-yard circle
@@ -2231,25 +2761,26 @@ const CricketPitchFormation: React.FC<{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: { xs: 0.5, sm: 1 },
-                  bgcolor: 'rgba(76, 175, 80, 0.7)',
+                  background: `linear-gradient(135deg, ${themeColors.blue.electric}, ${themeColors.blue.deep})`,
                   px: { xs: 1.5, sm: 2, md: 2.5 },
                   py: { xs: 0.5, sm: 0.75 },
                   borderRadius: '20px',
                   mb: { xs: 1, sm: 1.5, md: 2 },
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                  boxShadow: `0 4px 12px ${alpha(themeColors.blue.electric, 0.4)}, 0 2px 4px ${alpha(themeColors.blue.deep, 0.2)}`
                 }}>
-                  <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
+                  <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' }, textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
                     Batters
                   </Typography>
                   <Chip
                     label={`${league.squadRules.minBatsmen} Required`}
                     size="small"
                     sx={{
-                      bgcolor: 'rgba(255,255,255,0.9)',
-                      color: '#2E7D32',
+                      bgcolor: 'rgba(255,255,255,0.95)',
+                      color: themeColors.blue.deep,
                       fontWeight: 'bold',
                       fontSize: { xs: '0.65rem', sm: '0.7rem', md: '0.75rem' },
-                      height: { xs: 18, sm: 20, md: 22 }
+                      height: { xs: 18, sm: 20, md: 22 },
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
                     }}
                   />
                 </Box>
@@ -2286,25 +2817,26 @@ const CricketPitchFormation: React.FC<{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: { xs: 0.5, sm: 1 },
-                  bgcolor: 'rgba(76, 175, 80, 0.7)',
+                  background: `linear-gradient(135deg, ${themeColors.blue.electric}, ${themeColors.blue.deep})`,
                   px: { xs: 1.5, sm: 2, md: 2.5 },
                   py: { xs: 0.5, sm: 0.75 },
                   borderRadius: '20px',
                   mb: { xs: 1, sm: 1.5, md: 2 },
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                  boxShadow: `0 4px 12px ${alpha(themeColors.blue.electric, 0.4)}, 0 2px 4px ${alpha(themeColors.blue.deep, 0.2)}`
                 }}>
-                  <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
+                  <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' }, textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
                     Bowlers
                   </Typography>
                   <Chip
                     label={`${league.squadRules.minBowlers} Required`}
                     size="small"
                     sx={{
-                      bgcolor: 'rgba(255,255,255,0.9)',
-                      color: '#2E7D32',
+                      bgcolor: 'rgba(255,255,255,0.95)',
+                      color: themeColors.blue.deep,
                       fontWeight: 'bold',
                       fontSize: { xs: '0.65rem', sm: '0.7rem', md: '0.75rem' },
-                      height: { xs: 18, sm: 20, md: 22 }
+                      height: { xs: 18, sm: 20, md: 22 },
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
                     }}
                   />
                 </Box>
@@ -2330,14 +2862,14 @@ const CricketPitchFormation: React.FC<{
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: { xs: 0.5, sm: 1 },
-                    bgcolor: 'rgba(96, 125, 139, 0.8)',
+                    background: `linear-gradient(135deg, ${themeColors.blue.electric}, ${themeColors.blue.deep})`,
                     px: { xs: 1.5, sm: 2, md: 2.5 },
                     py: { xs: 0.5, sm: 0.75 },
                     borderRadius: '20px',
                     mb: { xs: 1, sm: 1.5, md: 2 },
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                    boxShadow: `0 4px 12px ${alpha(themeColors.blue.electric, 0.4)}, 0 2px 4px ${alpha(themeColors.blue.deep, 0.2)}`
                   }}>
-                    <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
+                    <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' }, textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
                       Flexible Positions (Any Role)
                     </Typography>
                   </Box>
@@ -2418,17 +2950,17 @@ const PlayerSelectionPanel: React.FC<{
   });
 
   const PlayerCard: React.FC<{ player: Player }> = ({ player }) => (
-    <Card sx={{ mb: { xs: 0.75, sm: 1 }, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}>
+    <Card sx={{ mb: { xs: 0.75, sm: 1 }, cursor: 'pointer', bgcolor: '#1a2332', '&:hover': { bgcolor: '#222b3d', transform: 'translateY(-1px)', boxShadow: 3 }, transition: 'all 0.2s ease' }}>
       <CardContent sx={{ p: { xs: 1, sm: 1.5, md: 2 } }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 0.75, sm: 1 }, gap: { xs: 1, sm: 2 } }}>
-          <Avatar sx={{ width: { xs: 32, sm: 40 }, height: { xs: 32, sm: 40 }, bgcolor: 'primary.main', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+          <Avatar sx={{ width: { xs: 32, sm: 40 }, height: { xs: 32, sm: 40 }, bgcolor: '#090b47', color: 'white', fontSize: { xs: '0.875rem', sm: '1rem' }, fontWeight: 700 }}>
             {player.name.charAt(0)}
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }} noWrap>
+            <Typography variant="subtitle2" fontWeight={600} sx={{ fontSize: { xs: '0.8rem', sm: '0.9rem' }, letterSpacing: '0.01em' }} noWrap>
               {player.name}
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }} noWrap>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, opacity: 0.8 }} noWrap>
               {player.team} • {player.role}
             </Typography>
           </Box>
@@ -2436,30 +2968,59 @@ const PlayerSelectionPanel: React.FC<{
             label={player.stats[league.format].recentForm}
             size="small"
             color={player.stats[league.format].recentForm > 80 ? 'success' : player.stats[league.format].recentForm > 60 ? 'warning' : 'error'}
-            sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, height: { xs: 18, sm: 20 } }}
+            sx={{
+              fontSize: { xs: '0.7rem', sm: '0.75rem' },
+              height: { xs: 20, sm: 22 },
+              fontWeight: 600,
+              fontVariantNumeric: 'tabular-nums'
+            }}
           />
         </Box>
 
-        <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 }, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 } }}>
           <Button
             size="small"
             variant="contained"
             onClick={() => onAddPlayer(player, 'regular')}
-            startIcon={<PersonAdd sx={{ fontSize: { xs: 14, sm: 16 } }} />}
-            sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem', md: '0.875rem' }, px: { xs: 0.75, sm: 1 }, py: { xs: 0.25, sm: 0.5 } }}
+            sx={{
+              minWidth: 'auto',
+              px: { xs: 1.5, sm: 2 },
+              py: { xs: 0.6, sm: 0.8 },
+              width: league.transferTypes?.benchTransfers?.enabled ? '65%' : '100%',
+              bgcolor: themeColors.blue.electric,
+              color: 'white',
+              '&:hover': {
+                bgcolor: themeColors.blue.deep,
+                transform: 'translateY(-1px)',
+                boxShadow: themeColors.shadows.blue.md
+              },
+              transition: 'all 0.2s ease'
+            }}
           >
-            Add to Squad
+            <PersonAdd sx={{ fontSize: { xs: 18, sm: 20 } }} />
           </Button>
           {league.transferTypes?.benchTransfers?.enabled && (
             <Button
               size="small"
               variant="outlined"
-              color="secondary"
               onClick={() => onAddPlayer(player, 'bench')}
               startIcon={<SwapHoriz sx={{ fontSize: { xs: 14, sm: 16 } }} />}
-              sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem', md: '0.875rem' }, px: { xs: 0.75, sm: 1 }, py: { xs: 0.25, sm: 0.5 } }}
+              sx={{
+                fontSize: { xs: '0.65rem', sm: '0.75rem', md: '0.8rem' },
+                fontWeight: 500,
+                px: { xs: 0.75, sm: 1 },
+                py: { xs: 0.4, sm: 0.6 },
+                width: '35%',
+                borderColor: themeColors.orange.primary,
+                color: themeColors.orange.primary,
+                '&:hover': {
+                  borderColor: themeColors.orange.dark,
+                  bgcolor: alpha(themeColors.orange.primary, 0.08),
+                  color: themeColors.orange.dark
+                }
+              }}
             >
-              Add to Bench
+              Bench
             </Button>
           )}
         </Box>
@@ -2468,9 +3029,9 @@ const PlayerSelectionPanel: React.FC<{
   );
 
   return (
-    <Card>
+    <Card sx={{ opacity: 0.94, transition: 'opacity 0.3s ease', '&:hover': { opacity: 1 } }}>
       <CardContent sx={{ px: { xs: 1, sm: 1.5, md: 2 }, py: { xs: 1, sm: 1.5, md: 2 } }}>
-        <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' } }}>
+        <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' }, fontWeight: 600, letterSpacing: '0.02em' }}>
           Player Selection
         </Typography>
 

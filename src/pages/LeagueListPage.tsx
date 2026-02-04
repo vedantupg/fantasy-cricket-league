@@ -28,6 +28,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { leagueService, squadService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
 import type { League, LeagueSquad } from '../types/database';
+import colors from '../theme/colors';
+import { alpha } from '@mui/material';
 
 interface LeagueWithSquad {
   league: League;
@@ -182,30 +184,84 @@ const LeagueListPage: React.FC = () => {
             </Typography>
           </Box>
           <Box display="flex" gap={2} flexWrap="wrap">
-            <Button
-              variant="outlined"
-              startIcon={<PersonAdd />}
-              onClick={() => navigate('/leagues/join')}
-            >
-              Join League
-            </Button>
             {userData?.isAdmin && (
               <>
-                <Button
-                  variant="outlined"
-                  startIcon={<Groups />}
-                  onClick={() => navigate('/admin/player-pools')}
-                >
-                  Player Pools
-                </Button>
                 <Button
                   variant="contained"
                   startIcon={<Add />}
                   onClick={() => navigate('/leagues/create')}
+                  sx={{
+                    bgcolor: colors.blue.electric,
+                    color: 'white',
+                    fontWeight: 600,
+                    px: 3,
+                    py: 1.25,
+                    boxShadow: colors.shadows.blue.md,
+                    '&:hover': {
+                      bgcolor: colors.blue.deep,
+                      boxShadow: colors.shadows.blue.lg
+                    }
+                  }}
                 >
                   Create League
                 </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<PersonAdd />}
+                  onClick={() => navigate('/leagues/join')}
+                  sx={{
+                    borderColor: colors.orange.primary,
+                    color: colors.orange.primary,
+                    fontWeight: 500,
+                    px: 3,
+                    py: 1.25,
+                    '&:hover': {
+                      borderColor: colors.orange.dark,
+                      bgcolor: alpha(colors.orange.primary, 0.08)
+                    }
+                  }}
+                >
+                  Join League
+                </Button>
+                <Button
+                  variant="text"
+                  startIcon={<Groups />}
+                  onClick={() => navigate('/admin/player-pools')}
+                  sx={{
+                    color: colors.grey[400],
+                    fontWeight: 500,
+                    px: 2,
+                    py: 1.25,
+                    '&:hover': {
+                      bgcolor: alpha(colors.grey[600], 0.08),
+                      color: colors.grey[300]
+                    }
+                  }}
+                >
+                  Player Pools
+                </Button>
               </>
+            )}
+            {!userData?.isAdmin && (
+              <Button
+                variant="contained"
+                startIcon={<PersonAdd />}
+                onClick={() => navigate('/leagues/join')}
+                sx={{
+                  bgcolor: colors.blue.electric,
+                  color: 'white',
+                  fontWeight: 600,
+                  px: 3,
+                  py: 1.25,
+                  boxShadow: colors.shadows.blue.md,
+                  '&:hover': {
+                    bgcolor: colors.blue.deep,
+                    boxShadow: colors.shadows.blue.lg
+                  }
+                }}
+              >
+                Join League
+              </Button>
             )}
           </Box>
         </Box>
@@ -259,9 +315,14 @@ const LeagueListPage: React.FC = () => {
                   display: 'flex',
                   flexDirection: 'column',
                   cursor: 'pointer',
+                  background: colors.background.paper,
+                  border: `1px solid ${colors.border.subtle}`,
+                  borderRadius: 3,
+                  transition: 'all 0.3s ease',
                   '&:hover': {
                     transform: 'translateY(-4px)',
-                    transition: 'transform 0.2s ease-in-out'
+                    border: `1px solid ${colors.blue.electric}`,
+                    boxShadow: colors.shadows.blue.md
                   }
                 }}
                 onClick={() => navigate(`/leagues/${league.id}`)}
@@ -269,46 +330,68 @@ const LeagueListPage: React.FC = () => {
                 <CardContent sx={{ flex: 1 }}>
                   {/* League Header */}
                   <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                    <Typography variant="h6" fontWeight="bold" noWrap>
+                    <Typography variant="h6" fontWeight={600} fontSize="1.125rem" noWrap sx={{ flex: 1, mr: 1 }}>
                       {league.name}
                     </Typography>
                     <Chip
                       label={status.label}
-                      color={status.color}
                       size="small"
+                      variant="outlined"
+                      sx={{
+                        borderColor: status.color === 'success' ? colors.success.primary :
+                                    status.color === 'warning' ? colors.warning.primary :
+                                    status.color === 'error' ? colors.error.primary :
+                                    colors.grey[600],
+                        color: status.color === 'success' ? colors.success.primary :
+                               status.color === 'warning' ? colors.warning.primary :
+                               status.color === 'error' ? colors.error.primary :
+                               colors.grey[400],
+                        bgcolor: status.color === 'success' ? alpha(colors.success.primary, 0.12) :
+                                status.color === 'warning' ? alpha(colors.warning.primary, 0.12) :
+                                status.color === 'error' ? alpha(colors.error.primary, 0.12) :
+                                alpha(colors.grey[600], 0.12),
+                        fontWeight: 500,
+                        fontSize: '0.75rem',
+                        borderWidth: 1.5
+                      }}
                     />
                   </Box>
 
                   {/* Tournament Info */}
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                  <Typography variant="body2" color="text.secondary" fontSize="0.8125rem" gutterBottom>
                     {league.tournamentName}
                   </Typography>
-                  
-                  <Chip 
+
+                  <Chip
                     label={league.format}
                     variant="outlined"
                     size="small"
-                    sx={{ mb: 2 }}
+                    sx={{
+                      mb: 2,
+                      borderColor: colors.orange.primary,
+                      color: colors.orange.primary,
+                      fontWeight: 600
+                    }}
                   />
 
                   {/* League Stats */}
                   <Box display="flex" alignItems="center" gap={1} mb={1}>
-                    <People fontSize="small" color="action" />
-                    <Typography variant="body2">
+                    <People fontSize="small" sx={{ color: colors.grey[500] }} />
+                    <Typography variant="body2" fontSize="0.75rem" color="text.secondary">
                       {league.participants.length}/{league.maxParticipants} participants
                     </Typography>
                   </Box>
 
                   <Box display="flex" alignItems="center" gap={1} mb={1}>
-                    <Schedule fontSize="small" color="action" />
-                    <Typography variant="body2">
+                    <Schedule fontSize="small" sx={{ color: colors.grey[500] }} />
+                    <Typography variant="body2" fontSize="0.75rem" color="text.secondary">
                       Starts {new Date(league.startDate).toLocaleDateString()}
                     </Typography>
                   </Box>
 
                   <Box display="flex" alignItems="center" gap={1} mb={1}>
-                    <EmojiEvents fontSize="small" color="action" />
-                    <Typography variant="body2">
+                    <EmojiEvents fontSize="small" sx={{ color: colors.grey[500] }} />
+                    <Typography variant="body2" fontSize="0.75rem" color="text.secondary">
                       {league.maxTransfers} transfers allowed
                     </Typography>
                   </Box>
@@ -347,35 +430,66 @@ const LeagueListPage: React.FC = () => {
                   </Box>
                 </CardContent>
 
-                <CardActions>
-                  <Button 
-                    size="small" 
+                <CardActions sx={{ px: 2, pb: 2, pt: 0, gap: 1 }}>
+                  <Button
+                    variant="contained"
+                    size="small"
                     onClick={(e) => {
                       e.stopPropagation();
                       navigate(`/leagues/${league.id}/squad`);
                     }}
+                    sx={{
+                      bgcolor: colors.blue.electric,
+                      color: 'white',
+                      fontWeight: 600,
+                      px: 2,
+                      py: 0.75,
+                      fontSize: '0.8125rem',
+                      '&:hover': {
+                        bgcolor: colors.blue.deep
+                      }
+                    }}
                   >
                     Manage Squad
                   </Button>
-                  <Button 
+                  <Button
+                    variant="text"
                     size="small"
                     onClick={(e) => {
                       e.stopPropagation();
                       navigate(`/leagues/${league.id}/leaderboard`);
+                    }}
+                    sx={{
+                      color: colors.grey[400],
+                      fontWeight: 500,
+                      fontSize: '0.8125rem',
+                      '&:hover': {
+                        bgcolor: alpha(colors.grey[600], 0.08),
+                        color: colors.grey[300]
+                      }
                     }}
                   >
                     Leaderboard
                   </Button>
                   {hasLeagueStarted(league.startDate) && (
                     <Button
+                      variant="text"
                       size="small"
-                      startIcon={<Groups />}
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(`/leagues/${league.id}/teams`);
                       }}
+                      sx={{
+                        color: colors.grey[400],
+                        fontWeight: 500,
+                        fontSize: '0.8125rem',
+                        '&:hover': {
+                          bgcolor: alpha(colors.grey[600], 0.08),
+                          color: colors.grey[300]
+                        }
+                      }}
                     >
-                      View Teams
+                      Teams
                     </Button>
                   )}
                 </CardActions>

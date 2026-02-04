@@ -25,6 +25,9 @@ import EditLeaguePage from './pages/EditLeaguePage';
 import LeagueRulesPage from './pages/LeagueRulesPage';
 import PredictionsViewPage from './pages/PredictionsViewPage';
 import PowerplayManagementPage from './pages/PowerplayManagementPage';
+import MatchSchedulePage from './pages/MatchSchedulePage';
+import ScheduleUploadPage from './pages/ScheduleUploadPage';
+import ScoringSystemPage from './pages/ScoringSystemPage';
 
 // Create Material-UI theme with Montserrat font
 const theme = createTheme({
@@ -161,6 +164,24 @@ function App() {
             <Route path="/leagues/:leagueId/rules" element={
               <ProtectedRoute>
                 <LeagueRulesPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/leagues/:leagueId/schedule" element={
+              <ProtectedRoute>
+                <MatchSchedulePage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/leagues/:leagueId/scoring" element={
+              <ProtectedRoute>
+                <ScoringSystemPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/leagues/:leagueId/schedule/upload" element={
+              <ProtectedRoute>
+                <ScheduleUploadPage />
               </ProtectedRoute>
             } />
 
