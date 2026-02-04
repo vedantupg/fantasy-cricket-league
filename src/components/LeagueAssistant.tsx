@@ -39,7 +39,6 @@ import {
   queryAI,
   buildLeagueContext,
   SUGGESTED_QUESTIONS,
-  getSmartSuggestion,
   type Message,
   type LeagueContext,
 } from '../services/aiService';
@@ -71,6 +70,7 @@ const LeagueAssistant: React.FC<LeagueAssistantProps> = ({ leagueId }) => {
     if (open && !context && user && leagueId) {
       loadContext();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, user, leagueId]);
 
   const loadContext = async () => {
@@ -80,17 +80,25 @@ const LeagueAssistant: React.FC<LeagueAssistantProps> = ({ leagueId }) => {
     setError(null);
 
     try {
-      // Fetch all necessary data
-      const [userSquad, league, allSquadsData, playerPool] = await Promise.all([
-        squadService.getByUserId(user.uid),
+      // Fetch league and user squad first
+      const [league, userSquad] = await Promise.all([
         leagueService.getById(leagueId),
-        squadService.getByLeagueId(leagueId),
-        playerPoolService.getByLeagueId(leagueId),
+        squadService.getByUserAndLeague(user.uid, leagueId),
       ]);
+
+      if (!league) {
+        throw new Error('League not found');
+      }
 
       if (!userSquad) {
         throw new Error("You haven't created a squad yet");
       }
+
+      // Fetch remaining data
+      const [allSquadsData, playerPool] = await Promise.all([
+        squadService.getByLeague(leagueId),
+        league.playerPoolId ? playerPoolService.getById(league.playerPoolId) : null,
+      ]);
 
       if (!playerPool) {
         throw new Error('Player pool not found');

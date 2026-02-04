@@ -4,7 +4,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { Squad, League, PlayerPoolEntry } from '../types/database';
+import type { LeagueSquad, League, PlayerPoolEntry } from '../types/database';
 
 // Initialize Gemini AI
 // NOTE: In production, move this to Firebase Cloud Functions for security
@@ -51,8 +51,8 @@ export interface LeagueContext {
  * Build context from user data
  */
 export function buildLeagueContext(
-  userSquad: Squad,
-  allSquads: Squad[],
+  userSquad: LeagueSquad,
+  allSquads: LeagueSquad[],
   playerPool: PlayerPoolEntry[],
   league: League
 ): LeagueContext {
@@ -60,7 +60,7 @@ export function buildLeagueContext(
   const leaderboard = allSquads
     .map(squad => ({
       userId: squad.userId,
-      userName: squad.userName || 'Unknown',
+      userName: squad.squadName || 'Unknown Squad',
       points: squad.totalPoints || 0,
     }))
     .sort((a, b) => b.points - a.points);
@@ -69,16 +69,16 @@ export function buildLeagueContext(
   const averagePoints = leaderboard.reduce((sum, s) => sum + s.points, 0) / leaderboard.length;
 
   // Calculate transfers remaining
-  const flexibleTransfers = league.transferTypes?.flexible?.count || 0;
-  const usedTransfers = userSquad.transferHistory?.length || 0;
+  const flexibleTransfers = league.transferTypes?.flexibleTransfers?.maxAllowed || 0;
+  const usedTransfers = userSquad.flexibleTransfersUsed || 0;
   const transfersRemaining = Math.max(0, flexibleTransfers - usedTransfers);
 
   return {
     userSquad: {
-      userName: userSquad.userName || 'Unknown',
+      userName: userSquad.squadName || 'Unknown Squad',
       totalPoints: userSquad.totalPoints || 0,
       rank: userRank,
-      players: userSquad.players.map(p => ({
+      players: userSquad.players.map((p: any) => ({
         name: p.playerName,
         role: p.role,
         points: p.points,

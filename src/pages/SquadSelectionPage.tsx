@@ -139,7 +139,6 @@ const SquadSelectionPage: React.FC = () => {
             const userSquad = await squadService.getByUserAndLeague(user.uid, leagueId);
             setExistingSquad(userSquad);
           } catch (err) {
-            console.log('No existing squad found or error loading:', err);
             setExistingSquad(null);
           }
         }
@@ -196,8 +195,6 @@ const SquadSelectionPage: React.FC = () => {
   useEffect(() => {
     if (!existingSquad || !availablePlayers.length || !league) return;
 
-    console.log('Loading existing squad:', existingSquad.id);
-    console.log('Squad predictions:', existingSquad.predictions);
 
     // Restore captain, vice-captain, and X-factor IDs
     setCaptainId(existingSquad.captainId || null);
@@ -207,7 +204,6 @@ const SquadSelectionPage: React.FC = () => {
     // Load powerplay match number if it exists
     if (existingSquad.powerplayMatchNumber) {
       setPowerplayMatch(existingSquad.powerplayMatchNumber.toString());
-      console.log('Powerplay match loaded:', existingSquad.powerplayMatchNumber);
     }
 
     // Load predictions if they exist
@@ -215,13 +211,6 @@ const SquadSelectionPage: React.FC = () => {
       setTopRunScorer(existingSquad.predictions.topRunScorer || '');
       setTopWicketTaker(existingSquad.predictions.topWicketTaker || '');
       setWinningTeam(existingSquad.predictions.winningTeam || '');
-      console.log('Predictions loaded:', {
-        topRunScorer: existingSquad.predictions.topRunScorer,
-        topWicketTaker: existingSquad.predictions.topWicketTaker,
-        winningTeam: existingSquad.predictions.winningTeam
-      });
-    } else {
-      console.log('No predictions found in existing squad');
     }
 
     // Convert SquadPlayer[] to SelectedPlayer[]
@@ -536,9 +525,7 @@ const SquadSelectionPage: React.FC = () => {
           updateData.submittedAt = new Date();
         }
 
-        console.log('Updating squad with predictions:', updateData.predictions);
         await squadService.update(existingSquad.id, updateData);
-        console.log('Squad updated successfully');
 
         // Update local state to reflect the changes
         setExistingSquad({
@@ -579,9 +566,7 @@ const SquadSelectionPage: React.FC = () => {
           xFactorId: xFactorId || undefined,
         };
 
-        console.log('Creating new squad with predictions:', squadData.predictions);
         const squadId = await squadService.create(squadData);
-        console.log('Squad created successfully with ID:', squadId);
 
         // Update local state with the newly created squad
         setExistingSquad({
@@ -594,7 +579,6 @@ const SquadSelectionPage: React.FC = () => {
       // Create/update leaderboard snapshot for this league
       try {
         await leaderboardSnapshotService.create(leagueId);
-        console.log('Leaderboard snapshot created/updated after squad submission');
       } catch (snapshotError) {
         console.error('Error creating leaderboard snapshot:', snapshotError);
         // Don't fail the submission if snapshot creation fails
@@ -830,11 +814,8 @@ const SquadSelectionPage: React.FC = () => {
           else if (playerMovingToBench.playerId === existingSquad.viceCaptainId) playerRole = 'viceCaptain';
           else if (playerMovingToBench.playerId === existingSquad.xFactorId) playerRole = 'xFactor';
 
-          console.log(`🔄 BENCH TRANSFER: ${playerMovingToBench.playerName} (${playerRole}) ↔ Bench Player`);
-          console.log(`   ${playerMovingToBench.playerName}: pointsAtJoining=${playerMovingToBench.pointsAtJoining}, pointsWhenRoleAssigned=${playerMovingToBench.pointsWhenRoleAssigned}, points=${playerMovingToBench.points}`);
 
           additionalBankedPoints = calculatePlayerContribution(playerMovingToBench, playerRole);
-          console.log(`🏦 Banking contribution from ${playerMovingToBench.playerName}: ${additionalBankedPoints.toFixed(2)} points`);
 
           // Swap the players - simple array swap
           const temp = updatedPlayers[playerOutIndex];
@@ -844,10 +825,7 @@ const SquadSelectionPage: React.FC = () => {
           // CRITICAL FIX: Reset pointsAtJoining for bench player moving to main squad
           // This ensures their contribution starts at 0, preventing immediate point changes
           const playerMovingToMain = updatedPlayers[playerOutIndex];
-          console.log(`📥 Incoming player from bench: ${playerMovingToMain.playerName}`);
-          console.log(`   BEFORE reset: pointsAtJoining=${playerMovingToMain.pointsAtJoining}, points=${playerMovingToMain.points}`);
           playerMovingToMain.pointsAtJoining = playerMovingToMain.points;
-          console.log(`   AFTER reset: pointsAtJoining=${playerMovingToMain.pointsAtJoining}`);
 
           // AUTO-ASSIGN roles to incoming player if swapping out C/VC/X
           const incomingPlayerId = transferData.playerIn;
@@ -858,25 +836,19 @@ const SquadSelectionPage: React.FC = () => {
             if (incomingPlayerId === existingSquad.viceCaptainId) {
               // Incoming player is current VC → Swap: incoming becomes C, old C becomes VC
               updatedViceCaptainId = existingSquad.captainId;
-              console.log(`🔄 ROLE SWAP: Incoming VC becomes Captain, old Captain (${playerMovingToBench.playerName}) becomes VC`);
             } else if (incomingPlayerId === existingSquad.xFactorId) {
               // Incoming player is current X-Factor → Swap: incoming becomes C, old C becomes X
               updatedXFactorId = existingSquad.captainId;
-              console.log(`🔄 ROLE SWAP: Incoming X-Factor becomes Captain, old Captain (${playerMovingToBench.playerName}) becomes X-Factor`);
             } else {
               // Incoming player has no role → Just assign Captain (old Captain loses role)
-              console.log(`⭐ AUTO-ASSIGNING Captain (old Captain loses role)`);
             }
 
             updatedCaptainId = incomingPlayerId;
             const newCaptain = updatedPlayers.find(p => p.playerId === incomingPlayerId);
             if (newCaptain) {
-              console.log(`⭐ New Captain: ${newCaptain.playerName}`);
-              console.log(`   BEFORE role assignment: pointsAtJoining=${newCaptain.pointsAtJoining}, pointsWhenRoleAssigned=${newCaptain.pointsWhenRoleAssigned}, points=${newCaptain.points}`);
               // CRITICAL: Reset BOTH baselines when assigning role
               newCaptain.pointsAtJoining = newCaptain.points;
               newCaptain.pointsWhenRoleAssigned = newCaptain.points;
-              console.log(`   AFTER role assignment: pointsAtJoining=${newCaptain.pointsAtJoining}, pointsWhenRoleAssigned=${newCaptain.pointsWhenRoleAssigned}`);
             }
 
             // Reset baselines for old Captain (now on bench with new role or no role)
@@ -884,7 +856,6 @@ const SquadSelectionPage: React.FC = () => {
             if (oldCaptain) {
               oldCaptain.pointsAtJoining = oldCaptain.points;
               oldCaptain.pointsWhenRoleAssigned = oldCaptain.points;
-              console.log(`   Old Captain (${oldCaptain.playerName}) baselines reset to ${oldCaptain.points}`);
             }
           }
 
@@ -894,14 +865,11 @@ const SquadSelectionPage: React.FC = () => {
             if (incomingPlayerId === existingSquad.captainId) {
               // Incoming player is current C → Swap: incoming becomes VC, old VC becomes C
               updatedCaptainId = existingSquad.viceCaptainId;
-              console.log(`🔄 ROLE SWAP: Incoming Captain becomes VC, old VC (${playerMovingToBench.playerName}) becomes Captain`);
             } else if (incomingPlayerId === existingSquad.xFactorId) {
               // Incoming player is current X-Factor → Swap: incoming becomes VC, old VC becomes X
               updatedXFactorId = existingSquad.viceCaptainId;
-              console.log(`🔄 ROLE SWAP: Incoming X-Factor becomes VC, old VC (${playerMovingToBench.playerName}) becomes X-Factor`);
             } else {
               // Incoming player has no role → Just assign VC (old VC loses role)
-              console.log(`⭐ AUTO-ASSIGNING VC (old VC loses role)`);
             }
 
             updatedViceCaptainId = incomingPlayerId;
@@ -926,14 +894,11 @@ const SquadSelectionPage: React.FC = () => {
             if (incomingPlayerId === existingSquad.captainId) {
               // Incoming player is current C → Swap: incoming becomes X, old X becomes C
               updatedCaptainId = existingSquad.xFactorId;
-              console.log(`🔄 ROLE SWAP: Incoming Captain becomes X-Factor, old X-Factor (${playerMovingToBench.playerName}) becomes Captain`);
             } else if (incomingPlayerId === existingSquad.viceCaptainId) {
               // Incoming player is current VC → Swap: incoming becomes X, old X becomes VC
               updatedViceCaptainId = existingSquad.xFactorId;
-              console.log(`🔄 ROLE SWAP: Incoming VC becomes X-Factor, old X-Factor (${playerMovingToBench.playerName}) becomes VC`);
             } else {
               // Incoming player has no role → Just assign X (old X loses role)
-              console.log(`⭐ AUTO-ASSIGNING X-Factor (old X-Factor loses role)`);
             }
 
             updatedXFactorId = incomingPlayerId;
@@ -1117,13 +1082,11 @@ const SquadSelectionPage: React.FC = () => {
             if (oldCaptain) {
               const captainContribution = calculatePlayerContribution(oldCaptain, 'captain');
               additionalBankedPoints += captainContribution;
-              console.log(`🏦 Banking old Captain contribution: ${captainContribution.toFixed(2)} from ${oldCaptain.playerName}`);
 
               // STEP 2: Reset old Captain's baseline (they're losing Captain role)
               // CRITICAL: Reset BOTH pointsAtJoining AND pointsWhenRoleAssigned to prevent basePoints leak
               oldCaptain.pointsAtJoining = oldCaptain.points;
               oldCaptain.pointsWhenRoleAssigned = oldCaptain.points;
-              console.log(`   ↳ Reset baselines for ${oldCaptain.playerName}: pointsAtJoining = pointsWhenRoleAssigned = ${oldCaptain.points}`);
             }
           }
 
@@ -1135,13 +1098,11 @@ const SquadSelectionPage: React.FC = () => {
             if (playerBecomingCaptain) {
               const vcContribution = calculatePlayerContribution(playerBecomingCaptain, 'viceCaptain');
               additionalBankedPoints += vcContribution;
-              console.log(`🏦 Banking VC contribution (will become Captain): ${vcContribution.toFixed(2)} from ${playerBecomingCaptain.playerName}`);
             }
 
             // Old Captain gets the VC role
             if (existingSquad.captainId) {
               updatedViceCaptainId = existingSquad.captainId;
-              console.log(`🔄 SWAP: Old Captain → VC`);
             }
           } else if (transferData.newCaptainId === existingSquad.xFactorId) {
             // New Captain is current X-Factor → Bank X-Factor contribution, then old Captain becomes X-Factor
@@ -1149,13 +1110,11 @@ const SquadSelectionPage: React.FC = () => {
             if (playerBecomingCaptain) {
               const xContribution = calculatePlayerContribution(playerBecomingCaptain, 'xFactor');
               additionalBankedPoints += xContribution;
-              console.log(`🏦 Banking X-Factor contribution (will become Captain): ${xContribution.toFixed(2)} from ${playerBecomingCaptain.playerName}`);
             }
 
             // Old Captain gets the X-Factor role
             if (existingSquad.captainId) {
               updatedXFactorId = existingSquad.captainId;
-              console.log(`🔄 SWAP: Old Captain → X-Factor`);
             }
           }
           // If new Captain has NO role, old Captain just loses Captain role (no swap needed)
@@ -1166,7 +1125,6 @@ const SquadSelectionPage: React.FC = () => {
             // CRITICAL: Reset BOTH to ensure zero contribution until new points are earned
             newCaptain.pointsAtJoining = newCaptain.points;
             newCaptain.pointsWhenRoleAssigned = newCaptain.points;
-            console.log(`⭐ New Captain: ${newCaptain.playerName}, baselines reset to ${newCaptain.points}`);
           }
 
           updatedCaptainId = transferData.newCaptainId;
@@ -1180,13 +1138,11 @@ const SquadSelectionPage: React.FC = () => {
             if (oldVC) {
               const vcContribution = calculatePlayerContribution(oldVC, 'viceCaptain');
               additionalBankedPoints += vcContribution;
-              console.log(`🏦 Banking old VC contribution: ${vcContribution.toFixed(2)} from ${oldVC.playerName}`);
 
               // STEP 2: Reset old VC's baseline (they're losing VC role)
               // CRITICAL: Reset BOTH pointsAtJoining AND pointsWhenRoleAssigned to prevent basePoints leak
               oldVC.pointsAtJoining = oldVC.points;
               oldVC.pointsWhenRoleAssigned = oldVC.points;
-              console.log(`   ↳ Reset baselines for ${oldVC.playerName}: pointsAtJoining = pointsWhenRoleAssigned = ${oldVC.points}`);
             }
           }
 
@@ -1197,13 +1153,11 @@ const SquadSelectionPage: React.FC = () => {
             if (playerBecomingVC) {
               const captainContribution = calculatePlayerContribution(playerBecomingVC, 'captain');
               additionalBankedPoints += captainContribution;
-              console.log(`🏦 Banking Captain contribution (will become VC): ${captainContribution.toFixed(2)} from ${playerBecomingVC.playerName}`);
             }
 
             // Old VC gets the Captain role
             if (existingSquad.viceCaptainId) {
               updatedCaptainId = existingSquad.viceCaptainId;
-              console.log(`🔄 SWAP: Old VC → Captain`);
             }
           } else if (transferData.newViceCaptainId === existingSquad.xFactorId) {
             // New VC is current X-Factor → Bank X-Factor contribution, then old VC becomes X-Factor
@@ -1211,13 +1165,11 @@ const SquadSelectionPage: React.FC = () => {
             if (playerBecomingVC) {
               const xContribution = calculatePlayerContribution(playerBecomingVC, 'xFactor');
               additionalBankedPoints += xContribution;
-              console.log(`🏦 Banking X-Factor contribution (will become VC): ${xContribution.toFixed(2)} from ${playerBecomingVC.playerName}`);
             }
 
             // Old VC gets the X-Factor role
             if (existingSquad.viceCaptainId) {
               updatedXFactorId = existingSquad.viceCaptainId;
-              console.log(`🔄 SWAP: Old VC → X-Factor`);
             }
           }
           // If new VC has NO role, old VC just loses VC role (no swap needed)
@@ -1228,7 +1180,6 @@ const SquadSelectionPage: React.FC = () => {
             // CRITICAL: Reset BOTH to ensure zero contribution until new points are earned
             newVC.pointsAtJoining = newVC.points;
             newVC.pointsWhenRoleAssigned = newVC.points;
-            console.log(`⭐ New VC: ${newVC.playerName}, baselines reset to ${newVC.points}`);
           }
 
           updatedViceCaptainId = transferData.newViceCaptainId;
@@ -1242,13 +1193,11 @@ const SquadSelectionPage: React.FC = () => {
             if (oldX) {
               const xContribution = calculatePlayerContribution(oldX, 'xFactor');
               additionalBankedPoints += xContribution;
-              console.log(`🏦 Banking old X-Factor contribution: ${xContribution.toFixed(2)} from ${oldX.playerName}`);
 
               // STEP 2: Reset old X-Factor's baseline (they're losing X-Factor role)
               // CRITICAL: Reset BOTH pointsAtJoining AND pointsWhenRoleAssigned to prevent basePoints leak
               oldX.pointsAtJoining = oldX.points;
               oldX.pointsWhenRoleAssigned = oldX.points;
-              console.log(`   ↳ Reset baselines for ${oldX.playerName}: pointsAtJoining = pointsWhenRoleAssigned = ${oldX.points}`);
             }
           }
 
@@ -1259,13 +1208,11 @@ const SquadSelectionPage: React.FC = () => {
             if (playerBecomingX) {
               const captainContribution = calculatePlayerContribution(playerBecomingX, 'captain');
               additionalBankedPoints += captainContribution;
-              console.log(`🏦 Banking Captain contribution (will become X-Factor): ${captainContribution.toFixed(2)} from ${playerBecomingX.playerName}`);
             }
 
             // Old X-Factor gets the Captain role
             if (existingSquad.xFactorId) {
               updatedCaptainId = existingSquad.xFactorId;
-              console.log(`🔄 SWAP: Old X-Factor → Captain`);
             }
           } else if (transferData.newXFactorId === existingSquad.viceCaptainId) {
             // New X-Factor is current VC → Bank VC contribution, then old X-Factor becomes VC
@@ -1273,13 +1220,11 @@ const SquadSelectionPage: React.FC = () => {
             if (playerBecomingX) {
               const vcContribution = calculatePlayerContribution(playerBecomingX, 'viceCaptain');
               additionalBankedPoints += vcContribution;
-              console.log(`🏦 Banking VC contribution (will become X-Factor): ${vcContribution.toFixed(2)} from ${playerBecomingX.playerName}`);
             }
 
             // Old X-Factor gets the VC role
             if (existingSquad.xFactorId) {
               updatedViceCaptainId = existingSquad.xFactorId;
-              console.log(`🔄 SWAP: Old X-Factor → VC`);
             }
           }
           // If new X-Factor has NO role, old X-Factor just loses X-Factor role (no swap needed)
@@ -1290,7 +1235,6 @@ const SquadSelectionPage: React.FC = () => {
             // CRITICAL: Reset BOTH to ensure zero contribution until new points are earned
             newX.pointsAtJoining = newX.points;
             newX.pointsWhenRoleAssigned = newX.points;
-            console.log(`⭐ New X-Factor: ${newX.playerName}, baselines reset to ${newX.points}`);
           }
 
           updatedXFactorId = transferData.newXFactorId;
@@ -1372,11 +1316,6 @@ const SquadSelectionPage: React.FC = () => {
         newBankedPoints
       );
 
-      console.log(`📊 POINT CALCULATION COMPLETE:`);
-      console.log(`   Old Total: ${oldCalculatedPoints.totalPoints}`);
-      console.log(`   New Total: ${calculatedPoints.totalPoints}`);
-      console.log(`   Difference: ${calculatedPoints.totalPoints - oldCalculatedPoints.totalPoints}`);
-      console.log(`   Additional Banked: ${additionalBankedPoints}`);
 
       // CRITICAL VALIDATION: For bench transfers, points should be stable
       if (transferData.transferType === 'bench') {
@@ -1470,7 +1409,6 @@ const SquadSelectionPage: React.FC = () => {
       // ENHANCEMENT #3: Add pre-transfer snapshot for rollback (Added 2026-02-03)
       transferHistoryEntry.preTransferSnapshot = preTransferSnapshot;
 
-      console.log(`📊 Transfer Tracking: Banked ${additionalBankedPoints.toFixed(2)} pts, Total Banked: ${newBankedPoints.toFixed(2)} pts`);
 
       // CRITICAL: Clean up players array before saving to Firebase
       // Firebase strips undefined fields, so we need to ensure all fields are defined
@@ -1668,7 +1606,6 @@ const SquadSelectionPage: React.FC = () => {
 
       // All validations passed, add the player
       const newPlayer: SelectedPlayer = { ...player, isOverseas: player.isOverseas ?? false, position: targetPosition };
-      console.log(`Adding player ${player.name} to ${targetPosition} position. Total main squad: ${currentMainSquad + (targetPosition === 'regular' ? 1 : 0)}/${league.squadSize}`);
       return [...prev, newPlayer];
     });
   };
