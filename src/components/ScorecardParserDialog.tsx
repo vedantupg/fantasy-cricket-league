@@ -66,6 +66,7 @@ interface ScorecardParserDialogProps {
       performance: string;
       battingData?: { runs: number; balls: number };
       bowlingData?: { overs: number; runs: number; wickets: number };
+      fieldingData?: { catches: number; runOuts: number; stumpings: number };
     }[],
     matchLabel?: string
   ) => void;
@@ -84,7 +85,7 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
   const [parsedBatting, setParsedBatting] = useState<ParsedBattingPerformance[]>([]);
   const [parsedBowling, setParsedBowling] = useState<ParsedBowlingPerformance[]>([]);
   const [parsedFielding, setParsedFielding] = useState<ParsedFieldingPerformance[]>([]);
-  const [includeFielding, setIncludeFielding] = useState(false);
+  const [includeFielding, setIncludeFielding] = useState(true);
   const [parsing, setParsing] = useState(false);
   const [error, setError] = useState('');
   const [matchLabel, setMatchLabel] = useState('');
@@ -548,6 +549,7 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
       performance: string;
       battingData?: { runs: number; balls: number };
       bowlingData?: { overs: number; runs: number; wickets: number };
+      fieldingData?: { catches: number; runOuts: number; stumpings: number };
     }[] = [];
 
     parsedBatting.forEach((perf) => {
@@ -610,11 +612,21 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
           if (existing) {
             existing.performance += `, ${fieldingStr}`;
             existing.pointsToAdd += fieldingPoints;
+            existing.fieldingData = {
+              catches: perf.catches,
+              runOuts: perf.runOuts,
+              stumpings: perf.stumpings
+            };
           } else {
             updates.push({
               playerId: perf.matchedPlayer.playerId,
               pointsToAdd: fieldingPoints,
               performance: fieldingStr,
+              fieldingData: {
+                catches: perf.catches,
+                runOuts: perf.runOuts,
+                stumpings: perf.stumpings
+              }
             });
           }
         }

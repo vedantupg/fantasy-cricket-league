@@ -52,7 +52,7 @@ import AppHeader from '../components/common/AppHeader';
 import ScorecardParserDialog from '../components/ScorecardParserDialog';
 import BulkPlayerImportDialog from '../components/BulkPlayerImportDialog';
 import { playerPoolService, playerPoolSnapshotService } from '../services/firestore';
-import type { PlayerPool, PlayerPoolEntry, BattingConfig, BowlingConfig, FieldingConfig, BattingInnings, BowlingSpell } from '../types/database';
+import type { PlayerPool, PlayerPoolEntry, BattingConfig, BowlingConfig, FieldingConfig, BattingInnings, BowlingSpell, FieldingPerformance } from '../types/database';
 import { DEFAULT_BATTING_CONFIG, DEFAULT_BOWLING_CONFIG, DEFAULT_FIELDING_CONFIG, calculateBattingPoints, calculateBowlingPoints } from '../utils/pointsCalculation';
 
 const PlayerPoolManagementPage: React.FC = () => {
@@ -526,9 +526,10 @@ const PlayerPoolDetails: React.FC<{
       // Remove the innings from the player
       const updatedBattingInnings = player.battingInnings.filter(i => i.id !== inningsId);
 
-      // Recalculate total points (batting + bowling)
+      // Recalculate total points (batting + bowling + fielding)
       const battingPoints = updatedBattingInnings.reduce((sum, i) => sum + i.pointsEarned, 0);
       const bowlingPoints = player.bowlingSpells?.reduce((sum, s) => sum + s.pointsEarned, 0) || 0;
+      const fieldingPoints = player.fieldingPerformances?.reduce((sum, f) => sum + f.pointsEarned, 0) || 0;
 
       // Update edited players with the new data
       const updatedPlayers = editedPlayers.map(p =>
@@ -536,7 +537,7 @@ const PlayerPoolDetails: React.FC<{
           ? {
               ...p,
               battingInnings: updatedBattingInnings,
-              points: battingPoints + bowlingPoints,
+              points: battingPoints + bowlingPoints + fieldingPoints,
               lastUpdated: new Date()
             }
           : p
@@ -580,9 +581,10 @@ const PlayerPoolDetails: React.FC<{
       // Remove the spell from the player
       const updatedBowlingSpells = player.bowlingSpells.filter(s => s.id !== spellId);
 
-      // Recalculate total points (batting + bowling)
+      // Recalculate total points (batting + bowling + fielding)
       const battingPoints = player.battingInnings?.reduce((sum, i) => sum + i.pointsEarned, 0) || 0;
       const bowlingPoints = updatedBowlingSpells.reduce((sum, s) => sum + s.pointsEarned, 0);
+      const fieldingPoints = player.fieldingPerformances?.reduce((sum, f) => sum + f.pointsEarned, 0) || 0;
 
       // Update edited players with the new data
       const updatedPlayers = editedPlayers.map(p =>
@@ -590,7 +592,7 @@ const PlayerPoolDetails: React.FC<{
           ? {
               ...p,
               bowlingSpells: updatedBowlingSpells,
-              points: battingPoints + bowlingPoints,
+              points: battingPoints + bowlingPoints + fieldingPoints,
               lastUpdated: new Date()
             }
           : p
@@ -613,6 +615,61 @@ const PlayerPoolDetails: React.FC<{
     } catch (error) {
       console.error('Error deleting bowling spell:', error);
       setSnackbarMessage('Failed to delete bowling spell');
+      setSnackbarOpen(true);
+    }
+  };
+
+  const handleDeleteFieldingPerformance = async (playerId: string, performanceId: string) => {
+    if (!window.confirm('Are you sure you want to delete this fielding performance? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      // Find the player in edited players
+      const player = editedPlayers.find(p => p.playerId === playerId);
+      if (!player || !player.fieldingPerformances) return;
+
+      // Find the performance to delete
+      const performance = player.fieldingPerformances.find(f => f.id === performanceId);
+      if (!performance) return;
+
+      // Remove the performance from the player
+      const updatedFieldingPerformances = player.fieldingPerformances.filter(f => f.id !== performanceId);
+
+      // Recalculate total points (batting + bowling + fielding)
+      const battingPoints = player.battingInnings?.reduce((sum, i) => sum + i.pointsEarned, 0) || 0;
+      const bowlingPoints = player.bowlingSpells?.reduce((sum, s) => sum + s.pointsEarned, 0) || 0;
+      const fieldingPoints = updatedFieldingPerformances.reduce((sum, f) => sum + f.pointsEarned, 0);
+
+      // Update edited players with the new data
+      const updatedPlayers = editedPlayers.map(p =>
+        p.playerId === playerId
+          ? {
+              ...p,
+              fieldingPerformances: updatedFieldingPerformances,
+              points: battingPoints + bowlingPoints + fieldingPoints,
+              lastUpdated: new Date()
+            }
+          : p
+      );
+
+      // Update local state
+      setEditedPlayers(updatedPlayers);
+
+      // Auto-save to database
+      const updatedPool = {
+        ...pool,
+        players: updatedPlayers,
+        lastUpdateMessage: `Deleted fielding performance for ${player.name}`,
+        updatedAt: new Date()
+      };
+      await onUpdate(updatedPool);
+
+      setSnackbarMessage(`Deleted fielding performance for ${player.name}`);
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error('Error deleting fielding performance:', error);
+      setSnackbarMessage('Failed to delete fielding performance');
       setSnackbarOpen(true);
     }
   };
@@ -644,6 +701,7 @@ const PlayerPoolDetails: React.FC<{
       performance: string;
       battingData?: { runs: number; balls: number };
       bowlingData?: { overs: number; runs: number; wickets: number };
+      fieldingData?: { catches: number; runOuts: number; stumpings: number };
     }[],
     matchLabel?: string
   ) => {
@@ -685,6 +743,27 @@ const PlayerPoolDetails: React.FC<{
               addedBy: user?.uid
             };
             updatedPlayer.bowlingSpells = [...(player.bowlingSpells || []), newSpell];
+          }
+
+          // Create fielding performance record if fielding data exists
+          if (update.fieldingData) {
+            const fieldingConfig = pool.fieldingConfig || DEFAULT_FIELDING_CONFIG;
+            const fieldingPoints =
+              (update.fieldingData.catches * fieldingConfig.catchPoints) +
+              (update.fieldingData.runOuts * fieldingConfig.runOutPoints) +
+              (update.fieldingData.stumpings * fieldingConfig.stumpingPoints);
+
+            const newFielding: FieldingPerformance = {
+              id: `${Date.now()}-${player.playerId}-field`,
+              matchLabel: matchLabel || undefined,
+              catches: update.fieldingData.catches,
+              runOuts: update.fieldingData.runOuts,
+              stumpings: update.fieldingData.stumpings,
+              pointsEarned: fieldingPoints,
+              date: new Date(),
+              addedBy: user?.uid
+            };
+            updatedPlayer.fieldingPerformances = [...(player.fieldingPerformances || []), newFielding];
           }
 
           // Update total points
@@ -1115,9 +1194,58 @@ const PlayerPoolDetails: React.FC<{
                             </Box>
                           )}
 
+                          {/* Fielding Performances */}
+                          {player.fieldingPerformances && player.fieldingPerformances.length > 0 && (
+                            <Box sx={{ mb: 2 }}>
+                              <Typography variant="subtitle2" color="success" gutterBottom>
+                                🧤 Fielding Performances ({player.fieldingPerformances.length})
+                              </Typography>
+                              <TableContainer component={Paper} variant="outlined">
+                                <Table size="small">
+                                  <TableHead>
+                                    <TableRow>
+                                      <TableCell>Date</TableCell>
+                                      <TableCell>Match</TableCell>
+                                      <TableCell align="right">Catches</TableCell>
+                                      <TableCell align="right">Run Outs</TableCell>
+                                      <TableCell align="right">Stumpings</TableCell>
+                                      <TableCell align="right">Points</TableCell>
+                                      <TableCell align="center">Actions</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {player.fieldingPerformances.map((performance) => (
+                                      <TableRow key={performance.id}>
+                                        <TableCell>{new Date(performance.date).toLocaleDateString()}</TableCell>
+                                        <TableCell>{performance.matchLabel || '-'}</TableCell>
+                                        <TableCell align="right">{performance.catches}</TableCell>
+                                        <TableCell align="right">{performance.runOuts}</TableCell>
+                                        <TableCell align="right">{performance.stumpings}</TableCell>
+                                        <TableCell align="right">
+                                          <strong>{performance.pointsEarned.toFixed(2)}</strong>
+                                        </TableCell>
+                                        <TableCell align="center">
+                                          <IconButton
+                                            size="small"
+                                            color="error"
+                                            onClick={() => handleDeleteFieldingPerformance(player.playerId, performance.id)}
+                                            title="Delete fielding performance"
+                                          >
+                                            <Delete fontSize="small" />
+                                          </IconButton>
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </TableContainer>
+                            </Box>
+                          )}
+
                           {/* No performance data message */}
                           {(!player.battingInnings || player.battingInnings.length === 0) &&
-                           (!player.bowlingSpells || player.bowlingSpells.length === 0) && (
+                           (!player.bowlingSpells || player.bowlingSpells.length === 0) &&
+                           (!player.fieldingPerformances || player.fieldingPerformances.length === 0) && (
                             <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
                               No performance data recorded yet. Use the action buttons to add innings or spells.
                             </Typography>

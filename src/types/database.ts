@@ -352,6 +352,18 @@ export interface BowlingSpell {
   addedBy?: string;
 }
 
+export interface FieldingPerformance {
+  id: string;
+  matchId?: string;
+  matchLabel?: string;
+  catches: number;
+  runOuts: number;
+  stumpings: number;
+  pointsEarned: number; // Calculated points from this performance
+  date: Date;
+  addedBy?: string;
+}
+
 export interface PlayerPoolEntry {
   playerId: string;
   name: string;
@@ -365,6 +377,7 @@ export interface PlayerPoolEntry {
   // Performance tracking for granular point calculation
   battingInnings?: BattingInnings[];
   bowlingSpells?: BowlingSpell[];
+  fieldingPerformances?: FieldingPerformance[];
 }
 
 export interface PlayerPoolSnapshot {
