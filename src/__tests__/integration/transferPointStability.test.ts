@@ -167,21 +167,30 @@ describe('Transfer Point Stability - Integration Tests', () => {
       expect(afterPoints.totalPoints).toBeCloseTo(beforePoints.totalPoints, 2);
     });
 
-    it.skip('should maintain total points when changing VC role', () => {
+    it('should apply VC multiplier only to future points when changing VC role', () => {
       // SCENARIO: User changes VC from one player to another (no player substitution)
+      // BUSINESS LOGIC:
+      // - Old VC loses 1.5x multiplier, becomes regular (keeps their history)
+      // - New VC gets 1.5x multiplier going forward only
+      // - NO banking, NO reset, multipliers apply to future points
 
       const squadSize = 11;
 
-      const player1 = createPlayer('p1', 'Player 1', 100, 0);
-      const player2 = createPlayer('p2', 'Player 2', 150, 0, 150); // Current Captain
-      const player3 = createPlayer('p3', 'Player 3', 200, 0, 150); // Current VC
-      const player4 = createPlayer('p4', 'Player 4', 120, 0); // Will become new VC
+      // Create full 11-player squad
+      const mainPlayers: SquadPlayer[] = [];
+      for (let i = 1; i <= 11; i++) {
+        mainPlayers.push(createPlayer(`p${i}`, `Player ${i}`, 50, 0)); // Each contributing 50
+      }
 
-      const squad = [player1, player2, player3, player4];
+      // Set up specific players for role testing
+      mainPlayers[0] = createPlayer('p1', 'Player 1 (C)', 150, 0, 150); // Captain at 150
+      mainPlayers[1] = createPlayer('p2', 'Player 2 (VC)', 200, 0, 150); // Current VC, assigned at 150
+      mainPlayers[2] = createPlayer('p3', 'Player 3', 120, 0); // Will become new VC
 
-      const captainId = 'p2';
-      const oldVCId = 'p3';
-      const newVCId = 'p4';
+      const squad = mainPlayers;
+      const captainId = 'p1';
+      const oldVCId = 'p2';
+      const newVCId = 'p3';
       const bankedPoints = 100;
 
       // Calculate points BEFORE role change
@@ -195,31 +204,54 @@ describe('Transfer Point Stability - Integration Tests', () => {
       );
 
       console.log('Before VC change:', beforePoints);
+      console.log('  Breakdown:', {
+        captain: '150-0 base + (150-150)*2 = 150',
+        oldVC: '(150-0)*1 + (200-150)*1.5 = 150 + 75 = 225',
+        newVC: '120-0 = 120 (regular)',
+        others: '8 players × 50 = 400',
+        banked: 100,
+        total: beforePoints.totalPoints
+      });
 
       // PERFORM VC ROLE CHANGE
-      // 1. Bank the old VC's contribution
-      const oldVCContribution = calculatePlayerContribution(player3, 'viceCaptain');
-      const newBankedPoints = bankedPoints + oldVCContribution;
-
-      // 2. Set pointsWhenRoleAssigned for new VC
+      // 1. Old VC (p2) loses role - becomes regular player (keeps history)
+      // 2. New VC (p3) gains role - set pointsWhenRoleAssigned
       const newSquad = [...squad];
-      newSquad[3].pointsWhenRoleAssigned = newSquad[3].points; // Set to 120
+      newSquad[2].pointsWhenRoleAssigned = newSquad[2].points; // p3 becomes VC at 120 points
 
-      // Calculate points AFTER role change
+      // Calculate points AFTER role change (NO banking, NO reset)
       const afterPoints = calculateSquadPoints(
         newSquad,
         squadSize,
         captainId,
         newVCId,
         undefined,
-        newBankedPoints
+        bankedPoints // Same banked points (no change)
       );
 
       console.log('After VC change:', afterPoints);
-      console.log('Old VC contribution banked:', oldVCContribution);
+      console.log('  Breakdown:', {
+        captain: '150-0 base + (150-150)*2 = 150',
+        exVC_p2: '200-0 = 200 (now regular, keeps history)',
+        newVC_p3: '(120-0)*1 + (120-120)*1.5 = 120 (no bonus yet)',
+        others: '8 players × 50 = 400',
+        banked: 100,
+        total: afterPoints.totalPoints
+      });
 
-      // CRITICAL: Total points must remain exactly the same
-      expect(afterPoints.totalPoints).toBeCloseTo(beforePoints.totalPoints, 2);
+      // EXPECTED: Old VC now contributes as regular (200-0 = 200)
+      // Previously contributed 225 as VC, now contributes 200 as regular
+      // Difference: -25 points from the role change
+      const expectedChange = 200 - 225; // = -25 points
+      const expectedTotal = beforePoints.totalPoints + expectedChange;
+
+      // Verify the calculation
+      expect(afterPoints.totalPoints).toBeCloseTo(expectedTotal, 2);
+
+      // Verify old VC is now regular (no longer getting VC bonus)
+      expect(afterPoints.viceCaptainPoints).toBe(120); // New VC contributes 120 (no bonus yet)
+
+      // FUTURE: When player pool updates and p3 (new VC) earns points, they'll get 1.5x
     });
   });
 
