@@ -36,27 +36,41 @@ export function parseMatchSchedule(scheduleText: string): ScheduleMatch[] {
       continue;
     }
 
-    // Check if this is a match description line with number (e.g., "1st Match • Venue, Stadium")
-    const matchWithNumMatch = line.match(/^(\d+(?:st|nd|rd|th))\s+Match\s+•\s+(.+?)\s*,\s*(.+)$/);
+    // Check if this is a match description line with number (e.g., "1st Match, Group A • Venue, Stadium")
+    // Updated regex to capture optional group/stage info between match number and venue
+    const matchWithNumMatch = line.match(/^(\d+(?:st|nd|rd|th))\s+Match(?:,\s+([^•]+))?\s+•\s+(.+?)\s*,\s*(.+)$/);
 
-    // Check if this is a match description without number (e.g., "Eliminator • Venue, Stadium" or "Final • Venue, Stadium")
+    // Check for numbered knockout matches (e.g., "1st Semi-Final • Venue, Stadium")
+    const numberedKnockoutMatch = line.match(/^(\d+(?:st|nd|rd|th))\s+(Semi-Final|Quarter-Final|Qualifier)\s+•\s+(.+?)\s*,\s*(.+)$/);
+
+    // Check if this is a match description without number (e.g., "Final • Venue, Stadium")
     const matchWithoutNumMatch = line.match(/^(Eliminator|Final|Semi-Final|Qualifier\s*\d*)\s+•\s+(.+?)\s*,\s*(.+)$/);
 
-    if ((matchWithNumMatch || matchWithoutNumMatch) && currentDate) {
+    if ((matchWithNumMatch || numberedKnockoutMatch || matchWithoutNumMatch) && currentDate) {
       let matchNumber: number;
       let stage: string | undefined;
       let venue: string;
       let stadium: string;
       let description: string;
+      let fullMatchLine: string = line; // Store original line for description
 
       if (matchWithNumMatch) {
-        const [, matchNum, v, s] = matchWithNumMatch;
+        const [, matchNum, groupInfo, v, s] = matchWithNumMatch;
         matchNumber = parseInt(matchNum);
         matchCounter = matchNumber; // Update counter to match explicit number
         venue = v;
         stadium = s;
-        description = `${matchNum} Match`;
-        stage = undefined;
+        // Include group info in description if present
+        description = groupInfo ? `${matchNum} Match, ${groupInfo.trim()}` : `${matchNum} Match`;
+        stage = groupInfo ? groupInfo.trim() : undefined;
+      } else if (numberedKnockoutMatch) {
+        const [, matchNum, stageName, v, s] = numberedKnockoutMatch;
+        matchNumber = parseInt(matchNum);
+        matchCounter = matchNumber;
+        venue = v;
+        stadium = s;
+        stage = `${matchNum} ${stageName}`;
+        description = `${matchNum} ${stageName}`;
       } else if (matchWithoutNumMatch) {
         const [, stageName, v, s] = matchWithoutNumMatch;
         matchCounter++; // Auto-increment for matches without numbers
@@ -73,10 +87,12 @@ export function parseMatchSchedule(scheduleText: string): ScheduleMatch[] {
       // Next line should be match description or team info
       i++;
 
-      // Skip duplicate description line if it exists (e.g., "1st Match")
-      if (lines[i] && lines[i].match(/^\d+(?:st|nd|rd|th)\s+Match$/)) {
+      // Skip duplicate description line if it exists (e.g., "1st Match, Group A")
+      if (lines[i] && lines[i].match(/^\d+(?:st|nd|rd|th)\s+Match(?:,\s+.+)?$/)) {
         i++;
-      } else if (lines[i] && lines[i].match(/^(Eliminator|Final|Semi-Final|Qualifier\s*\d*)$/)) {
+      } else if (lines[i] && lines[i].match(/^(Eliminator|Final|Semi-Final|Qualifier\s*\d*|Super 8 Group \d+.*)$/)) {
+        i++;
+      } else if (lines[i] && lines[i].match(/^\d+(?:st|nd|rd|th)\s+(Semi-Final|Quarter-Final|Qualifier)$/)) {
         i++;
       }
 
