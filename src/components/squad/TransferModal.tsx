@@ -1182,13 +1182,13 @@ const TransferModal: React.FC<TransferModalProps> = ({
 
                               // Handle automatic swaps
                               if (newCaptain) {
-                                // If new captain was VC, old VC becomes null (needs reassignment)
+                                // If new captain was VC, old captain becomes new VC (SWAP)
                                 if (newCaptain === existingSquad.viceCaptainId) {
-                                  newVCAfter = undefined;
+                                  newVCAfter = existingSquad.captainId;
                                 }
-                                // If new captain was X, old X becomes null (needs reassignment)
-                                if (newCaptain === existingSquad.xFactorId) {
-                                  newXAfter = undefined;
+                                // If new captain was X, old captain becomes new X (SWAP)
+                                else if (newCaptain === existingSquad.xFactorId) {
+                                  newXAfter = existingSquad.captainId;
                                 }
                               }
 
