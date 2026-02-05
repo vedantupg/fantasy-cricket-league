@@ -264,13 +264,13 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
                       Swap any main team player with one of your bench players
                     </Typography>
                     <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
-                      Can replace <strong>ANY player including C, VC, or X-Factor</strong>
+                      <strong>Can replace ANY player including Captain, Vice-Captain, and X-Factor</strong>
                     </Typography>
                     <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
-                      <strong>Auto-assignment:</strong> If you swap out C/VC/X, the incoming bench player automatically gets that role
+                      <strong>Role assignment:</strong> When swapping out C/VC/X, the incoming bench player automatically gets that role (roles may swap if incoming player already has a different role)
                     </Typography>
                     <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
-                      Pure substitution only - NO manual role reassignment option available
+                      Pure substitution only - no manual role changes allowed
                     </Typography>
                   </Box>
                 </Box>
@@ -304,7 +304,7 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
                       Replace any player with a new player from the available pool
                     </Typography>
                     <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
-                      <strong>Captain (C) and Vice-Captain (VC) cannot be removed</strong>
+                      <strong>Can replace Vice-Captain and X-Factor, but Captain cannot be removed</strong>
                     </Typography>
                     <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
                       All squad composition rules must still be met
@@ -314,14 +314,17 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
 
                 <Box sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 1, border: '1px solid', borderColor: 'success.main' }}>
                   <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5, color: 'white' }}>
-                    B. Reassign Vice-Captain or X-Factor
+                    B. Role Assignment
                   </Typography>
                   <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 3 }}>
                     <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
                       Keep all players the same
                     </Typography>
                     <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
-                      Reassign VC or X-Factor to any other player in your team
+                      <strong>Reassign Vice-Captain or X-Factor to any other player</strong>
+                    </Typography>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
+                      <strong>Captain cannot be changed</strong>
                     </Typography>
                     <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
                       Points multipliers apply only to future points earned after reassignment
