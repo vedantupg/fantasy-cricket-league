@@ -2588,6 +2588,7 @@ const CricketPitchFormation: React.FC<{
                 value={powerplayMatch}
                 label="Select Powerplay Match"
                 onChange={(e) => setPowerplayMatch(e.target.value)}
+                disabled={isDeadlinePassed}
                 sx={{
                   fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
                   bgcolor: '#1a2332',

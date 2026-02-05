@@ -52,7 +52,6 @@ export function parseMatchSchedule(scheduleText: string): ScheduleMatch[] {
       let venue: string;
       let stadium: string;
       let description: string;
-      let fullMatchLine: string = line; // Store original line for description
 
       if (matchWithNumMatch) {
         const [, matchNum, groupInfo, v, s] = matchWithNumMatch;
