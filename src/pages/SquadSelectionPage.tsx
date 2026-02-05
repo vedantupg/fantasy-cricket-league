@@ -503,14 +503,14 @@ const SquadSelectionPage: React.FC = () => {
         // Update existing squad
         const updateData: any = {
           players: squadPlayers,
-          captainId: captainId || undefined,
-          viceCaptainId: viceCaptainId || undefined,
-          xFactorId: xFactorId || undefined,
+          ...(captainId && { captainId }),
+          ...(viceCaptainId && { viceCaptainId }),
+          ...(xFactorId && { xFactorId }),
           totalPoints: calculatedPoints.totalPoints,
           captainPoints: calculatedPoints.captainPoints,
           viceCaptainPoints: calculatedPoints.viceCaptainPoints,
           xFactorPoints: calculatedPoints.xFactorPoints,
-          powerplayMatchNumber: powerplayMatch ? parseInt(powerplayMatch) : undefined,
+          ...(powerplayMatch && { powerplayMatchNumber: parseInt(powerplayMatch) }),
           predictions: {
             topRunScorer: topRunScorer.trim(),
             topWicketTaker: topWicketTaker.trim(),
@@ -545,7 +545,7 @@ const SquadSelectionPage: React.FC = () => {
           captainPoints: calculatedPoints.captainPoints,
           viceCaptainPoints: calculatedPoints.viceCaptainPoints,
           xFactorPoints: calculatedPoints.xFactorPoints,
-          powerplayMatchNumber: powerplayMatch ? parseInt(powerplayMatch) : undefined,
+          ...(powerplayMatch && { powerplayMatchNumber: parseInt(powerplayMatch) }),
           predictions: {
             topRunScorer: topRunScorer.trim(),
             topWicketTaker: topWicketTaker.trim(),
@@ -561,9 +561,9 @@ const SquadSelectionPage: React.FC = () => {
           bankedPoints: 0, // Initialize banked points to 0
           isValid: true,
           validationErrors: [],
-          captainId: captainId || undefined,
-          viceCaptainId: viceCaptainId || undefined,
-          xFactorId: xFactorId || undefined,
+          ...(captainId && { captainId }),
+          ...(viceCaptainId && { viceCaptainId }),
+          ...(xFactorId && { xFactorId }),
         };
 
         const squadId = await squadService.create(squadData);
@@ -681,14 +681,14 @@ const SquadSelectionPage: React.FC = () => {
         // Update existing draft
         await squadService.update(existingSquad.id, {
           players: squadPlayers,
-          captainId: captainId || undefined,
-          viceCaptainId: viceCaptainId || undefined,
-          xFactorId: xFactorId || undefined,
+          ...(captainId && { captainId }),
+          ...(viceCaptainId && { viceCaptainId }),
+          ...(xFactorId && { xFactorId }),
           totalPoints: calculatedPoints.totalPoints,
           captainPoints: calculatedPoints.captainPoints,
           viceCaptainPoints: calculatedPoints.viceCaptainPoints,
           xFactorPoints: calculatedPoints.xFactorPoints,
-          powerplayMatchNumber: powerplayMatch ? parseInt(powerplayMatch) : undefined,
+          ...(powerplayMatch && { powerplayMatchNumber: parseInt(powerplayMatch) }),
           predictions: {
             topRunScorer: topRunScorer.trim(),
             topWicketTaker: topWicketTaker.trim(),
@@ -722,7 +722,7 @@ const SquadSelectionPage: React.FC = () => {
           captainPoints: calculatedPoints.captainPoints,
           viceCaptainPoints: calculatedPoints.viceCaptainPoints,
           xFactorPoints: calculatedPoints.xFactorPoints,
-          powerplayMatchNumber: powerplayMatch ? parseInt(powerplayMatch) : undefined,
+          ...(powerplayMatch && { powerplayMatchNumber: parseInt(powerplayMatch) }),
           predictions: {
             topRunScorer: topRunScorer.trim(),
             topWicketTaker: topWicketTaker.trim(),
@@ -738,9 +738,9 @@ const SquadSelectionPage: React.FC = () => {
           bankedPoints: 0,
           isValid: false, // Draft may not be valid yet
           validationErrors: [],
-          captainId: captainId || undefined,
-          viceCaptainId: viceCaptainId || undefined,
-          xFactorId: xFactorId || undefined,
+          ...(captainId && { captainId }),
+          ...(viceCaptainId && { viceCaptainId }),
+          ...(xFactorId && { xFactorId }),
         };
 
         const squadId = await squadService.create(squadData);

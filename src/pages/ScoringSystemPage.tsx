@@ -537,6 +537,27 @@ const ScoringConfigContent: React.FC<{
                   </Box>
                 </Box>
               </Box>
+
+              {/* Prediction Points */}
+              <Box sx={{ p: 2, bgcolor: 'warning.lighter', borderRadius: 2, border: '1px solid', borderColor: 'warning.main' }}>
+                <Typography variant="h6" color="warning.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  🎯 Prediction Bonus Points
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">Highest Run Scorer</Typography>
+                    <Typography variant="body1" fontWeight="bold">80 pts</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">Highest Wicket Taker</Typography>
+                    <Typography variant="body1" fontWeight="bold">80 pts</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">Winning Team</Typography>
+                    <Typography variant="body1" fontWeight="bold">80 pts</Typography>
+                  </Box>
+                </Box>
+              </Box>
             </>
           ) : (
             <Alert severity="info">
