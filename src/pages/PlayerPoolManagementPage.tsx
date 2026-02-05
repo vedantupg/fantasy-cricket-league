@@ -530,19 +530,29 @@ const PlayerPoolDetails: React.FC<{
       const battingPoints = updatedBattingInnings.reduce((sum, i) => sum + i.pointsEarned, 0);
       const bowlingPoints = player.bowlingSpells?.reduce((sum, s) => sum + s.pointsEarned, 0) || 0;
 
-      // Update edited players
-      setEditedPlayers(prev =>
-        prev.map(p =>
-          p.playerId === playerId
-            ? {
-                ...p,
-                battingInnings: updatedBattingInnings,
-                points: battingPoints + bowlingPoints,
-                lastUpdated: new Date()
-              }
-            : p
-        )
+      // Update edited players with the new data
+      const updatedPlayers = editedPlayers.map(p =>
+        p.playerId === playerId
+          ? {
+              ...p,
+              battingInnings: updatedBattingInnings,
+              points: battingPoints + bowlingPoints,
+              lastUpdated: new Date()
+            }
+          : p
       );
+
+      // Update local state
+      setEditedPlayers(updatedPlayers);
+
+      // Auto-save to database
+      const updatedPool = {
+        ...pool,
+        players: updatedPlayers,
+        lastUpdateMessage: `Deleted batting innings for ${player.name}`,
+        updatedAt: new Date()
+      };
+      await onUpdate(updatedPool);
 
       setSnackbarMessage(`Deleted batting innings for ${player.name}`);
       setSnackbarOpen(true);
@@ -574,19 +584,29 @@ const PlayerPoolDetails: React.FC<{
       const battingPoints = player.battingInnings?.reduce((sum, i) => sum + i.pointsEarned, 0) || 0;
       const bowlingPoints = updatedBowlingSpells.reduce((sum, s) => sum + s.pointsEarned, 0);
 
-      // Update edited players
-      setEditedPlayers(prev =>
-        prev.map(p =>
-          p.playerId === playerId
-            ? {
-                ...p,
-                bowlingSpells: updatedBowlingSpells,
-                points: battingPoints + bowlingPoints,
-                lastUpdated: new Date()
-              }
-            : p
-        )
+      // Update edited players with the new data
+      const updatedPlayers = editedPlayers.map(p =>
+        p.playerId === playerId
+          ? {
+              ...p,
+              bowlingSpells: updatedBowlingSpells,
+              points: battingPoints + bowlingPoints,
+              lastUpdated: new Date()
+            }
+          : p
       );
+
+      // Update local state
+      setEditedPlayers(updatedPlayers);
+
+      // Auto-save to database
+      const updatedPool = {
+        ...pool,
+        players: updatedPlayers,
+        lastUpdateMessage: `Deleted bowling spell for ${player.name}`,
+        updatedAt: new Date()
+      };
+      await onUpdate(updatedPool);
 
       setSnackbarMessage(`Deleted bowling spell for ${player.name}`);
       setSnackbarOpen(true);
