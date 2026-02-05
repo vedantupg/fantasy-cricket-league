@@ -72,6 +72,11 @@ export interface League {
   flexibleChangesEnabled?: boolean; // Admin toggle for allowing flexible changes
   benchChangesEnabled?: boolean; // Admin toggle for allowing bench changes
   
+  // Transfer Window Automation
+  autoToggleEnabled?: boolean; // Enable/disable automatic toggle management (default: true)
+  lastAutoToggleUpdate?: Date; // When automation last changed the toggles
+  lastAutoToggleAction?: 'enabled' | 'disabled'; // What the last automated action was
+  
   // League States
   status: 'squad_selection' | 'active' | 'completed';
   tournamentStarted: boolean;
