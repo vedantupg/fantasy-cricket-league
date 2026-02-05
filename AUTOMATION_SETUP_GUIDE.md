@@ -4,16 +4,17 @@
 
 ### New Files
 1. `src/utils/transferWindowAutomation.ts` - Core automation logic
-2. `api/transfer-toggle-automator.ts` - Vercel serverless function (cron endpoint)
-3. `TRANSFER_WINDOW_AUTOMATION.md` - Comprehensive documentation
-4. `AUTOMATION_SETUP_GUIDE.md` - This file
+2. `api/transfer-toggle-automator.ts` - API endpoint (called by GitHub Actions)
+3. `.github/workflows/transfer-automation.yml` - GitHub Actions workflow
+4. `TRANSFER_WINDOW_AUTOMATION.md` - Comprehensive documentation
+5. `GITHUB_ACTIONS_SETUP.md` - GitHub Actions setup guide
+6. `AUTOMATION_SETUP_GUIDE.md` - This file
 
 ### Modified Files
 1. `src/types/database.ts` - Added automation fields to League type
 2. `src/pages/EditLeaguePage.tsx` - Enhanced UI with automation controls
-3. `vercel.json` - Added cron job configuration
-4. `.env.example` - Added required environment variables
-5. `package.json` - Added firebase-admin and @vercel/node dependencies
+3. `.env.example` - Added required environment variables
+4. `package.json` - Added firebase-admin and @vercel/node dependencies
 
 ## Quick Setup Steps
 
@@ -59,18 +60,37 @@ Add these variables:
 - For `FIREBASE_PRIVATE_KEY`, keep it as one line with `\n` for newlines
 - Example: `"-----BEGIN PRIVATE KEY-----\nMIIE....\n-----END PRIVATE KEY-----\n"`
 
-### Step 5: Deploy to Vercel
+### Step 5: Add GitHub Secrets
+
+Go to your GitHub repository → Settings → Secrets and variables → Actions
+
+Add these 2 secrets:
+
+| Secret Name | Value |
+|------------|-------|
+| `CRON_SECRET` | (same value as Vercel) |
+| `VERCEL_APP_URL` | `https://your-app.vercel.app` |
+
+### Step 6: Deploy to Vercel
 
 ```bash
 vercel --prod
 ```
 
-### Step 6: Verify Cron Job is Running
+### Step 7: Push to GitHub
 
-1. Go to Vercel Dashboard → Your Project → Settings → Cron Jobs
-2. You should see: `/api/transfer-toggle-automator` scheduled every 10 minutes
-3. Wait 10 minutes and check Vercel Dashboard → Deployments → Functions
-4. Click on `transfer-toggle-automator` to see logs
+```bash
+git add .
+git commit -m "feat: Add transfer window automation"
+git push
+```
+
+### Step 8: Verify GitHub Actions is Running
+
+1. Go to GitHub Repository → Actions tab
+2. You should see: "Transfer Window Automation" workflow
+3. Click "Run workflow" to test manually (or wait 10 minutes)
+4. Check logs - should see ✅ success
 
 ### Step 7: Test the Automation
 
@@ -103,8 +123,10 @@ Replace:
 - [ ] Firebase Admin credentials obtained
 - [ ] Cron secret generated
 - [ ] All 4 environment variables set in Vercel
+- [ ] 2 secrets added to GitHub (CRON_SECRET, VERCEL_APP_URL)
 - [ ] Deployed to Vercel successfully
-- [ ] Cron job appears in Vercel dashboard
+- [ ] Pushed to GitHub
+- [ ] GitHub Actions workflow appears in Actions tab
 - [ ] Manual test returns success response
 - [ ] Automation enabled for at least one league
 - [ ] Match schedule uploaded for that league
@@ -129,9 +151,18 @@ When automation is disabled:
 ✅ No automatic overrides
 ```
 
-### In Vercel Logs
+### In GitHub Actions Logs
 
 Every 10 minutes you should see:
+```
+✅ Automation completed successfully
+HTTP Status: 200
+Response: {"success":true,"summary":{"totalLeagues":3,"updated":1,...}}
+```
+
+### In Vercel Function Logs
+
+When GitHub Actions calls the API:
 ```
 🤖 Transfer Toggle Automator: Starting...
 Found X active leagues
@@ -144,17 +175,18 @@ Found X active leagues
 ## Troubleshooting
 
 ### Error: "Unauthorized"
-- Check `CRON_SECRET` is set correctly in Vercel
-- Verify Authorization header in manual test
+- Check `CRON_SECRET` matches between GitHub Secret and Vercel env variable
+- Verify Authorization header format
 
 ### Error: "No project ID"
-- Check `FIREBASE_PROJECT_ID` is set
-- Verify all Firebase environment variables
+- Check `FIREBASE_PROJECT_ID` is set in Vercel
+- Verify all Firebase environment variables in Vercel
 
-### Cron Not Running
-- Check Vercel Dashboard → Settings → Cron Jobs
-- Verify `vercel.json` was deployed
-- Wait 10 minutes after deployment
+### Workflow Not Running
+- Check GitHub Actions is enabled in repository settings
+- Verify secrets are added to GitHub (not Vercel)
+- Check workflow file is in `.github/workflows/` directory
+- Wait 10 minutes after push, or trigger manually
 
 ### Automation Not Working
 - Check league has `autoToggleEnabled: true`
@@ -166,6 +198,23 @@ Found X active leagues
 - Hard refresh the page (Cmd/Ctrl + Shift + R)
 - Check browser console for errors
 - Verify league data is loaded
+
+## Manual Testing
+
+### Test via GitHub Actions (Recommended)
+
+1. Go to GitHub → Actions tab
+2. Click "Transfer Window Automation"
+3. Click "Run workflow" button
+4. Watch live logs
+5. Should see ✅ success
+
+### Test via Direct API Call
+
+```bash
+curl -X POST https://your-app.vercel.app/api/transfer-toggle-automator \
+  -H "Authorization: Bearer YOUR_CRON_SECRET"
+```
 
 ## Testing Different Scenarios
 
@@ -205,21 +254,16 @@ Found X active leagues
 
 ### Change Cron Frequency
 
-Edit `vercel.json`:
+Edit `.github/workflows/transfer-automation.yml`:
 
-```json
-{
-  "crons": [
-    {
-      "path": "/api/transfer-toggle-automator",
-      "schedule": "*/15 * * * *"  // Every 15 minutes instead of 10
-    }
-  ]
-}
+```yaml
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # Every 15 minutes instead of 10
 ```
 
 Cron schedule format: `minute hour day month weekday`
-- `*/10 * * * *` = Every 10 minutes
+- `*/10 * * * *` = Every 10 minutes (current)
 - `*/15 * * * *` = Every 15 minutes
 - `0 * * * *` = Every hour
 - `0 */2 * * *` = Every 2 hours
@@ -247,17 +291,18 @@ function calculateDisableTime(nextMatchDay: MatchDay): Date {
 ## Support
 
 If you encounter issues:
-1. Check Vercel function logs
-2. Review Firebase Admin permissions
-3. Verify environment variables
-4. Test API endpoint manually
-5. Check match schedule format
+1. Check GitHub Actions logs (Actions tab)
+2. Check Vercel function logs (when API is called)
+3. Review Firebase Admin permissions
+4. Verify environment variables (Vercel) and secrets (GitHub)
+5. Test API endpoint manually
+6. Check match schedule format
 
 ## Next Steps
 
 After successful setup:
 1. Enable automation for all active leagues
-2. Monitor cron logs for first few days
+2. Monitor GitHub Actions for first few runs
 3. Verify toggle changes happen at expected times
 4. Communicate to users about automatic windows
 5. Update league rules/announcements
@@ -265,9 +310,9 @@ After successful setup:
 ## Success Indicators
 
 You'll know it's working when:
-- ✅ Cron runs every 10 minutes without errors
+- ✅ GitHub Actions runs every 10 minutes without errors
 - ✅ Leagues with schedules show automation status
 - ✅ Toggles change automatically at scheduled times
 - ✅ Manual overrides work correctly
-- ✅ No errors in Vercel logs
+- ✅ No errors in GitHub Actions or Vercel logs
 - ✅ Users see window open/close automatically

@@ -197,16 +197,17 @@ function convertTimestamps(data: any): any {
 }
 
 /**
- * Main handler for the cron job
+ * Main handler for the automation API endpoint
+ * Called by GitHub Actions workflow every 10 minutes
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    // Security: Check for authorization header (Vercel cron secret)
+    // Security: Check for authorization header (GitHub Actions uses CRON_SECRET)
     const authHeader = req.headers['authorization'];
     const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
     
     if (authHeader !== expectedAuth) {
-      console.error('Unauthorized cron request');
+      console.error('Unauthorized request - invalid or missing authorization header');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 

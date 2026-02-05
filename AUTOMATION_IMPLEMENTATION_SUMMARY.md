@@ -41,7 +41,7 @@ interface ToggleStatus {
 ```
 
 ### 2. `api/transfer-toggle-automator.ts`
-**Purpose**: Vercel serverless function for cron job
+**Purpose**: Vercel API endpoint called by GitHub Actions
 
 **Features**:
 - Firebase Admin SDK integration
@@ -70,7 +70,17 @@ interface ToggleStatus {
 }
 ```
 
-### 3. `TRANSFER_WINDOW_AUTOMATION.md`
+### 3. `.github/workflows/transfer-automation.yml`
+**Purpose**: GitHub Actions workflow for scheduled automation
+
+**Features**:
+- Runs every 10 minutes
+- Calls Vercel API endpoint
+- Includes authorization header
+- Logs success/failure
+- Manual trigger support
+
+### 4. `TRANSFER_WINDOW_AUTOMATION.md`
 **Purpose**: Comprehensive documentation
 
 **Sections**:
@@ -82,14 +92,25 @@ interface ToggleStatus {
 - Testing guide
 - Troubleshooting
 
-### 4. `AUTOMATION_SETUP_GUIDE.md`
+### 5. `AUTOMATION_SETUP_GUIDE.md`
 **Purpose**: Quick setup checklist
 
 **Content**:
 - Step-by-step setup
 - Environment variable guide
+- GitHub secrets guide
 - Verification checklist
 - Test scenarios
+- Troubleshooting
+
+### 6. `GITHUB_ACTIONS_SETUP.md`
+**Purpose**: GitHub Actions specific setup guide
+
+**Content**:
+- GitHub secrets configuration
+- Workflow explanation
+- Monitoring instructions
+- Free tier information
 - Troubleshooting
 
 ## Files Modified
@@ -134,21 +155,19 @@ const [autoToggleEnabled, setAutoToggleEnabled] = useState(true);
 - Manual override section (grayed when automated)
 - Helpful info alerts
 
-### 3. `vercel.json`
+### 3. `.github/workflows/transfer-automation.yml`
 
-**Added Cron Configuration**:
-```json
-{
-  "crons": [
-    {
-      "path": "/api/transfer-toggle-automator",
-      "schedule": "*/10 * * * *"
-    }
-  ]
-}
+**GitHub Actions Workflow**:
+```yaml
+on:
+  schedule:
+    - cron: '*/10 * * * *'  # Every 10 minutes
+  workflow_dispatch:  # Manual trigger
 ```
 
-**Schedule**: Every 10 minutes
+**Calls**: Vercel API endpoint with authorization  
+**Frequency**: Every 10 minutes  
+**Cost**: Free (GitHub Actions free tier)
 
 ### 4. `.env.example`
 
@@ -179,9 +198,12 @@ CRON_SECRET=Sn4gdV5U3hUa00JRTzDrmeA+wCpgL5BQh8PpINRaR6I=
 ┌─────────────────────────────────────────────────────┐
 │                AUTOMATED (24/7)                     │
 ├─────────────────────────────────────────────────────┤
-│ Vercel Cron (every 10 minutes)                      │
+│ GitHub Actions (every 10 minutes)                   │
 │   ↓                                                 │
-│ /api/transfer-toggle-automator                      │
+│ POST /api/transfer-toggle-automator                 │
+│   + Authorization: Bearer <CRON_SECRET>             │
+│   ↓                                                 │
+│ Vercel API Endpoint                                 │
 │   ↓                                                 │
 │ Core Logic: transferWindowAutomation.ts             │
 │   ↓                                                 │
@@ -209,9 +231,13 @@ CRON_SECRET=Sn4gdV5U3hUa00JRTzDrmeA+wCpgL5BQh8PpINRaR6I=
 
 ## Algorithm Flow
 
-### Cron Job Execution
+### GitHub Actions → API Execution
 
 ```
+GitHub Actions triggers every 10 minutes
+  ↓
+Calls Vercel API endpoint
+  ↓
 For each active league:
   ├─ Check autoToggleEnabled !== false
   │   └─ If false: Skip (automation disabled)
@@ -300,7 +326,7 @@ Step 4: Return status
 
 ### Integration Testing
 
-1. **Cron Execution**: Verify runs every 10 minutes
+1. **Workflow Execution**: Verify GitHub Actions runs every 10 minutes
 2. **League Updates**: Check Firestore writes
 3. **UI Display**: Verify status shown correctly
 4. **Manual Override**: Test admin changes persist
@@ -319,13 +345,13 @@ Step 4: Return status
 
 ## Performance Considerations
 
-### Cron Job
+### GitHub Actions
 
 - **Frequency**: Every 10 minutes (configurable)
-- **Execution Time**: 1-5 seconds per run
-- **Leagues Processed**: All active leagues
+- **Execution Time**: ~5-10 seconds per workflow run
+- **API Call Time**: 1-5 seconds (processes all active leagues)
 - **Firestore Writes**: Only when state changes
-- **Cost**: Within Vercel free tier for most cases
+- **Cost**: FREE (2,000 minutes/month free tier, uses ~360/month)
 
 ### Optimization Opportunities
 
@@ -343,13 +369,26 @@ Step 4: Return status
 | `FIREBASE_PROJECT_ID` | Yes | Firebase Admin auth |
 | `FIREBASE_CLIENT_EMAIL` | Yes | Firebase Admin auth |
 | `FIREBASE_PRIVATE_KEY` | Yes | Firebase Admin auth |
-| `CRON_SECRET` | Yes | Cron authorization |
+| `CRON_SECRET` | Yes | API authorization |
+
+### GitHub Secrets
+
+| Secret | Required | Purpose |
+|--------|----------|---------|
+| `CRON_SECRET` | Yes | API authorization (matches Vercel) |
+| `VERCEL_APP_URL` | Yes | Target URL for API calls |
 
 ### Vercel Configuration
 
-- Cron jobs must be enabled
 - Production deployment required
 - Environment variables scoped to production
+- API endpoint must be accessible
+
+### GitHub Configuration
+
+- GitHub Actions must be enabled
+- Workflow file in `.github/workflows/`
+- Secrets configured in repository settings
 
 ### Firebase Configuration
 
@@ -359,11 +398,18 @@ Step 4: Return status
 
 ## Monitoring & Debugging
 
+### GitHub Actions
+
+- **Actions Tab**: View all workflow runs
+- **Run Logs**: See detailed execution logs
+- **Manual Trigger**: Test workflow anytime
+- **Status Badges**: Green = success, Red = failure
+
 ### Vercel Dashboard
 
-- **Settings → Cron Jobs**: Verify cron is scheduled
-- **Deployments → Functions**: View execution logs
+- **Deployments → Functions**: View API execution logs
 - **Environment Variables**: Check all variables set
+- **Function Logs**: See detailed API logs when called
 
 ### Firestore Console
 
@@ -379,6 +425,14 @@ Step 4: Return status
 
 ### Log Messages
 
+**GitHub Actions:**
+```
+✅ Automation completed successfully
+HTTP Status: 200
+Response: {"success":true,...}
+```
+
+**Vercel API:**
 ```
 🤖 Transfer Toggle Automator: Starting...
 ✅ League abc123: Updated false → true
@@ -431,16 +485,16 @@ Step 4: Return status
 
 ### Key Indicators
 
-- ✅ Cron runs successfully every 10 minutes
+- ✅ GitHub Actions runs successfully every 10 minutes
 - ✅ Zero manual admin interventions needed
 - ✅ Toggles change at expected times (within 10 min window)
-- ✅ No errors in production logs
+- ✅ No errors in GitHub Actions or Vercel logs
 - ✅ Users can make changes during open windows
 - ✅ Changes blocked during closed windows
 
 ### Monitoring Targets
 
-- **Uptime**: 99.9%+ cron execution success
+- **Uptime**: 99.9%+ workflow execution success
 - **Accuracy**: 100% correct toggle state
 - **Latency**: Changes within 10 minutes of scheduled time
 - **Errors**: < 0.1% failure rate
@@ -488,12 +542,14 @@ Step 4: Return status
 The Transfer Window Automation feature is fully implemented with:
 
 - ✅ Robust core logic
-- ✅ Reliable cron job
+- ✅ Reliable GitHub Actions workflow
+- ✅ Vercel API endpoint
 - ✅ Enhanced admin UI
 - ✅ Comprehensive documentation
 - ✅ Failsafe mechanisms
 - ✅ Manual override support
 - ✅ Per-league opt-out
+- ✅ **FREE** on GitHub free tier
 
-**Status**: Ready for testing and deployment
-**Next Step**: Install dependencies → Set environment variables → Deploy to Vercel
+**Status**: Ready for testing and deployment  
+**Next Step**: Install dependencies → Set Vercel env vars → Set GitHub secrets → Deploy & Push

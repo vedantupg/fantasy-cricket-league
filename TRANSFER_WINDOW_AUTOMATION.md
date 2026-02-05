@@ -4,6 +4,8 @@
 
 The Transfer Window Automation feature automatically manages when users can make flexible and bench changes to their squads based on the match schedule. This eliminates the need for admins to manually toggle these settings.
 
+**Implementation:** GitHub Actions workflow runs every 10 minutes, calling a Vercel API endpoint that updates league toggles based on match schedules.
+
 ## How It Works
 
 ### Timing Rules
@@ -34,9 +36,9 @@ Day 5: Match at 7 PM IST (Final)
 
 ## Setup Instructions
 
-### 1. Environment Variables
+### 1. Vercel Environment Variables
 
-Add the following to your Vercel project environment variables:
+Add the following to your Vercel project environment variables (Dashboard → Settings → Environment Variables):
 
 ```bash
 # Firebase Admin SDK
@@ -59,7 +61,17 @@ CRON_SECRET=your_random_secret_string
 openssl rand -base64 32
 ```
 
-### 2. Install Dependencies
+### 2. GitHub Secrets
+
+Add the following to your GitHub repository (Settings → Secrets and variables → Actions):
+
+```bash
+# GitHub Secrets (2 required)
+CRON_SECRET=<same value as Vercel>
+VERCEL_APP_URL=https://your-app.vercel.app
+```
+
+### 3. Install Dependencies
 
 ```bash
 npm install
@@ -69,19 +81,26 @@ This will install:
 - `firebase-admin`: For server-side Firebase access
 - `@vercel/node`: For Vercel serverless function types
 
-### 3. Deploy to Vercel
+### 4. Deploy to Vercel
 
 ```bash
 vercel --prod
 ```
 
-The cron job will automatically start running every 10 minutes.
+### 5. Push to GitHub
 
-### 4. Verify Cron Job
+```bash
+git push
+```
 
-1. Go to Vercel Dashboard > Your Project > Settings > Cron Jobs
-2. You should see: `/api/transfer-toggle-automator` running every 10 minutes
-3. Check logs in Vercel Dashboard > Deployments > Functions
+The GitHub Actions workflow will automatically start running every 10 minutes.
+
+### 6. Verify GitHub Actions
+
+1. Go to GitHub Repository → **Actions** tab
+2. You should see: "Transfer Window Automation" workflow
+3. Click **Run workflow** to test manually (or wait 10 minutes)
+4. Check logs for success message
 
 ## Admin Controls
 
@@ -124,11 +143,11 @@ When automation is disabled:
 
 ## Technical Details
 
-### Cron Job Frequency
+### GitHub Actions Frequency
 
 - Runs every 10 minutes (`*/10 * * * *`)
-- Can be adjusted in `vercel.json` if needed
-- More frequent = faster response, but higher costs
+- Can be adjusted in `.github/workflows/transfer-automation.yml`
+- Completely free on GitHub (2,000 minutes/month free tier)
 
 ### Processing Logic
 
@@ -189,7 +208,7 @@ Authorization: Bearer <CRON_SECRET>
 
 ### Manual Testing
 
-You can manually trigger the cron job:
+You can manually test the API endpoint:
 
 ```bash
 curl -X POST https://your-app.vercel.app/api/transfer-toggle-automator \
@@ -208,24 +227,25 @@ curl -X POST https://your-app.vercel.app/api/transfer-toggle-automator \
 
 ## Troubleshooting
 
-### Cron Not Running
+### Workflow Not Running
 
-1. Check Vercel Dashboard > Settings > Cron Jobs
-2. Verify `vercel.json` has correct cron configuration
-3. Check function logs for errors
+1. Check GitHub Repository → Settings → Actions (ensure Actions are enabled)
+2. Verify `.github/workflows/transfer-automation.yml` exists
+3. Check GitHub Secrets are added correctly
+4. View workflow runs in Actions tab
 
 ### Toggle Not Updating
 
 1. Verify `autoToggleEnabled` is true in league document
 2. Check match schedule is uploaded
 3. Verify environment variables are set correctly
-4. Check cron job logs for specific league
+4. Check GitHub Actions and API logs for specific league
 
 ### Authorization Errors
 
-1. Verify `CRON_SECRET` environment variable is set
-2. Ensure Authorization header matches the secret
-3. Check Vercel environment variable scope (Production/Preview)
+1. Verify `CRON_SECRET` matches between GitHub Secret and Vercel environment variable
+2. Ensure Authorization header format is correct
+3. Check both GitHub and Vercel secrets are set correctly
 
 ### Time Zone Issues
 
@@ -237,32 +257,34 @@ curl -X POST https://your-app.vercel.app/api/transfer-toggle-automator \
 
 ### Logs to Check
 
-1. **Vercel Function Logs**: See execution results
-2. **Firestore Updates**: Check `lastAutoToggleUpdate` field
-3. **Admin UI**: View "Last automated update" timestamp
+1. **GitHub Actions Logs**: See workflow execution (Actions tab)
+2. **Vercel Function Logs**: See API execution results
+3. **Firestore Updates**: Check `lastAutoToggleUpdate` field
+4. **Admin UI**: View "Last automated update" timestamp
 
 ### What to Monitor
 
-- Successful updates per run
-- Errors or failures
+- Successful updates per run (GitHub Actions)
+- Errors or failures (check both GitHub and Vercel logs)
 - Leagues being skipped (automation disabled or no schedule)
 - Time accuracy (updates happening at expected times)
 
 ## Cost Considerations
 
-### Vercel Cron Jobs
+### GitHub Actions (Free)
 
-- Free tier: 100 GB-hours/month
+- **Free tier**: 2,000 minutes/month (private repos), unlimited (public repos)
 - Running every 10 minutes ≈ 4,320 executions/month
-- Each execution ~1-5 seconds depending on number of leagues
-- Well within free tier for most use cases
+- Each execution ~5-10 seconds
+- **Total usage**: ~360 minutes/month
+- **Cost**: $0 (well within free tier) ✅
 
-### Optimization
+### Vercel Function Calls
 
-If you have many leagues (100+), consider:
-- Increasing cron interval to 15 or 30 minutes
-- Implementing batch processing
-- Adding caching for frequently accessed data
+- Called by GitHub Actions (not billed separately for execution time)
+- Standard Vercel function limits apply
+- Free tier: 100 GB-hours/month
+- Well within limits for most use cases
 
 ## Future Enhancements
 

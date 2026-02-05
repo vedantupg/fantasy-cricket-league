@@ -2,11 +2,5 @@
   "buildCommand": "npm run build",
   "outputDirectory": "build",
   "framework": "create-react-app",
-  "installCommand": "npm install",
-  "crons": [
-    {
-      "path": "/api/transfer-toggle-automator",
-      "schedule": "*/10 * * * *"
-    }
-  ]
+  "installCommand": "npm install"
 }
