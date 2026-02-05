@@ -166,7 +166,7 @@ on:
 ```
 
 **Calls**: Vercel API endpoint with authorization  
-**Frequency**: Every 10 minutes  
+**Frequency**: Every 10 minutes  it is
 **Cost**: Free (GitHub Actions free tier)
 
 ### 4. `.env.example`
