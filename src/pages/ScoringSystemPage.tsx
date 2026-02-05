@@ -55,7 +55,7 @@ const ScoringConfigContent: React.FC<{
               {/* Batting Configuration */}
               <Box sx={{ p: 2, bgcolor: 'rgba(30, 136, 229, 0.08)', borderRadius: 2, border: '1px solid', borderColor: 'rgba(30, 136, 229, 0.3)' }}>
                 <Typography variant="h6" gutterBottom sx={{ color: '#1E88E5', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  ⚾ Batting Scoring Rules
+                  🏏 Batting Scoring Rules
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                   <Box>
@@ -283,7 +283,7 @@ const ScoringConfigContent: React.FC<{
               {/* Bowling Configuration */}
               <Box sx={{ p: 2, bgcolor: 'rgba(255, 255, 255, 0.05)', borderRadius: 2, border: '1px solid', borderColor: 'rgba(255, 255, 255, 0.1)' }}>
                 <Typography variant="h6" gutterBottom sx={{ color: '#90caf9', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  💨 Bowling Scoring Rules
+                  🎾 Bowling Scoring Rules
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                   <Box>
