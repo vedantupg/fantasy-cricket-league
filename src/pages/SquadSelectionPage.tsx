@@ -2041,6 +2041,7 @@ const SquadSelectionPage: React.FC = () => {
               existingSquad={existingSquad}
               calculatePlayerContribution={calculatePlayerContribution}
               readOnly={isDeadlinePassed && !canMakeTransfer}
+              isDeadlinePassed={isDeadlinePassed}
             />
           </Grid>
 
@@ -2174,7 +2175,8 @@ const CricketPitchFormation: React.FC<{
   existingSquad: LeagueSquad | null;
   calculatePlayerContribution: (player: SquadPlayer, role: 'captain' | 'viceCaptain' | 'xFactor' | 'regular') => number;
   readOnly: boolean;
-}> = ({ league, selectedPlayers, onRemovePlayer, onUpdatePosition, powerplayMatch, setPowerplayMatch, maxPowerplayMatches, captainId, viceCaptainId, xFactorId, onSetSpecialRole, existingSquad, calculatePlayerContribution, readOnly }) => {
+  isDeadlinePassed: boolean;
+}> = ({ league, selectedPlayers, onRemovePlayer, onUpdatePosition, powerplayMatch, setPowerplayMatch, maxPowerplayMatches, captainId, viceCaptainId, xFactorId, onSetSpecialRole, existingSquad, calculatePlayerContribution, readOnly, isDeadlinePassed }) => {
 
   // Helper function to get player points for display
   const getPlayerPointsDisplay = (player: SelectedPlayer, slotType: 'required' | 'flexible' | 'bench') => {
