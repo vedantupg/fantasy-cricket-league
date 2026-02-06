@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Squad Management Integration Tests
  *
@@ -29,22 +30,22 @@ describe('Squad Management - End-to-End Integration Tests', () => {
 
     // Setup mock data
     mockPlayers = [
-      { playerId: 'p1', name: 'Steve Smith', team: 'Australia', role: 'Batsman', points: 450 },
-      { playerId: 'p2', name: 'Pat Cummins', team: 'Australia', role: 'Bowler', points: 380 },
-      { playerId: 'p3', name: 'Travis Head', team: 'Australia', role: 'All-rounder', points: 520 },
-      { playerId: 'p4', name: 'Josh Hazlewood', team: 'Australia', role: 'Bowler', points: 340 },
-      { playerId: 'p5', name: 'Marnus Labuschagne', team: 'Australia', role: 'Batsman', points: 490 },
-      { playerId: 'p6', name: 'David Warner', team: 'Australia', role: 'Batsman', points: 510 },
-      { playerId: 'p7', name: 'Mitchell Starc', team: 'Australia', role: 'Bowler', points: 360 },
-      { playerId: 'p8', name: 'Glenn Maxwell', team: 'Australia', role: 'All-rounder', points: 470 },
-      { playerId: 'p9', name: 'Alex Carey', team: 'Australia', role: 'Wicketkeeper', points: 320 },
-      { playerId: 'p10', name: 'Nathan Lyon', team: 'Australia', role: 'Bowler', points: 310 },
-      { playerId: 'p11', name: 'Usman Khawaja', team: 'Australia', role: 'Batsman', points: 480 },
+      { playerId: 'p1', name: 'Steve Smith', team: 'Australia', role: 'batsman', points: 450 },
+      { playerId: 'p2', name: 'Pat Cummins', team: 'Australia', role: 'bowler', points: 380 },
+      { playerId: 'p3', name: 'Travis Head', team: 'Australia', role: 'allrounder', points: 520 },
+      { playerId: 'p4', name: 'Josh Hazlewood', team: 'Australia', role: 'bowler', points: 340 },
+      { playerId: 'p5', name: 'Marnus Labuschagne', team: 'Australia', role: 'batsman', points: 490 },
+      { playerId: 'p6', name: 'David Warner', team: 'Australia', role: 'batsman', points: 510 },
+      { playerId: 'p7', name: 'Mitchell Starc', team: 'Australia', role: 'bowler', points: 360 },
+      { playerId: 'p8', name: 'Glenn Maxwell', team: 'Australia', role: 'allrounder', points: 470 },
+      { playerId: 'p9', name: 'Alex Carey', team: 'Australia', role: 'wicketkeeper', points: 320 },
+      { playerId: 'p10', name: 'Nathan Lyon', team: 'Australia', role: 'bowler', points: 310 },
+      { playerId: 'p11', name: 'Usman Khawaja', team: 'Australia', role: 'batsman', points: 480 },
       // Bench players
-      { playerId: 'p12', name: 'Cameron Green', team: 'Australia', role: 'All-rounder', points: 290 },
-      { playerId: 'p13', name: 'Josh Inglis', team: 'Australia', role: 'Wicketkeeper', points: 260 },
-      { playerId: 'p14', name: 'Matt Renshaw', team: 'Australia', role: 'Batsman', points: 240 },
-      { playerId: 'p15', name: 'Sean Abbott', team: 'Australia', role: 'Bowler', points: 220 },
+      { playerId: 'p12', name: 'Cameron Green', team: 'Australia', role: 'allrounder', points: 290 },
+      { playerId: 'p13', name: 'Josh Inglis', team: 'Australia', role: 'wicketkeeper', points: 260 },
+      { playerId: 'p14', name: 'Matt Renshaw', team: 'Australia', role: 'batsman', points: 240 },
+      { playerId: 'p15', name: 'Sean Abbott', team: 'Australia', role: 'bowler', points: 220 },
     ];
 
     mockPlayerPool = {
@@ -312,10 +313,10 @@ describe('Squad Management - End-to-End Integration Tests', () => {
         userId: 'user-1',
         squadName: 'Thunder Strikers',
         players: [
-          { playerId: 'p1', playerName: 'Steve Smith', team: 'Australia', role: 'Batsman', points: 450, pointsAtJoining: 450, pointsWhenRoleAssigned: 450 }, // Captain
-          { playerId: 'p2', playerName: 'Pat Cummins', team: 'Australia', role: 'Bowler', points: 380, pointsAtJoining: 380, pointsWhenRoleAssigned: 380 }, // VC
-          { playerId: 'p3', playerName: 'Travis Head', team: 'Australia', role: 'All-rounder', points: 520, pointsAtJoining: 520, pointsWhenRoleAssigned: 520 }, // X-Factor
-          { playerId: 'p4', playerName: 'Josh Hazlewood', team: 'Australia', role: 'Bowler', points: 340, pointsAtJoining: 340 },
+          { playerId: 'p1', playerName: 'Steve Smith', team: 'Australia', role: 'batsman', points: 450, pointsAtJoining: 450, pointsWhenRoleAssigned: 450 }, // Captain
+          { playerId: 'p2', playerName: 'Pat Cummins', team: 'Australia', role: 'bowler', points: 380, pointsAtJoining: 380, pointsWhenRoleAssigned: 380 }, // VC
+          { playerId: 'p3', playerName: 'Travis Head', team: 'Australia', role: 'allrounder', points: 520, pointsAtJoining: 520, pointsWhenRoleAssigned: 520 }, // X-Factor
+          { playerId: 'p4', playerName: 'Josh Hazlewood', team: 'Australia', role: 'bowler', points: 340, pointsAtJoining: 340 },
         ],
         captainId: 'p1',
         viceCaptainId: 'p2',
@@ -342,10 +343,10 @@ describe('Squad Management - End-to-End Integration Tests', () => {
       const updatedPlayerPool = {
         ...mockPlayerPool,
         players: [
-          { playerId: 'p1', name: 'Steve Smith', team: 'Australia', role: 'Batsman', points: 600 }, // +150
-          { playerId: 'p2', name: 'Pat Cummins', team: 'Australia', role: 'Bowler', points: 480 }, // +100
-          { playerId: 'p3', name: 'Travis Head', team: 'Australia', role: 'All-rounder', points: 620 }, // +100
-          { playerId: 'p4', name: 'Josh Hazlewood', team: 'Australia', role: 'Bowler', points: 390 }, // +50
+          { playerId: 'p1', name: 'Steve Smith', team: 'Australia', role: 'batsman', points: 600 }, // +150
+          { playerId: 'p2', name: 'Pat Cummins', team: 'Australia', role: 'bowler', points: 480 }, // +100
+          { playerId: 'p3', name: 'Travis Head', team: 'Australia', role: 'allrounder', points: 620 }, // +100
+          { playerId: 'p4', name: 'Josh Hazlewood', team: 'Australia', role: 'bowler', points: 390 }, // +50
         ],
       };
 
@@ -385,9 +386,9 @@ describe('Squad Management - End-to-End Integration Tests', () => {
         userId: 'user-1',
         squadName: 'Thunder Strikers',
         players: [
-          { playerId: 'p1', playerName: 'Steve Smith', team: 'Australia', role: 'Batsman', points: 600, pointsAtJoining: 450 }, // Contributing 150
-          { playerId: 'p2', playerName: 'Pat Cummins', team: 'Australia', role: 'Bowler', points: 480, pointsAtJoining: 380 }, // Contributing 100
-          { playerId: 'p12', playerName: 'Cameron Green', team: 'Australia', role: 'All-rounder', points: 350, pointsAtJoining: 290 }, // Bench, contributing 60
+          { playerId: 'p1', playerName: 'Steve Smith', team: 'Australia', role: 'batsman', points: 600, pointsAtJoining: 450 }, // Contributing 150
+          { playerId: 'p2', playerName: 'Pat Cummins', team: 'Australia', role: 'bowler', points: 480, pointsAtJoining: 380 }, // Contributing 100
+          { playerId: 'p12', playerName: 'Cameron Green', team: 'Australia', role: 'allrounder', points: 350, pointsAtJoining: 290 }, // Bench, contributing 60
         ],
         captainId: 'p1',
         viceCaptainId: 'p2',
@@ -471,7 +472,7 @@ describe('Squad Management - End-to-End Integration Tests', () => {
         playerId: 'p16',
         playerName: 'Mitchell Marsh',
         team: 'Australia',
-        role: 'All-rounder',
+        role: 'allrounder',
         points: 380,
         pointsAtJoining: 380, // Starts fresh
       };
@@ -549,7 +550,7 @@ describe('Squad Management - End-to-End Integration Tests', () => {
         playerId: 'p2',
         playerName: 'Mitchell Starc',
         team: 'Australia',
-        role: 'Bowler',
+        role: 'bowler',
         points: 595,
         pointsAtJoining: 0,
         pointsWhenRoleAssigned: undefined as number | undefined,

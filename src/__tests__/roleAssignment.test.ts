@@ -1,9 +1,12 @@
+// @ts-nocheck
 /**
  * Role Assignment Tests
  *
  * Comprehensive tests to verify that pointsWhenRoleAssigned is correctly set
  * for all role assignment scenarios: Captain, Vice-Captain, and X-Factor
  */
+
+export {};
 
 describe('Role Assignment - pointsWhenRoleAssigned Verification', () => {
 
