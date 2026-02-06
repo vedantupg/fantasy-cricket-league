@@ -16,15 +16,18 @@ import {
   Grid,
   FormControlLabel,
   Switch,
-  Checkbox
+  Checkbox,
+  Chip,
+  Divider
 } from '@mui/material';
-import { Save as SaveIcon } from '@mui/icons-material';
+import { Save as SaveIcon, SmartToy as AutomationIcon, Schedule as ScheduleIcon } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { leagueService, playerPoolService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
 import type { League, SquadRules, TransferTypeConfig, PlayerPool } from '../types/database';
+import { calculateToggleStatus, formatTimeUntilChange, formatDateTime } from '../utils/transferWindowAutomation';
 
 // Helper function to format Date for datetime-local input (preserves local timezone)
 const formatDateTimeLocal = (date: Date): string => {
@@ -109,6 +112,7 @@ const EditLeaguePage: React.FC = () => {
   // Admin controls for squad changes
   const [flexibleChangesEnabled, setFlexibleChangesEnabled] = useState(false);
   const [benchChangesEnabled, setBenchChangesEnabled] = useState(false);
+  const [autoToggleEnabled, setAutoToggleEnabled] = useState(true);
 
   // Load player pools and existing league data
   useEffect(() => {
@@ -174,6 +178,7 @@ const EditLeaguePage: React.FC = () => {
         // Load admin control values
         setFlexibleChangesEnabled(leagueData.flexibleChangesEnabled || false);
         setBenchChangesEnabled(leagueData.benchChangesEnabled || false);
+        setAutoToggleEnabled(leagueData.autoToggleEnabled !== false); // Default to true
 
       } catch (err: any) {
         console.error('Error loading data:', err);
@@ -218,6 +223,7 @@ const EditLeaguePage: React.FC = () => {
         transferTypes,
         flexibleChangesEnabled,
         benchChangesEnabled,
+        autoToggleEnabled,
       };
 
       await leagueService.update(leagueId, updates);
@@ -709,13 +715,126 @@ const EditLeaguePage: React.FC = () => {
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>
-              Admin Controls
+              Transfer Window Management
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
               Control when users can make flexible and bench changes to their squads
             </Typography>
 
             <Grid container spacing={2}>
+              {/* Automation Toggle */}
+              <Grid size={12}>
+                <Card variant="outlined" sx={{ p: 2, bgcolor: 'rgba(99, 102, 241, 0.05)', borderColor: 'rgba(99, 102, 241, 0.2)' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AutomationIcon sx={{ color: 'primary.main' }} />
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight="bold">
+                          Automatic Transfer Window Management
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Automatically open/close transfer windows based on match schedule
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={autoToggleEnabled}
+                          onChange={(e) => setAutoToggleEnabled(e.target.checked)}
+                          color="primary"
+                        />
+                      }
+                      label={autoToggleEnabled ? "ON" : "OFF"}
+                      labelPlacement="start"
+                    />
+                  </Box>
+
+                  {/* Show automation status if enabled and schedule exists */}
+                  {autoToggleEnabled && league?.matchSchedule && league.matchSchedule.length > 0 && (
+                    <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                      {(() => {
+                        const toggleStatus = calculateToggleStatus(league.matchSchedule);
+                        return (
+                          <Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                              <Chip
+                                label={toggleStatus.shouldBeEnabled ? "WINDOWS OPEN" : "WINDOWS CLOSED"}
+                                size="small"
+                                color={toggleStatus.shouldBeEnabled ? "success" : "default"}
+                                sx={{ fontWeight: 600 }}
+                              />
+                              <Chip
+                                label="Automated"
+                                size="small"
+                                icon={<AutomationIcon />}
+                                sx={{ bgcolor: 'rgba(99, 102, 241, 0.1)', color: 'primary.main' }}
+                              />
+                            </Box>
+
+                            {toggleStatus.nextChangeTime && (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                                <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                <Typography variant="caption" color="text.secondary">
+                                  Next change: <strong>{toggleStatus.nextChangeAction?.toUpperCase()}</strong> at{' '}
+                                  {formatDateTime(toggleStatus.nextChangeTime)} ({formatTimeUntilChange(toggleStatus.nextChangeTime)})
+                                </Typography>
+                              </Box>
+                            )}
+
+                            {!toggleStatus.nextChangeTime && (
+                              <Typography variant="caption" color="text.secondary">
+                                Tournament complete - no more automatic changes
+                              </Typography>
+                            )}
+
+                            {league.lastAutoToggleUpdate && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                                Last automated update: {new Date(league.lastAutoToggleUpdate).toLocaleString()} ({league.lastAutoToggleAction})
+                              </Typography>
+                            )}
+                          </Box>
+                        );
+                      })()}
+                    </Box>
+                  )}
+
+                  {autoToggleEnabled && (!league?.matchSchedule || league.matchSchedule.length === 0) && (
+                    <Alert severity="warning" sx={{ mt: 2 }}>
+                      <Typography variant="body2">
+                        Upload a match schedule to enable automatic transfer window management.
+                      </Typography>
+                    </Alert>
+                  )}
+
+                  {!autoToggleEnabled && (
+                    <Alert severity="info" sx={{ mt: 2 }}>
+                      <Typography variant="body2">
+                        Manual mode enabled. Use the toggles below to control transfer windows manually.
+                      </Typography>
+                    </Alert>
+                  )}
+                </Card>
+              </Grid>
+
+              <Grid size={12}>
+                <Divider sx={{ my: 2 }} />
+              </Grid>
+
+              {/* Manual Controls (always visible, grayed out when automation is enabled) */}
+              <Grid size={12}>
+                <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {autoToggleEnabled ? (
+                    <>
+                      Manual Override
+                      <Chip label="Will be overridden by automation" size="small" sx={{ fontSize: '0.7rem' }} />
+                    </>
+                  ) : (
+                    'Manual Controls'
+                  )}
+                </Typography>
+              </Grid>
+
               {/* Flexible Changes Toggle */}
               <Grid size={12}>
                 <FormControlLabel
@@ -727,7 +846,7 @@ const EditLeaguePage: React.FC = () => {
                     />
                   }
                   label={
-                    <Box>
+                    <Box sx={{ opacity: autoToggleEnabled ? 0.6 : 1 }}>
                       <Typography variant="body1" fontWeight="medium">
                         Enable Flexible Changes
                       </Typography>
@@ -750,7 +869,7 @@ const EditLeaguePage: React.FC = () => {
                     />
                   }
                   label={
-                    <Box>
+                    <Box sx={{ opacity: autoToggleEnabled ? 0.6 : 1 }}>
                       <Typography variant="body1" fontWeight="medium">
                         Enable Bench Changes
                       </Typography>
@@ -763,9 +882,20 @@ const EditLeaguePage: React.FC = () => {
               </Grid>
 
               <Grid size={12}>
-                <Alert severity="info">
+                <Alert severity={autoToggleEnabled ? "info" : "warning"}>
                   <Typography variant="body2">
-                    These toggles allow you (admin) to control when squad changes are allowed. Toggle them ON when you want users to be able to make changes, and OFF to lock squads. Mid-season transfers (configured above) have their own schedule.
+                    {autoToggleEnabled ? (
+                      <>
+                        <strong>Automation Active:</strong> Transfer windows will open/close automatically based on your match schedule. 
+                        Manual changes will be respected until the next scheduled toggle time. 
+                        To disable automation, turn off "Automatic Transfer Window Management" above.
+                      </>
+                    ) : (
+                      <>
+                        <strong>Manual Mode:</strong> You have full control. Toggle these switches ON when you want users to make changes, 
+                        and OFF to lock squads. Changes take effect immediately.
+                      </>
+                    )}
                   </Typography>
                 </Alert>
               </Grid>
