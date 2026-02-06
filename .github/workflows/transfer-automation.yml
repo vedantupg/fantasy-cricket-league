@@ -22,8 +22,9 @@ jobs:
     steps:
       - name: Trigger Transfer Window Automation
         run: |
-          response=$(curl -s -w "\n%{http_code}" -X POST ${{ secrets.VERCEL_APP_URL }}/api/transfer-toggle-automator \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          response=$(curl -s -w "\n%{http_code}" -L -X POST ${{ secrets.VERCEL_APP_URL }}/api/transfer-toggle-automator \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json")
           
           http_code=$(echo "$response" | tail -n1)
           body=$(echo "$response" | sed '$d')
