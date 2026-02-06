@@ -1,22 +1,39 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { initializeApp, cert, getApps, App } from 'firebase-admin/app';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import type * as FirebaseFirestore from 'firebase-admin/firestore';
 
-// Initialize Firebase Admin (only if not already initialized)
-let adminApp: App;
-if (getApps().length === 0) {
-  adminApp = initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-  });
-} else {
-  adminApp = getApps()[0];
+// Initialize Firebase Admin with error handling
+function initializeFirebaseAdmin() {
+  try {
+    if (getApps().length === 0) {
+      // Validate environment variables
+      if (!process.env.FIREBASE_PROJECT_ID) {
+        throw new Error('FIREBASE_PROJECT_ID environment variable is not set');
+      }
+      if (!process.env.FIREBASE_CLIENT_EMAIL) {
+        throw new Error('FIREBASE_CLIENT_EMAIL environment variable is not set');
+      }
+      if (!process.env.FIREBASE_PRIVATE_KEY) {
+        throw new Error('FIREBASE_PRIVATE_KEY environment variable is not set');
+      }
+
+      const adminApp = initializeApp({
+        credential: cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        }),
+      });
+      return adminApp;
+    } else {
+      return getApps()[0];
+    }
+  } catch (error) {
+    console.error('Failed to initialize Firebase Admin:', error);
+    throw error;
+  }
 }
-
-const db = getFirestore(adminApp);
 
 // Import types (re-defined here for serverless environment)
 interface ScheduleMatch {
@@ -206,6 +223,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const authHeader = req.headers['authorization'];
     const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
     
+    if (!process.env.CRON_SECRET) {
+      console.error('CRON_SECRET environment variable is not set');
+      return res.status(500).json({ error: 'Server configuration error: CRON_SECRET not set' });
+    }
+    
     if (authHeader !== expectedAuth) {
       console.error('Unauthorized request - invalid or missing authorization header');
       return res.status(401).json({ error: 'Unauthorized' });
@@ -214,6 +236,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log('🤖 Transfer Toggle Automator: Starting...');
     const currentTime = new Date();
     console.log(`Current time: ${currentTime.toISOString()}`);
+
+    // Initialize Firebase Admin
+    let adminApp: App;
+    let db: FirebaseFirestore.Firestore;
+    
+    try {
+      adminApp = initializeFirebaseAdmin();
+      db = getFirestore(adminApp);
+      console.log('✅ Firebase Admin initialized successfully');
+    } catch (initError) {
+      console.error('❌ Firebase initialization failed:', initError);
+      return res.status(500).json({ 
+        error: 'Firebase initialization failed',
+        details: initError instanceof Error ? initError.message : 'Unknown error'
+      });
+    }
 
     // Fetch all active leagues
     const leaguesSnapshot = await db.collection('leagues')
