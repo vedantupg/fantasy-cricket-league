@@ -1,11 +1,13 @@
 name: Deploy to Production
 
+# DISABLED: Vercel auto-deploy is enabled, no need for this workflow
+# This workflow is kept for reference but won't run automatically
 on:
-  # Disabled automatic deployment - use manual Vercel deploy instead
+  # Disabled automatic deployment - Vercel handles this automatically
   # push:
   #   branches:
   #     - main
-  workflow_dispatch:  # Keep manual trigger option
+  workflow_dispatch:  # Keep manual trigger option if needed
 
 jobs:
   test:
