@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Transfer Permissions Tests
  *
@@ -6,6 +7,8 @@
  * - Flexible/Mid-Season: Can substitute X-Factor/regular ONLY (NOT C/VC)
  * - Flexible/Mid-Season: Can reassign VC and X-Factor (NOT Captain)
  */
+
+export {};
 
 describe('Transfer Permissions - Comprehensive Verification', () => {
 

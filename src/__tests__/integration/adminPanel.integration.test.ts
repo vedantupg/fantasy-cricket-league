@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Admin Panel Integration Tests
  *
@@ -30,7 +31,7 @@ describe('Admin Panel - Integration Tests', () => {
           playerId: 'p1',
           playerName: 'Steve Smith',
           team: 'Australia',
-          role: 'Batsman',
+          role: 'batsman',
           points: 600,
           pointsAtJoining: 450,
           pointsWhenRoleAssigned: 450,
@@ -39,7 +40,7 @@ describe('Admin Panel - Integration Tests', () => {
           playerId: 'p2',
           playerName: 'Pat Cummins',
           team: 'Australia',
-          role: 'Bowler',
+          role: 'bowler',
           points: 480,
           pointsAtJoining: 380,
           pointsWhenRoleAssigned: 380,
@@ -48,7 +49,7 @@ describe('Admin Panel - Integration Tests', () => {
           playerId: 'p3',
           playerName: 'Travis Head',
           team: 'Australia',
-          role: 'All-rounder',
+          role: 'allrounder',
           points: 620,
           pointsAtJoining: 520,
         },

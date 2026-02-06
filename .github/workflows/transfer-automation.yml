@@ -1,0 +1,32 @@
+name: Transfer Window Automation
+
+on:
+  schedule:
+    # Runs every 10 minutes
+    - cron: '*/10 * * * *'
+  
+  # Allows manual triggering from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  run-automation:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger Transfer Window Automation
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST ${{ secrets.VERCEL_APP_URL }}/api/transfer-toggle-automator \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+          
+          if [ "$http_code" -ne 200 ]; then
+            echo "❌ Automation failed with status $http_code"
+            exit 1
+          else
+            echo "✅ Automation completed successfully"
+          fi
