@@ -7,13 +7,6 @@ on:
   
   # Allows manual triggering from GitHub Actions tab
   workflow_dispatch:
-  
-  # Temporary: Help GitHub detect the workflow
-  push:
-    branches:
-      - dev
-    paths:
-      - '.github/workflows/transfer-automation.yml'
 
 jobs:
   run-automation:
