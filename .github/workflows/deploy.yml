@@ -1,10 +1,11 @@
 name: Deploy to Production
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+  # Disabled automatic deployment - use manual Vercel deploy instead
+  # push:
+  #   branches:
+  #     - main
+  workflow_dispatch:  # Keep manual trigger option
 
 jobs:
   test:
