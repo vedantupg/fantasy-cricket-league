@@ -279,12 +279,20 @@ const ProfilePage: React.FC = () => {
       setProfileImage(null);
     } catch (error: any) {
       console.error('Failed to update profile:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
 
       let errorMessage = 'Failed to save profile. Please try again.';
       if (error.message?.includes('timeout')) {
         errorMessage = 'Upload timed out. Please check your connection and try again.';
       } else if (error.code === 'storage/unauthorized') {
-        errorMessage = 'You do not have permission to upload images.';
+        errorMessage = 'You do not have permission to upload images. Please check Firebase Storage rules.';
+      } else if (error.code === 'storage/object-not-found') {
+        errorMessage = 'Storage bucket not found. Please contact admin.';
+      } else if (error.code === 'storage/quota-exceeded') {
+        errorMessage = 'Storage quota exceeded. Please contact admin.';
+      } else if (error.code) {
+        errorMessage = `Upload failed: ${error.code} - ${error.message}`;
       }
 
       setError(errorMessage);

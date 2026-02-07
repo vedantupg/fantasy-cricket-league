@@ -19,11 +19,33 @@ const STORAGE_PATHS = {
 export const imageService = {
   // Upload user profile picture
   async uploadUserProfile(userId: string, file: File): Promise<string> {
-    const fileName = `profile.${file.name.split('.').pop()}`;
-    const storageRef = ref(storage, `${STORAGE_PATHS.USER_PROFILES}/${userId}/${fileName}`);
-    
-    const snapshot = await uploadBytes(storageRef, file);
-    return await getDownloadURL(snapshot.ref);
+    try {
+      console.log('Starting upload for user:', userId);
+      console.log('File details:', { name: file.name, size: file.size, type: file.type });
+
+      const fileName = `profile.${file.name.split('.').pop()}`;
+      const storagePath = `${STORAGE_PATHS.USER_PROFILES}/${userId}/${fileName}`;
+      console.log('Upload path:', storagePath);
+
+      const storageRef = ref(storage, storagePath);
+
+      console.log('Uploading file...');
+      const snapshot = await uploadBytes(storageRef, file);
+      console.log('Upload successful, getting download URL...');
+
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      console.log('Download URL obtained:', downloadURL);
+
+      return downloadURL;
+    } catch (error: any) {
+      console.error('Upload error details:', {
+        code: error.code,
+        message: error.message,
+        serverResponse: error.serverResponse,
+        customData: error.customData
+      });
+      throw error;
+    }
   },
 
   // Upload player image (admin only)

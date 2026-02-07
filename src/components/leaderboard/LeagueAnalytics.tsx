@@ -486,7 +486,7 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot, league, squ
           </Typography>
 
           <Box sx={{ mt: 2 }}>
-            {templateSquad.slice(0, 6).map((player, idx) => (
+            {templateSquad.map((player, idx) => (
               <Box
                 key={player.playerId}
                 sx={{
@@ -494,7 +494,7 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot, league, squ
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   py: 1,
-                  borderBottom: idx < 5 ? '1px solid' : 'none',
+                  borderBottom: idx < 10 ? '1px solid' : 'none',
                   borderColor: 'divider',
                 }}
               >
