@@ -94,12 +94,14 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
   const findMatchingPlayer = (rawName: string): PlayerPoolEntry | undefined => {
     // Step 1: Clean the name - remove role indicators and special characters
     let cleanName = rawName
-      .replace(/\s*\(c\)\s*/gi, ' ')       // Captain
-      .replace(/\s*\(wk\)\s*/gi, ' ')      // Wicket keeper
-      .replace(/\s*\(vc\)\s*/gi, ' ')      // Vice captain
-      .replace(/†/g, '')                    // Wicket keeper symbol
-      .replace(/\*/g, '')                   // Captain symbol
-      .replace(/\s+/g, ' ')                 // Multiple spaces to single
+      .replace(/\s*\(c\s*&\s*wk\)\s*/gi, ' ')  // Captain & Wicketkeeper combined
+      .replace(/\s*\(wk\s*&\s*c\)\s*/gi, ' ')  // Wicketkeeper & Captain combined
+      .replace(/\s*\(c\)\s*/gi, ' ')           // Captain
+      .replace(/\s*\(wk\)\s*/gi, ' ')          // Wicket keeper
+      .replace(/\s*\(vc\)\s*/gi, ' ')          // Vice captain
+      .replace(/†/g, '')                        // Wicket keeper symbol
+      .replace(/\*/g, '')                       // Captain symbol
+      .replace(/\s+/g, ' ')                     // Multiple spaces to single
       .trim();
 
     const normalized = cleanName.toLowerCase();
@@ -245,7 +247,8 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
     if (!dismissalText) return;
 
     // Pattern for catches: "c Fielder b Bowler" or "c & b Bowler" or "c Fielder1/Fielder2 b Bowler"
-    const catchPattern = /c\s+([^b]+?)\s+b\s+(.+?)(?:\s|$)/i;
+    // Updated pattern: Match "c <fielder> b <bowler>" where we look for word boundary before 'b'
+    const catchPattern = /\bc\s+(.+?)\s+\bb\s+(.+?)$/i;
     const catchMatch = dismissalText.match(catchPattern);
 
     if (catchMatch) {
