@@ -33,6 +33,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { leagueService, userService, squadService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
+import LeagueAssistant from '../components/LeagueAssistant';
 import type { League, User } from '../types/database';
 import colors from '../theme/colors';
 
@@ -440,6 +441,9 @@ const LeagueDashboardPage: React.FC = () => {
         </DialogActions>
       </Dialog>
       </Container>
+
+      {/* AI Assistant Widget */}
+      <LeagueAssistant leagueId={leagueId} />
     </Box>
   );
 };

@@ -33,6 +33,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
+import LeagueAssistant from '../components/LeagueAssistant';
 import TransferModal, { TransferData } from '../components/squad/TransferModal';
 import { playerPoolService, leagueService, squadService, squadPlayerUtils, leaderboardSnapshotService } from '../services/firestore';
 import type { League, Player, SquadPlayer, LeagueSquad } from '../types/database';
@@ -2155,6 +2156,9 @@ const SquadSelectionPage: React.FC = () => {
           onSubmitTransfer={handleTransferSubmit}
         />
       )}
+
+      {/* AI Assistant Widget */}
+      <LeagueAssistant leagueId={leagueId} />
     </Box>
   );
 };

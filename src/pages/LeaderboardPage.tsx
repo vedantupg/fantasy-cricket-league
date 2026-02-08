@@ -19,6 +19,7 @@ import LeagueNav from '../components/common/LeagueNav';
 import CompactPodium from '../components/leaderboard/CompactPodium';
 import CompactLeaderboardCard from '../components/leaderboard/CompactLeaderboardCard';
 import LeaderboardHighlights from '../components/leaderboard/LeaderboardHighlights';
+import LeagueAssistant from '../components/LeagueAssistant';
 import { leaderboardSnapshotService, leagueService, squadService } from '../services/firestore';
 import type { LeaderboardSnapshot, League, StandingEntry } from '../types/database';
 import { calculateRankStreaks, attachStreaksToStandings } from '../utils/streakCalculator';
@@ -529,6 +530,9 @@ const LeaderboardPage: React.FC = () => {
           </Card>
         )}
       </Container>
+
+      {/* AI Assistant Widget */}
+      <LeagueAssistant leagueId={leagueId} />
     </Box>
   );
 };
