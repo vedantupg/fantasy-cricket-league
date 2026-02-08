@@ -132,20 +132,21 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
         <Box
           sx={{
             display: 'flex',
-            gap: 0.3,
-            flexWrap: 'nowrap', // Keep horizontal
+            gap: 0.25,
+            flexWrap: 'nowrap',
             alignItems: 'center',
+            height: 8, // Constrain height to keep compact
           }}
         >
           {dots.map((dot, index) => (
             <Box
               key={`${dot.type}-${index}`}
               sx={{
-                width: 5,
-                height: 5,
+                width: 4,
+                height: 4,
                 borderRadius: '50%',
                 bgcolor: dot.available ? dot.color : 'transparent', // REVERSED
-                border: `1px solid ${dot.color}`,
+                border: `0.8px solid ${dot.color}`,
                 opacity: dot.available ? 1 : 0.4, // REVERSED
                 transition: 'all 0.2s ease',
               }}
@@ -259,8 +260,8 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
           }}
         />
 
-        {/* Name - Fixed to prevent card stretching */}
-        <Box sx={{ flex: '1 1 auto', minWidth: 0 }}>
+        {/* Name and Transfer Dots - Vertically stacked */}
+        <Box sx={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.3 }}>
           <Typography
             variant="subtitle2"
             sx={{
@@ -274,10 +275,9 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
           >
             {standing.displayName}
           </Typography>
+          {/* Transfer Dots - Now below name */}
+          {renderTransferDots()}
         </Box>
-
-        {/* Transfer Dots */}
-        {renderTransferDots()}
 
         {/* You chip */}
         {isCurrentUser && (
