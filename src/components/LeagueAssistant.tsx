@@ -3,7 +3,7 @@
  * Provides intelligent assistance for fantasy cricket decisions
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -39,7 +39,6 @@ import {
   queryAI,
   buildLeagueContext,
   SUGGESTED_QUESTIONS,
-  getSmartSuggestion,
   type Message,
   type LeagueContext,
 } from '../services/aiService';
@@ -66,14 +65,7 @@ const LeagueAssistant: React.FC<LeagueAssistantProps> = ({ leagueId }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Load context when dialog opens
-  useEffect(() => {
-    if (open && !context && user && leagueId) {
-      loadContext();
-    }
-  }, [open, user, leagueId]);
-
-  const loadContext = async () => {
+  const loadContext = useCallback(async () => {
     if (!user || !leagueId) return;
 
     setContextLoading(true);
@@ -139,7 +131,14 @@ What would you like to know?`,
     } finally {
       setContextLoading(false);
     }
-  };
+  }, [user, leagueId, messages.length]);
+
+  // Load context when dialog opens
+  useEffect(() => {
+    if (open && !context && user && leagueId) {
+      loadContext();
+    }
+  }, [open, context, user, leagueId, loadContext]);
 
   const handleSendMessage = async (questionText?: string) => {
     const question = questionText || input.trim();
