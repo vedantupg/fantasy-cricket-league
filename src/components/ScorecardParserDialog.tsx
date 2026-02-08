@@ -265,12 +265,13 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
       }
 
       // Add or update fielder
-      const existing = fieldingMap.get(fielderName.toLowerCase());
+      const normalizedFielderName = fielderName.toLowerCase().trim();
+      const existing = fieldingMap.get(normalizedFielderName);
       if (existing) {
         existing.catches++;
       } else {
         const matchedPlayer = findMatchingPlayer(fielderName);
-        fieldingMap.set(fielderName.toLowerCase(), {
+        fieldingMap.set(normalizedFielderName, {
           playerName: fielderName,
           catches: 1,
           runOuts: 0,
@@ -362,8 +363,23 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
 
           // Try to parse a batting entry
           // Format: Name, Dismissal (optional), R, B, 4s, 6s, SR
-          const playerName = lines[i];
+          let playerName = lines[i].trim(); // Trim whitespace from player name
           if (!playerName || playerName.match(/^[\d.]+$/) || playerName.match(battingColumnHeaders)) {
+            i++;
+            continue;
+          }
+
+          // Guard against dismissal lines being treated as player names
+          // BUT still extract fielding credits from them before skipping
+          if (/^(c\s|b\s|lbw\s|st\s|run out|not out)/i.test(playerName)) {
+            // Extract fielding credits from this dismissal line before skipping
+            extractFieldingCredits(playerName, fieldingMap);
+            i++;
+            continue;
+          }
+
+          // Detect batting column headers mid-stream
+          if (/^(R|B|4s|6s|SR)$/i.test(playerName)) {
             i++;
             continue;
           }
@@ -645,7 +661,7 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
     setParsedBatting([]);
     setParsedBowling([]);
     setParsedFielding([]);
-    setIncludeFielding(false);
+    setIncludeFielding(true);
     setError('');
     setMatchLabel('');
     onClose();
@@ -728,24 +744,26 @@ Sophie Ecclestone
             </Alert>
           )}
 
-          {(parsedBatting.length > 0 || parsedBowling.length > 0) && (
+          {(parsedBatting.length > 0 || parsedBowling.length > 0 || parsedFielding.length > 0) && (
             <Box sx={{ mt: 3 }}>
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                 <Typography variant="h6">
                   Parsed Performances ({totalMatched}/{totalParsed} matched)
                 </Typography>
-                {parsedFielding.length > 0 && (
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={includeFielding}
-                        onChange={(e) => setIncludeFielding(e.target.checked)}
-                        color="success"
-                      />
-                    }
-                    label="Include Fielding Stats"
-                  />
-                )}
+                <Box display="flex" gap={2}>
+                  {parsedFielding.length > 0 && (
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={includeFielding}
+                          onChange={(e) => setIncludeFielding(e.target.checked)}
+                          color="success"
+                        />
+                      }
+                      label="Include Fielding Stats"
+                    />
+                  )}
+                </Box>
               </Box>
 
               {parsedBatting.length > 0 && (
