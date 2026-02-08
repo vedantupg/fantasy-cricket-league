@@ -193,7 +193,14 @@ const PowerplayManagementPage: React.FC = () => {
   }
 
   const selectedLeague = leagues.find((l) => l.id === selectedLeagueId);
-  const submittedSquads = squads.filter((s) => s.isSubmitted);
+  const submittedSquads = squads
+    .filter((s) => s.isSubmitted)
+    .sort((a, b) => {
+      // Sort by powerplay match number (earliest first)
+      const aPP = a.powerplayMatchNumber || 999;
+      const bPP = b.powerplayMatchNumber || 999;
+      return aPP - bPP;
+    });
   const squadsWithPowerplay = submittedSquads.filter((s) => s.powerplayMatchNumber);
 
   return (
