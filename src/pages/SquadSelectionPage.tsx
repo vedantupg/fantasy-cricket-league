@@ -1135,8 +1135,16 @@ const SquadSelectionPage: React.FC = () => {
                 oldCaptainBecomingX.pointsWhenRoleAssigned = oldCaptainBecomingX.points;
               }
             }
+          } else {
+            // New Captain is a REGULAR player (no existing role)
+            // ⚠️ CRITICAL FIX: Bank their contribution as a regular player BEFORE making them captain
+            const playerBecomingCaptain = updatedPlayers.find(p => p.playerId === transferData.newCaptainId);
+            if (playerBecomingCaptain) {
+              const regularContribution = calculatePlayerContribution(playerBecomingCaptain, 'regular');
+              additionalBankedPoints += regularContribution;
+            }
+            // Old Captain just loses Captain role (no swap needed - they become regular)
           }
-          // If new Captain has NO role, old Captain just loses Captain role (no swap needed)
 
           // STEP 4: Assign new Captain and ALWAYS reset baseline
           const newCaptain = updatedPlayers.find(p => p.playerId === transferData.newCaptainId);
@@ -1204,8 +1212,16 @@ const SquadSelectionPage: React.FC = () => {
                 oldVCBecomingX.pointsWhenRoleAssigned = oldVCBecomingX.points;
               }
             }
+          } else {
+            // New VC is a REGULAR player (no existing role)
+            // ⚠️ CRITICAL FIX: Bank their contribution as a regular player BEFORE making them VC
+            const playerBecomingVC = updatedPlayers.find(p => p.playerId === transferData.newViceCaptainId);
+            if (playerBecomingVC) {
+              const regularContribution = calculatePlayerContribution(playerBecomingVC, 'regular');
+              additionalBankedPoints += regularContribution;
+            }
+            // Old VC just loses VC role (no swap needed - they become regular)
           }
-          // If new VC has NO role, old VC just loses VC role (no swap needed)
 
           // STEP 4: Assign new VC and ALWAYS reset baseline
           const newVC = updatedPlayers.find(p => p.playerId === transferData.newViceCaptainId);
@@ -1273,8 +1289,16 @@ const SquadSelectionPage: React.FC = () => {
                 oldXBecomingVC.pointsWhenRoleAssigned = oldXBecomingVC.points;
               }
             }
+          } else {
+            // New X-Factor is a REGULAR player (no existing role)
+            // ⚠️ CRITICAL FIX: Bank their contribution as a regular player BEFORE making them X-Factor
+            const playerBecomingX = updatedPlayers.find(p => p.playerId === transferData.newXFactorId);
+            if (playerBecomingX) {
+              const regularContribution = calculatePlayerContribution(playerBecomingX, 'regular');
+              additionalBankedPoints += regularContribution;
+            }
+            // Old X-Factor just loses X-Factor role (no swap needed - they become regular)
           }
-          // If new X-Factor has NO role, old X-Factor just loses X-Factor role (no swap needed)
 
           // STEP 4: Assign new X-Factor and ALWAYS reset baseline
           const newX = updatedPlayers.find(p => p.playerId === transferData.newXFactorId);
