@@ -123,9 +123,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUserProfile = async (data: Partial<UserData>) => {
     if (!user) return;
-    
-    const updatedData = { ...userData, ...data };
-    await setDoc(doc(db, 'users', user.uid), updatedData, { merge: true });
+
+    // Filter out undefined values to prevent Firestore errors
+    // Firestore doesn't allow undefined values, only null or omitted fields
+    const cleanData = Object.fromEntries(
+      Object.entries(data).filter(([_, value]) => value !== undefined)
+    );
+
+    const updatedData = { ...userData, ...cleanData };
+    await setDoc(doc(db, 'users', user.uid), cleanData, { merge: true });
     setUserData(updatedData as UserData);
   };
 
