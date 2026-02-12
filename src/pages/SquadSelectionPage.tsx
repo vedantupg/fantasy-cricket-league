@@ -1104,6 +1104,17 @@ const SquadSelectionPage: React.FC = () => {
             // Old Captain gets the VC role
             if (existingSquad.captainId) {
               updatedViceCaptainId = existingSquad.captainId;
+
+              // ⚠️  CRITICAL FIX: Even though baselines were reset above (lines 1089-1090),
+              // we must reset them AGAIN because the old captain is taking a NEW role.
+              // The previous reset happened when they LOST captain role.
+              // This reset happens when they GAIN VC role.
+              // Without this, calculation may use stale baseline values.
+              const oldCaptainBecomingVC = updatedPlayers.find(p => p.playerId === existingSquad.captainId);
+              if (oldCaptainBecomingVC) {
+                oldCaptainBecomingVC.pointsAtJoining = oldCaptainBecomingVC.points;
+                oldCaptainBecomingVC.pointsWhenRoleAssigned = oldCaptainBecomingVC.points;
+              }
             }
           } else if (transferData.newCaptainId === existingSquad.xFactorId) {
             // New Captain is current X-Factor → Bank X-Factor contribution, then old Captain becomes X-Factor
@@ -1116,6 +1127,13 @@ const SquadSelectionPage: React.FC = () => {
             // Old Captain gets the X-Factor role
             if (existingSquad.captainId) {
               updatedXFactorId = existingSquad.captainId;
+
+              // ⚠️ CRITICAL FIX: Reset baselines when old captain takes X-Factor role
+              const oldCaptainBecomingX = updatedPlayers.find(p => p.playerId === existingSquad.captainId);
+              if (oldCaptainBecomingX) {
+                oldCaptainBecomingX.pointsAtJoining = oldCaptainBecomingX.points;
+                oldCaptainBecomingX.pointsWhenRoleAssigned = oldCaptainBecomingX.points;
+              }
             }
           }
           // If new Captain has NO role, old Captain just loses Captain role (no swap needed)
@@ -1159,6 +1177,13 @@ const SquadSelectionPage: React.FC = () => {
             // Old VC gets the Captain role
             if (existingSquad.viceCaptainId) {
               updatedCaptainId = existingSquad.viceCaptainId;
+
+              // ⚠️ CRITICAL FIX: Reset baselines when old VC takes Captain role
+              const oldVCBecomingCaptain = updatedPlayers.find(p => p.playerId === existingSquad.viceCaptainId);
+              if (oldVCBecomingCaptain) {
+                oldVCBecomingCaptain.pointsAtJoining = oldVCBecomingCaptain.points;
+                oldVCBecomingCaptain.pointsWhenRoleAssigned = oldVCBecomingCaptain.points;
+              }
             }
           } else if (transferData.newViceCaptainId === existingSquad.xFactorId) {
             // New VC is current X-Factor → Bank X-Factor contribution, then old VC becomes X-Factor
@@ -1171,6 +1196,13 @@ const SquadSelectionPage: React.FC = () => {
             // Old VC gets the X-Factor role
             if (existingSquad.viceCaptainId) {
               updatedXFactorId = existingSquad.viceCaptainId;
+
+              // ⚠️ CRITICAL FIX: Reset baselines when old VC takes X-Factor role
+              const oldVCBecomingX = updatedPlayers.find(p => p.playerId === existingSquad.viceCaptainId);
+              if (oldVCBecomingX) {
+                oldVCBecomingX.pointsAtJoining = oldVCBecomingX.points;
+                oldVCBecomingX.pointsWhenRoleAssigned = oldVCBecomingX.points;
+              }
             }
           }
           // If new VC has NO role, old VC just loses VC role (no swap needed)
@@ -1214,6 +1246,13 @@ const SquadSelectionPage: React.FC = () => {
             // Old X-Factor gets the Captain role
             if (existingSquad.xFactorId) {
               updatedCaptainId = existingSquad.xFactorId;
+
+              // ⚠️ CRITICAL FIX: Reset baselines when old X-Factor takes Captain role
+              const oldXBecomingCaptain = updatedPlayers.find(p => p.playerId === existingSquad.xFactorId);
+              if (oldXBecomingCaptain) {
+                oldXBecomingCaptain.pointsAtJoining = oldXBecomingCaptain.points;
+                oldXBecomingCaptain.pointsWhenRoleAssigned = oldXBecomingCaptain.points;
+              }
             }
           } else if (transferData.newXFactorId === existingSquad.viceCaptainId) {
             // New X-Factor is current VC → Bank VC contribution, then old X-Factor becomes VC
@@ -1226,6 +1265,13 @@ const SquadSelectionPage: React.FC = () => {
             // Old X-Factor gets the VC role
             if (existingSquad.xFactorId) {
               updatedViceCaptainId = existingSquad.xFactorId;
+
+              // ⚠️ CRITICAL FIX: Reset baselines when old X-Factor takes VC role
+              const oldXBecomingVC = updatedPlayers.find(p => p.playerId === existingSquad.xFactorId);
+              if (oldXBecomingVC) {
+                oldXBecomingVC.pointsAtJoining = oldXBecomingVC.points;
+                oldXBecomingVC.pointsWhenRoleAssigned = oldXBecomingVC.points;
+              }
             }
           }
           // If new X-Factor has NO role, old X-Factor just loses X-Factor role (no swap needed)
