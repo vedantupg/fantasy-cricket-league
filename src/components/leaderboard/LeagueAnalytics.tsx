@@ -1,18 +1,16 @@
 import React from 'react';
-import { Box, Typography, Paper, LinearProgress, Avatar, Chip } from '@mui/material';
+import { Box, Typography, Paper, Avatar, Chip } from '@mui/material';
 import {
   EmojiEvents,
   TrendingUp,
   Groups,
   Star,
   Timer,
-  Whatshot,
   BarChart,
   TrendingDown,
   PersonOutline,
 } from '@mui/icons-material';
 import type { LeaderboardSnapshot, League, LeagueSquad, PlayerPool } from '../../types/database';
-import { findMostConsistentPerformer } from '../../utils/streakCalculator';
 
 interface LeagueAnalyticsProps {
   snapshot: LeaderboardSnapshot;
@@ -90,12 +88,6 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot, league, squ
       });
     }
   }
-
-  // =============== HOT STREAK ===============
-  const hotStreak = standings.filter(s => s.pointsGainedToday > 0).sort((a, b) => b.pointsGainedToday - a.pointsGainedToday).slice(0, 3);
-
-  // =============== MOST CONSISTENT PERFORMER ===============
-  const mostConsistentPerformer = findMostConsistentPerformer(standings);
 
   // =============== RANK PROJECTION ===============
   const rankedStandings = [...standings].sort((a, b) => b.totalPoints - a.totalPoints);
