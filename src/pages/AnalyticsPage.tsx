@@ -14,8 +14,8 @@ import { Refresh as RefreshIcon } from '@mui/icons-material';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
 import LeagueAnalytics from '../components/leaderboard/LeagueAnalytics';
-import { leaderboardSnapshotService, leagueService, squadService } from '../services/firestore';
-import type { LeaderboardSnapshot, League, LeagueSquad } from '../types/database';
+import { leaderboardSnapshotService, leagueService, squadService, playerPoolService } from '../services/firestore';
+import type { LeaderboardSnapshot, League, LeagueSquad, PlayerPool } from '../types/database';
 
 const AnalyticsPage: React.FC = () => {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -23,6 +23,7 @@ const AnalyticsPage: React.FC = () => {
   const [snapshot, setSnapshot] = useState<LeaderboardSnapshot | null>(null);
   const [league, setLeague] = useState<League | null>(null);
   const [squads, setSquads] = useState<LeagueSquad[]>([]);
+  const [playerPool, setPlayerPool] = useState<PlayerPool | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,6 +54,12 @@ const AnalyticsPage: React.FC = () => {
       // Fetch all squads for advanced analytics
       const squadsData = await squadService.getByLeague(leagueId);
       setSquads(squadsData);
+
+      // Fetch player pool for top performers
+      if (leagueData.playerPoolId) {
+        const playerPoolData = await playerPoolService.getById(leagueData.playerPoolId);
+        setPlayerPool(playerPoolData);
+      }
     } catch (err) {
       console.error('Error loading analytics:', err);
       setError('Failed to load analytics data. Please try again.');
@@ -193,7 +200,7 @@ const AnalyticsPage: React.FC = () => {
         )}
 
         {hasLeagueStarted && snapshot && snapshot.standings.length > 0 ? (
-          <LeagueAnalytics snapshot={snapshot} league={league} squads={squads} />
+          <LeagueAnalytics snapshot={snapshot} league={league} squads={squads} playerPool={playerPool} />
         ) : hasLeagueStarted ? (
           <Card>
             <CardContent sx={{ textAlign: 'center', py: { xs: 4, sm: 6 }, px: { xs: 2, sm: 3 } }}>

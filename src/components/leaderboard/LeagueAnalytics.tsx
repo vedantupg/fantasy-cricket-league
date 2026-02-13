@@ -11,16 +11,17 @@ import {
   TrendingDown,
   PersonOutline,
 } from '@mui/icons-material';
-import type { LeaderboardSnapshot, League, LeagueSquad } from '../../types/database';
+import type { LeaderboardSnapshot, League, LeagueSquad, PlayerPool } from '../../types/database';
 import { findMostConsistentPerformer } from '../../utils/streakCalculator';
 
 interface LeagueAnalyticsProps {
   snapshot: LeaderboardSnapshot;
   league: League;
   squads: LeagueSquad[];
+  playerPool: PlayerPool | null;
 }
 
-const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot, league, squads }) => {
+const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot, league, squads, playerPool }) => {
   const { standings } = snapshot;
 
   if (!standings || standings.length === 0) return null;
@@ -187,6 +188,30 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot, league, squ
   const avgTop10 = pointsDistribution.top10Percent.reduce((sum, s) => sum + s.totalPoints, 0) / (pointsDistribution.top10Percent.length || 1);
   const avgBottom10 = pointsDistribution.bottom10Percent.reduce((sum, s) => sum + s.totalPoints, 0) / (pointsDistribution.bottom10Percent.length || 1);
 
+  // =============== TOP PERFORMERS BY ROLE ===============
+  const getTopPerformersByRole = () => {
+    if (!playerPool) return { batters: [], allRounders: [], bowlers: [] };
+
+    const batters = playerPool.players
+      .filter(p => p.role === 'batsman')
+      .sort((a, b) => b.points - a.points)
+      .slice(0, 8);
+
+    const allRounders = playerPool.players
+      .filter(p => p.role === 'allrounder')
+      .sort((a, b) => b.points - a.points)
+      .slice(0, 8);
+
+    const bowlers = playerPool.players
+      .filter(p => p.role === 'bowler')
+      .sort((a, b) => b.points - a.points)
+      .slice(0, 8);
+
+    return { batters, allRounders, bowlers };
+  };
+
+  const topPerformers = getTopPerformersByRole();
+
   // =============== COMPONENTS ===============
   const StatCard = ({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string | number; color?: string }) => (
     <Paper sx={{ p: 2, height: '100%', bgcolor: color ? `${color}10` : 'background.paper' }}>
@@ -237,291 +262,228 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot, league, squ
         />
       </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3 }}>
+      {/* ========== ROW 2: TOP PERFORMERS (Full Width) ========== */}
+      {playerPool && (topPerformers.batters.length > 0 || topPerformers.allRounders.length > 0 || topPerformers.bowlers.length > 0) && (
+        <Box sx={{ mb: 3 }}>
+          <Paper sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <Star sx={{ color: 'warning.main' }} />
+              <Typography variant="h6" fontWeight="bold">
+                Top Performers by Role
+              </Typography>
+            </Box>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+              Top 8 performing players from the player pool
+            </Typography>
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 3, mt: 2 }}>
+              {/* Top Batters */}
+              {topPerformers.batters.length > 0 && (
+                <Box>
+                  <Typography variant="caption" fontWeight="bold" color="primary.main" gutterBottom sx={{ display: 'block', mb: 1, textTransform: 'uppercase', fontSize: '0.65rem' }}>
+                    Batters
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                    {topPerformers.batters.map((player, idx) => (
+                      <Box
+                        key={player.playerId}
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          p: 1,
+                          bgcolor: idx === 0 ? 'primary.50' : 'background.default',
+                          borderRadius: 1,
+                          border: '1px solid',
+                          borderColor: idx === 0 ? 'primary.main' : 'divider',
+                        }}
+                      >
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="caption" fontWeight="600" noWrap sx={{ fontSize: '0.75rem' }}>
+                            {idx + 1}. {player.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" noWrap sx={{ fontSize: '0.65rem', display: 'block', mt: 0.25 }}>
+                            {player.team}
+                          </Typography>
+                        </Box>
+                        <Typography variant="caption" fontWeight="bold" color="primary.main" sx={{ fontSize: '0.7rem' }}>
+                          {player.points.toFixed(0)}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              )}
+
+              {/* Top All-Rounders */}
+              {topPerformers.allRounders.length > 0 && (
+                <Box>
+                  <Typography variant="caption" fontWeight="bold" color="secondary.main" gutterBottom sx={{ display: 'block', mb: 1, textTransform: 'uppercase', fontSize: '0.65rem' }}>
+                    All-Rounders
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                    {topPerformers.allRounders.map((player, idx) => (
+                      <Box
+                        key={player.playerId}
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          p: 1,
+                          bgcolor: idx === 0 ? 'secondary.50' : 'background.default',
+                          borderRadius: 1,
+                          border: '1px solid',
+                          borderColor: idx === 0 ? 'secondary.main' : 'divider',
+                        }}
+                      >
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="caption" fontWeight="600" noWrap sx={{ fontSize: '0.75rem' }}>
+                            {idx + 1}. {player.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" noWrap sx={{ fontSize: '0.65rem', display: 'block', mt: 0.25 }}>
+                            {player.team}
+                          </Typography>
+                        </Box>
+                        <Typography variant="caption" fontWeight="bold" color="secondary.main" sx={{ fontSize: '0.7rem' }}>
+                          {player.points.toFixed(0)}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              )}
+
+              {/* Top Bowlers */}
+              {topPerformers.bowlers.length > 0 && (
+                <Box>
+                  <Typography variant="caption" fontWeight="bold" sx={{ color: '#9C27B0', display: 'block', mb: 1, textTransform: 'uppercase', fontSize: '0.65rem' }}>
+                    Bowlers
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                    {topPerformers.bowlers.map((player, idx) => (
+                      <Box
+                        key={player.playerId}
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          p: 1,
+                          bgcolor: idx === 0 ? '#9C27B010' : 'background.default',
+                          borderRadius: 1,
+                          border: '1px solid',
+                          borderColor: idx === 0 ? '#9C27B0' : 'divider',
+                        }}
+                      >
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="caption" fontWeight="600" noWrap sx={{ fontSize: '0.75rem' }}>
+                            {idx + 1}. {player.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" noWrap sx={{ fontSize: '0.65rem', display: 'block', mt: 0.25 }}>
+                            {player.team}
+                          </Typography>
+                        </Box>
+                        <Typography variant="caption" fontWeight="bold" sx={{ color: '#9C27B0', fontSize: '0.7rem' }}>
+                          {player.points.toFixed(0)}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              )}
+            </Box>
+          </Paper>
+        </Box>
+      )}
+
+      {/* ========== ROW 3: TEAM INTELLIGENCE (3 columns) ========== */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 3, mb: 3 }}>
         {/* Popular Picks */}
-        <Paper sx={{ p: 3, height: '100%' }}>
-          <Typography variant="h6" fontWeight="bold" gutterBottom>
-            Most Popular Picks
+        <Paper sx={{ p: 3 }}>
+          <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ fontSize: '1rem' }}>
+            Popular Picks
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-            Who's everyone betting on?
+            Most selected roles
           </Typography>
 
-          <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
             {mostPopularCaptain && (
-              <Box sx={{ p: 2, bgcolor: 'primary.50', borderRadius: 2, border: '1px solid', borderColor: 'primary.200' }}>
-                <Typography variant="caption" color="primary.main" fontWeight="bold" sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>
-                  Top Captain Pick
+              <Box sx={{ p: 1.5, bgcolor: 'primary.50', borderRadius: 1, border: '1px solid', borderColor: 'primary.200' }}>
+                <Typography variant="caption" color="primary.main" fontWeight="bold" sx={{ textTransform: 'uppercase', fontSize: '0.65rem' }}>
+                  Captain
                 </Typography>
-                <Typography variant="h6" fontWeight="bold" sx={{ mt: 0.5 }}>
+                <Typography variant="body2" fontWeight="bold" sx={{ mt: 0.5, fontSize: '0.9rem' }}>
                   {mostPopularCaptain.name}
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                  <Chip
-                    label={`${mostPopularCaptain.count} teams`}
-                    size="small"
-                    color="primary"
-                    sx={{ fontSize: '0.7rem' }}
-                  />
-                  <Chip
-                    label={`${((mostPopularCaptain.count / totalPlayers) * 100).toFixed(1)}% ownership`}
-                    size="small"
-                    variant="outlined"
-                    sx={{ fontSize: '0.7rem' }}
-                  />
-                </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                  {((mostPopularCaptain.count / totalPlayers) * 100).toFixed(1)}% ownership
+                </Typography>
               </Box>
             )}
 
             {mostPopularViceCaptain && (
-              <Box sx={{ p: 2, bgcolor: 'secondary.50', borderRadius: 2, border: '1px solid', borderColor: 'secondary.200' }}>
-                <Typography variant="caption" color="secondary.main" fontWeight="bold" sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>
-                  Top Vice-Captain Pick
+              <Box sx={{ p: 1.5, bgcolor: 'secondary.50', borderRadius: 1, border: '1px solid', borderColor: 'secondary.200' }}>
+                <Typography variant="caption" color="secondary.main" fontWeight="bold" sx={{ textTransform: 'uppercase', fontSize: '0.65rem' }}>
+                  Vice-Captain
                 </Typography>
-                <Typography variant="h6" fontWeight="bold" sx={{ mt: 0.5 }}>
+                <Typography variant="body2" fontWeight="bold" sx={{ mt: 0.5, fontSize: '0.9rem' }}>
                   {mostPopularViceCaptain.name}
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                  <Chip
-                    label={`${mostPopularViceCaptain.count} teams`}
-                    size="small"
-                    color="secondary"
-                    sx={{ fontSize: '0.7rem' }}
-                  />
-                  <Chip
-                    label={`${((mostPopularViceCaptain.count / totalPlayers) * 100).toFixed(1)}% ownership`}
-                    size="small"
-                    variant="outlined"
-                    sx={{ fontSize: '0.7rem' }}
-                  />
-                </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                  {((mostPopularViceCaptain.count / totalPlayers) * 100).toFixed(1)}% ownership
+                </Typography>
               </Box>
             )}
 
             {mostPopularXFactor && (
-              <Box sx={{ p: 2, bgcolor: '#9C27B010', borderRadius: 2, border: '1px solid', borderColor: '#9C27B040' }}>
-                <Typography variant="caption" sx={{ color: '#9C27B0', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '0.7rem' }}>
-                  Top X-Factor Pick
+              <Box sx={{ p: 1.5, bgcolor: '#9C27B010', borderRadius: 1, border: '1px solid', borderColor: '#9C27B040' }}>
+                <Typography variant="caption" sx={{ color: '#9C27B0', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '0.65rem' }}>
+                  X-Factor
                 </Typography>
-                <Typography variant="h6" fontWeight="bold" sx={{ mt: 0.5 }}>
+                <Typography variant="body2" fontWeight="bold" sx={{ mt: 0.5, fontSize: '0.9rem' }}>
                   {mostPopularXFactor.name}
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                  <Chip
-                    label={`${mostPopularXFactor.count} teams`}
-                    size="small"
-                    sx={{ bgcolor: '#9C27B0', color: 'white', fontSize: '0.7rem' }}
-                  />
-                  <Chip
-                    label={`${((mostPopularXFactor.count / totalPlayers) * 100).toFixed(1)}% ownership`}
-                    size="small"
-                    variant="outlined"
-                    sx={{ fontSize: '0.7rem', borderColor: '#9C27B0' }}
-                  />
-                </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                  {((mostPopularXFactor.count / totalPlayers) * 100).toFixed(1)}% ownership
+                </Typography>
               </Box>
             )}
           </Box>
         </Paper>
 
-        {/* Hot Streak */}
-        {hotStreak.length > 0 && (
-          <Paper sx={{ p: 3, height: '100%', background: 'linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 87, 34, 0.05) 100%)' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <Whatshot sx={{ color: '#FF9800' }} />
-              <Typography variant="h6" fontWeight="bold">
-                On Fire
-              </Typography>
-            </Box>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-              Biggest gainers this update
-            </Typography>
-
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 2 }}>
-              {hotStreak.map((standing, idx) => (
-                <Box
-                  key={standing.userId}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    p: 1.5,
-                    bgcolor: 'background.paper',
-                    borderRadius: 1,
-                    border: '1px solid',
-                    borderColor: idx === 0 ? '#FF9800' : 'divider',
-                  }}
-                >
-                  <Typography variant="h6" sx={{ color: '#FF9800', fontWeight: 'bold', minWidth: 24 }}>
-                    {idx + 1}
-                  </Typography>
-                  <Avatar src={standing.profilePicUrl} sx={{ width: 36, height: 36 }} />
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography variant="body2" fontWeight="600" noWrap>
-                      {standing.displayName}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Rank #{standing.rank}
-                    </Typography>
-                  </Box>
-                  <Typography variant="h6" sx={{ color: 'success.main', fontWeight: 'bold', fontSize: '1rem' }}>
-                    +{standing.pointsGainedToday.toFixed(2)}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          </Paper>
-        )}
-
-        {/* Most Consistent Performer */}
-        {mostConsistentPerformer && (
-          <Paper sx={{ p: 3, height: '100%', background: 'linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%)' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <Whatshot sx={{ color: '#FF9800' }} />
-              <Typography variant="h6" fontWeight="bold">
-                Most Consistent
-              </Typography>
-            </Box>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-              Longest rank streak
-            </Typography>
-
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-                p: 2,
-                bgcolor: 'background.paper',
-                borderRadius: 2,
-                border: '2px solid',
-                borderColor: '#FF9800',
-                mt: 2,
-              }}
-            >
-              <Box sx={{ textAlign: 'center', minWidth: 48 }}>
-                <Whatshot sx={{ fontSize: 32, color: '#FF9800' }} />
-                <Typography variant="h6" sx={{ color: '#FF9800', fontWeight: 'bold', fontSize: '1.25rem' }}>
-                  {mostConsistentPerformer.rankStreak}
-                </Typography>
-              </Box>
-              <Avatar src={mostConsistentPerformer.profilePicUrl} sx={{ width: 48, height: 48 }} />
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="h6" fontWeight="bold" noWrap>
-                  {mostConsistentPerformer.displayName}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Rank #{mostConsistentPerformer.rank} for {mostConsistentPerformer.rankStreak} consecutive updates
-                </Typography>
-              </Box>
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography variant="h6" fontWeight="bold" color="primary.main">
-                  {mostConsistentPerformer.totalPoints.toFixed(2)}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  points
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
-        )}
-
-        {/* Tight Battles */}
-        {battles.length > 0 && (
-          <Paper sx={{ p: 3, height: '100%' }}>
-            <Typography variant="h6" fontWeight="bold" gutterBottom>
-              Position Battles
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-              Closest races (within 5 points)
-            </Typography>
-
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-              {battles.slice(0, 4).map((battle, idx) => (
-                <Box
-                  key={idx}
-                  sx={{
-                    p: 2,
-                    bgcolor: 'action.hover',
-                    borderRadius: 1,
-                    border: '1px dashed',
-                    borderColor: 'warning.main',
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box>
-                      <Typography variant="body2" fontWeight="bold" noWrap>
-                        #{battle.rank1} {battle.name1}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                        vs
-                      </Typography>
-                      <Typography variant="body2" fontWeight="600" color="text.secondary" noWrap>
-                        #{battle.rank2} {battle.name2}
-                      </Typography>
-                    </Box>
-                    <Chip
-                      label={`${battle.gap.toFixed(2)} pts`}
-                      size="small"
-                      color="warning"
-                      sx={{ fontWeight: 'bold' }}
-                    />
-                  </Box>
-                </Box>
-              ))}
-            </Box>
-          </Paper>
-        )}
-
         {/* Top Picks */}
-        <Paper sx={{ p: 3, height: '100%' }}>
+        <Paper sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
             <Groups sx={{ color: 'primary.main' }} />
-            <Typography variant="h6" fontWeight="bold">
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1rem' }}>
               Top Picks
             </Typography>
           </Box>
           <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-            Most popular 11 players
+            Most popular players
           </Typography>
 
-          <Box sx={{ mt: 2 }}>
-            {templateSquad.map((player, idx) => (
+          <Box sx={{ mt: 2, maxHeight: 250, overflowY: 'auto' }}>
+            {templateSquad.slice(0, 8).map((player, idx) => (
               <Box
                 key={player.playerId}
                 sx={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  py: 1,
-                  borderBottom: idx < 10 ? '1px solid' : 'none',
+                  py: 0.75,
+                  borderBottom: idx < 7 ? '1px solid' : 'none',
                   borderColor: 'divider',
                 }}
               >
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="body2" fontWeight="600" noWrap>
+                  <Typography variant="caption" fontWeight="600" noWrap sx={{ fontSize: '0.8rem' }}>
                     {player.playerName}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {player.avgPoints.toFixed(2)} avg pts
-                  </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <LinearProgress
-                    variant="determinate"
-                    value={player.ownershipPercent}
-                    sx={{
-                      width: 60,
-                      height: 6,
-                      borderRadius: 1,
-                      bgcolor: 'grey.200',
-                      '& .MuiLinearProgress-bar': { bgcolor: 'primary.main' },
-                    }}
-                  />
-                  <Typography variant="caption" fontWeight="bold" sx={{ minWidth: 40, textAlign: 'right' }}>
-                    {player.ownershipPercent.toFixed(0)}%
-                  </Typography>
-                </Box>
+                <Typography variant="caption" fontWeight="bold" sx={{ fontSize: '0.75rem', minWidth: 35, textAlign: 'right' }}>
+                  {player.ownershipPercent.toFixed(0)}%
+                </Typography>
               </Box>
             ))}
           </Box>
@@ -529,63 +491,61 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot, league, squ
 
         {/* Squad Differential */}
         {squadDifferentials.length > 0 && (
-          <Paper sx={{ p: 3, height: '100%' }}>
+          <Paper sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
               <PersonOutline sx={{ color: 'secondary.main' }} />
-              <Typography variant="h6" fontWeight="bold">
+              <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1rem' }}>
                 Most Unique Squads
               </Typography>
             </Box>
             <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-              Least template-dependent teams
+              Differentials
             </Typography>
 
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>
               {squadDifferentials.map((item, idx) => (
                 <Box
                   key={idx}
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 1.5,
-                    p: 1.5,
+                    gap: 1,
+                    p: 1,
                     bgcolor: 'background.default',
                     borderRadius: 1,
                     border: '1px solid',
                     borderColor: 'divider',
                   }}
                 >
-                  <Typography variant="h6" sx={{ color: 'secondary.main', fontWeight: 'bold', minWidth: 24 }}>
+                  <Typography variant="body2" sx={{ color: 'secondary.main', fontWeight: 'bold', minWidth: 20, fontSize: '0.85rem' }}>
                     {idx + 1}
                   </Typography>
-                  <Avatar src={item.profilePicUrl} sx={{ width: 36, height: 36 }} />
+                  <Avatar src={item.profilePicUrl} sx={{ width: 28, height: 28 }} />
                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography variant="body2" fontWeight="600" noWrap>
+                    <Typography variant="caption" fontWeight="600" noWrap sx={{ fontSize: '0.8rem' }}>
                       {item.displayName}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {item.uniquePlayersCount} unique picks • Rank #{item.rank}
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', display: 'block' }}>
+                      {item.uniquePlayersCount} unique • Rank #{item.rank}
                     </Typography>
                   </Box>
-                  <Box sx={{ textAlign: 'right' }}>
-                    <Typography variant="body2" fontWeight="bold" color="secondary.main">
-                      {(100 - item.templateScore).toFixed(0)}%
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      unique
-                    </Typography>
-                  </Box>
+                  <Typography variant="caption" fontWeight="bold" color="secondary.main" sx={{ fontSize: '0.85rem' }}>
+                    {(100 - item.templateScore).toFixed(0)}%
+                  </Typography>
                 </Box>
               ))}
             </Box>
           </Paper>
         )}
+      </Box>
 
+      {/* ========== ROW 4: RANK ANALYSIS (2 columns) ========== */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3, mb: 3 }}>
         {/* Rank Projection - Top */}
-        <Paper sx={{ p: 3, height: '100%' }}>
+        <Paper sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
             <BarChart sx={{ color: 'warning.main' }} />
-            <Typography variant="h6" fontWeight="bold">
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1rem' }}>
               Rank Battles - Top
             </Typography>
           </Box>
@@ -640,10 +600,10 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot, league, squ
         </Paper>
 
         {/* Rank Projection - Bottom */}
-        <Paper sx={{ p: 3, height: '100%' }}>
+        <Paper sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
             <TrendingDown sx={{ color: 'error.main' }} />
-            <Typography variant="h6" fontWeight="bold">
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1rem' }}>
               Escape the Bottom
             </Typography>
           </Box>
@@ -696,63 +656,110 @@ const LeagueAnalytics: React.FC<LeagueAnalyticsProps> = ({ snapshot, league, squ
             ))}
           </Box>
         </Paper>
-
-        {/* Points Distribution */}
-        <Paper sx={{ p: 3, height: '100%', gridColumn: { xs: '1', md: 'span 2' } }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-            <BarChart sx={{ color: 'primary.main' }} />
-            <Typography variant="h6" fontWeight="bold">
-              Points Distribution
-            </Typography>
-          </Box>
-          <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-            League competitive balance
-          </Typography>
-
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 3, mt: 1 }}>
-            <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'success.50', borderRadius: 2 }}>
-              <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-                Top 10% Average
-              </Typography>
-              <Typography variant="h4" fontWeight="bold" color="success.main">
-                {avgTop10.toFixed(2)}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {pointsDistribution.top10Percent.length} managers
-              </Typography>
-            </Box>
-            <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'primary.50', borderRadius: 2 }}>
-              <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-                League Average
-              </Typography>
-              <Typography variant="h4" fontWeight="bold" color="primary.main">
-                {avgPoints.toFixed(2)}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {totalPlayers} managers
-              </Typography>
-            </Box>
-            <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'error.50', borderRadius: 2 }}>
-              <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-                Bottom 10% Average
-              </Typography>
-              <Typography variant="h4" fontWeight="bold" color="error.main">
-                {avgBottom10.toFixed(2)}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {pointsDistribution.bottom10Percent.length} managers
-              </Typography>
-            </Box>
-          </Box>
-
-          <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              The gap between top and bottom performers is <strong>{pointsRange.toFixed(2)} points</strong>.
-              {pointsRange > avgPoints * 0.5 ? ' This is a highly competitive league!' : ' The competition is tight!'}
-            </Typography>
-          </Box>
-        </Paper>
       </Box>
+
+      {/* ========== ROW 5: COMPETITION (Position Battles) ========== */}
+      {battles.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              Position Battles
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+              Closest races (within 5 points)
+            </Typography>
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2, mt: 2 }}>
+              {battles.slice(0, 4).map((battle, idx) => (
+                <Box
+                  key={idx}
+                  sx={{
+                    p: 2,
+                    bgcolor: 'action.hover',
+                    borderRadius: 1,
+                    border: '1px dashed',
+                    borderColor: 'warning.main',
+                  }}
+                >
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    <Typography variant="caption" fontWeight="bold" noWrap sx={{ fontSize: '0.8rem' }}>
+                      #{battle.rank1} {battle.name1}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                      vs
+                    </Typography>
+                    <Typography variant="caption" fontWeight="600" color="text.secondary" noWrap sx={{ fontSize: '0.75rem' }}>
+                      #{battle.rank2} {battle.name2}
+                    </Typography>
+                    <Chip
+                      label={`${battle.gap.toFixed(2)} pts`}
+                      size="small"
+                      color="warning"
+                      sx={{ fontWeight: 'bold', mt: 0.5, fontSize: '0.7rem' }}
+                    />
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </Paper>
+        </Box>
+      )}
+
+      {/* ========== ROW 6: LEAGUE OVERVIEW (Points Distribution - Full Width) ========== */}
+      <Paper sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <BarChart sx={{ color: 'primary.main' }} />
+          <Typography variant="h6" fontWeight="bold">
+            Points Distribution
+          </Typography>
+        </Box>
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+          League competitive balance
+        </Typography>
+
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 3, mt: 1 }}>
+          <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'success.50', borderRadius: 2 }}>
+            <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+              Top 10% Average
+            </Typography>
+            <Typography variant="h4" fontWeight="bold" color="success.main">
+              {avgTop10.toFixed(2)}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {pointsDistribution.top10Percent.length} managers
+            </Typography>
+          </Box>
+          <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'primary.50', borderRadius: 2 }}>
+            <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+              League Average
+            </Typography>
+            <Typography variant="h4" fontWeight="bold" color="primary.main">
+              {avgPoints.toFixed(2)}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {totalPlayers} managers
+            </Typography>
+          </Box>
+          <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'error.50', borderRadius: 2 }}>
+            <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+              Bottom 10% Average
+            </Typography>
+            <Typography variant="h4" fontWeight="bold" color="error.main">
+              {avgBottom10.toFixed(2)}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {pointsDistribution.bottom10Percent.length} managers
+            </Typography>
+          </Box>
+        </Box>
+
+        <Box sx={{ mt: 3, p: 2, bgcolor: 'primary.50', borderRadius: 1, border: '1px solid', borderColor: 'primary.200' }}>
+          <Typography variant="body2" color="primary.main" fontWeight="500">
+            The gap between top and bottom performers is <strong>{pointsRange.toFixed(2)} points</strong>.
+            {pointsRange > avgPoints * 0.5 ? ' This is a highly competitive league!' : ' The competition is tight!'}
+          </Typography>
+        </Box>
+      </Paper>
     </Box>
   );
 };
