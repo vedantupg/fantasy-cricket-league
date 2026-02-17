@@ -24,6 +24,10 @@ import {
   alpha,
   Collapse,
   Alert,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import {
   Close,
@@ -34,14 +38,16 @@ import {
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { useAuth } from '../contexts/AuthContext';
-import { squadService, leagueService, playerPoolService } from '../services/firestore';
+import { squadService, leagueService, playerPoolService, leaderboardSnapshotService } from '../services/firestore';
 import {
   queryAI,
   buildLeagueContext,
+  injectComparisonSquad,
   SUGGESTED_QUESTIONS,
   type Message,
   type LeagueContext,
 } from '../services/aiService';
+import type { LeagueSquad, StandingEntry } from '../types/database';
 
 interface LeagueAssistantProps {
   leagueId?: string;
@@ -56,8 +62,12 @@ const LeagueAssistant: React.FC<LeagueAssistantProps> = ({ leagueId }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [context, setContext] = useState<LeagueContext | null>(null);
+  const [baseContext, setBaseContext] = useState<LeagueContext | null>(null); // context without comparison
   const [contextLoading, setContextLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [allSquads, setAllSquads] = useState<LeagueSquad[]>([]);
+  const [snapshotStandings, setSnapshotStandings] = useState<StandingEntry[]>([]);
+  const [selectedPeer, setSelectedPeer] = useState<LeagueSquad | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when messages change
@@ -72,11 +82,12 @@ const LeagueAssistant: React.FC<LeagueAssistantProps> = ({ leagueId }) => {
     setError(null);
 
     try {
-      // Fetch all necessary data
-      const [userSquad, league, allSquadsData] = await Promise.all([
+      // Fetch all necessary data in parallel
+      const [userSquad, league, allSquadsData, latestSnapshot] = await Promise.all([
         squadService.getByUserAndLeague(user.uid, leagueId),
         leagueService.getById(leagueId),
         squadService.getByLeague(leagueId),
+        leaderboardSnapshotService.getLatest(leagueId),
       ]);
 
       if (!userSquad) {
@@ -96,13 +107,20 @@ const LeagueAssistant: React.FC<LeagueAssistantProps> = ({ leagueId }) => {
         throw new Error('Player pool not found');
       }
 
+      // Pass snapshot standings as authoritative rank/points source
+      const snapshotStandings = latestSnapshot?.standings || [];
+
       const leagueContext = buildLeagueContext(
         userSquad,
         allSquadsData,
         playerPool.players || [],
-        league
+        league,
+        snapshotStandings
       );
 
+      setAllSquads(allSquadsData);
+      setSnapshotStandings(snapshotStandings);
+      setBaseContext(leagueContext);
       setContext(leagueContext);
 
       // Add welcome message
@@ -198,7 +216,54 @@ What would you like to know?`,
   const handleReset = () => {
     setMessages([]);
     setShowSuggestions(true);
-    loadContext();
+    setSelectedPeer(null);
+    if (baseContext) setContext(baseContext);
+    else loadContext();
+  };
+
+  // Peer selector: inject comparison squad into context and auto-ask
+  const handlePeerSelect = (peer: LeagueSquad) => {
+    if (!baseContext) return;
+    // Use stored rank directly — same reason as buildLeagueContext
+    const peerRank = peer.rank || 0;
+    const newContext = injectComparisonSquad(baseContext, peer, peerRank);
+    setSelectedPeer(peer);
+    setContext(newContext);
+    // Auto-send a rich comparison question
+    handleSendMessageWithContext(
+      `Do a full head-to-head breakdown of my squad vs ${peer.squadName || 'this squad'}:
+1. List the players we BOTH have (shared players)
+2. List players only I have (my differentials)
+3. List players only they have (their differentials)
+4. Compare our captains, VCs and X-Factors — who has the edge?
+5. Based on the available player pool, suggest the 1-2 most impactful transfers I can make to close the ${Math.abs((newContext.comparisonSquad?.totalPoints ?? 0) - newContext.userSquad.totalPoints).toFixed(2)} pt gap and overtake them.`,
+      newContext
+    );
+  };
+
+  // Internal: send a message with an explicit context (used for peer comparison auto-query)
+  const handleSendMessageWithContext = async (question: string, ctx: LeagueContext) => {
+    if (loading) return;
+    setShowSuggestions(false);
+    setError(null);
+
+    const userMessage: Message = { role: 'user', content: question, timestamp: new Date() };
+    setMessages(prev => [...prev, userMessage]);
+    setLoading(true);
+
+    try {
+      const response = await queryAI(question, ctx, messages);
+      setMessages(prev => [...prev, { role: 'assistant', content: response, timestamp: new Date() }]);
+    } catch (err: any) {
+      setError(err.message || 'Failed to get response. Please try again.');
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: "I'm sorry, I couldn't process your question. Please try again.",
+        timestamp: new Date(),
+      }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!user || !leagueId) {
@@ -671,6 +736,76 @@ What would you like to know?`,
               )}
 
               <div ref={messagesEndRef} />
+            </Box>
+          )}
+
+          {/* Peer Comparison Selector */}
+          {!loading && context && allSquads.length > 1 && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <FormControl size="small" fullWidth>
+                <InputLabel sx={{ fontSize: '0.8rem' }}>⚔️ Compare with a rival...</InputLabel>
+                <Select
+                  value={selectedPeer?.userId || ''}
+                  label="⚔️ Compare with a rival..."
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (!val) {
+                      setSelectedPeer(null);
+                      if (baseContext) setContext(baseContext);
+                      return;
+                    }
+                    const peer = allSquads.find(s => s.userId === val);
+                    if (peer) handlePeerSelect(peer);
+                  }}
+                  sx={{
+                    fontSize: '0.8rem',
+                    bgcolor: alpha(theme.palette.secondary.main, 0.05),
+                    borderRadius: 2,
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: alpha(theme.palette.secondary.main, 0.3),
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: theme.palette.secondary.main,
+                    },
+                  }}
+                >
+                  <MenuItem value="" sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
+                    — clear comparison —
+                  </MenuItem>
+                  {/* Sort by snapshot rank (authoritative) */}
+                  {[...allSquads]
+                    .filter(s => s.userId !== user?.uid)
+                    .sort((a, b) => {
+                      const ra = snapshotStandings.find(s => s.userId === a.userId)?.rank ?? a.rank ?? 999;
+                      const rb = snapshotStandings.find(s => s.userId === b.userId)?.rank ?? b.rank ?? 999;
+                      return ra - rb;
+                    })
+                    .map((peer) => {
+                      const standing = snapshotStandings.find(s => s.userId === peer.userId);
+                      const rank = standing?.rank ?? peer.rank ?? '?';
+                      const pts = (standing?.totalPoints ?? peer.totalPoints ?? 0).toFixed(2);
+                      return (
+                        <MenuItem key={peer.userId} value={peer.userId} sx={{ fontSize: '0.8rem' }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', gap: 2 }}>
+                            <span>#{rank} {peer.squadName}</span>
+                            <span style={{ color: theme.palette.text.secondary, fontVariantNumeric: 'tabular-nums' }}>{pts} pts</span>
+                          </Box>
+                        </MenuItem>
+                      );
+                    })}
+                </Select>
+              </FormControl>
+              {selectedPeer && (
+                <Chip
+                  label={`vs #${snapshotStandings.find(s => s.userId === selectedPeer.userId)?.rank ?? selectedPeer.rank}`}
+                  size="small"
+                  onDelete={() => {
+                    setSelectedPeer(null);
+                    if (baseContext) setContext(baseContext);
+                  }}
+                  sx={{ flexShrink: 0, bgcolor: alpha(theme.palette.secondary.main, 0.15), fontWeight: 'bold', fontSize: '0.65rem' }}
+                />
+              )}
             </Box>
           )}
 

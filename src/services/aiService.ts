@@ -4,7 +4,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { LeagueSquad, League, PlayerPoolEntry, SquadPlayer } from '../types/database';
+import type { LeagueSquad, League, PlayerPoolEntry, SquadPlayer, StandingEntry } from '../types/database';
 
 // Initialize Gemini AI
 // NOTE: In production, move this to Firebase Cloud Functions for security
@@ -14,6 +14,16 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+}
+
+export interface PeerSquad {
+  squadName: string;
+  rank: number;
+  totalPoints: number;
+  captainName: string;
+  viceCaptainName: string;
+  xFactorName: string;
+  players: string[]; // player names only, keep tokens lean
 }
 
 export interface LeagueContext {
@@ -28,6 +38,7 @@ export interface LeagueContext {
       isCaptain: boolean;
       isViceCaptain: boolean;
       isXFactor: boolean;
+      ownershipPercent: number; // % of league that owns this player
     }>;
     bankedPoints: number;
     transfersRemaining: number;
@@ -45,38 +56,121 @@ export interface LeagueContext {
     team: string;
     isOverseas: boolean;
   }>;
+  // Peer intelligence — always included, token-light
+  peerIntelligence: {
+    top3Squads: PeerSquad[];         // Top 3 squads compressed
+    captainDistribution: Array<{ name: string; count: number; percent: number }>; // Top 5 captain picks across league
+    // Per-player ownership is already on userSquad.players.ownershipPercent
+  };
+  // On-demand: full squad of a specific peer for head-to-head
+  comparisonSquad?: PeerSquad & { players: string[] };
+}
+
+/**
+ * Compress a squad into a lean PeerSquad for the prompt
+ */
+function compressToPeerSquad(squad: LeagueSquad, rank: number): PeerSquad {
+  const captainPlayer = squad.players.find((p: SquadPlayer) => p.playerId === squad.captainId);
+  const vcPlayer = squad.players.find((p: SquadPlayer) => p.playerId === squad.viceCaptainId);
+  const xfPlayer = squad.players.find((p: SquadPlayer) => p.playerId === squad.xFactorId);
+  return {
+    squadName: squad.squadName || 'Unknown Squad',
+    rank,
+    totalPoints: squad.totalPoints || 0,
+    captainName: captainPlayer?.playerName || 'Unknown',
+    viceCaptainName: vcPlayer?.playerName || 'Unknown',
+    xFactorName: xfPlayer?.playerName || 'Unknown',
+    players: squad.players.map((p: SquadPlayer) => p.playerName),
+  };
 }
 
 /**
  * Build context from user data
+ * standings: from the latest LeaderboardSnapshot — these are the AUTHORITATIVE
+ *   rank and totalPoints values (include predictionBonusPoints, powerplayPoints, etc.)
+ *   If no snapshot exists yet, pass [] and we fall back to squad docs.
  */
 export function buildLeagueContext(
   userSquad: LeagueSquad,
   allSquads: LeagueSquad[],
   playerPool: PlayerPoolEntry[],
-  league: League
+  league: League,
+  standings: StandingEntry[] = []
 ): LeagueContext {
-  // Calculate leaderboard
-  const leaderboard = allSquads
-    .map(squad => ({
-      userId: squad.userId,
-      userName: squad.squadName || 'Unknown Squad',
-      points: squad.totalPoints || 0,
-    }))
-    .sort((a, b) => b.points - a.points);
+  const totalLeaguePlayers = allSquads.length;
 
-  const userRank = leaderboard.findIndex(s => s.userId === userSquad.userId) + 1;
-  const averagePoints = leaderboard.reduce((sum, s) => sum + s.points, 0) / leaderboard.length;
+  // Use snapshot standings as authoritative rank/points source.
+  // Standings are already sorted by rank from the snapshot service.
+  const userStanding = standings.find(s => s.userId === userSquad.userId);
+  const userRank = userStanding?.rank ?? userSquad.rank ?? 1;
+  const userTotalPoints = userStanding?.totalPoints ?? userSquad.totalPoints ?? 0;
+  const averagePoints = standings.length > 0
+    ? standings.reduce((sum, s) => sum + s.totalPoints, 0) / standings.length
+    : allSquads.reduce((sum, s) => sum + (s.totalPoints || 0), 0) / (totalLeaguePlayers || 1);
+  const topScore = standings.length > 0
+    ? standings[0].totalPoints  // standings[0] = rank #1
+    : Math.max(...allSquads.map(s => s.totalPoints || 0));
+
+  // Sort all squads by snapshot rank for peer ordering
+  const sortedSquads = standings.length > 0
+    ? [...standings].sort((a, b) => a.rank - b.rank)
+        .map(s => allSquads.find(sq => sq.userId === s.userId))
+        .filter((sq): sq is LeagueSquad => !!sq)
+    : [...allSquads].sort((a, b) => (a.rank || 999) - (b.rank || 999));
 
   // Calculate transfers remaining
   const flexibleTransfers = league.transferTypes?.flexibleTransfers?.maxAllowed || 0;
   const usedTransfers = userSquad.flexibleTransfersUsed || 0;
   const transfersRemaining = Math.max(0, flexibleTransfers - usedTransfers);
 
+  // ---- Ownership % per player ----
+  const ownershipMap = new Map<string, number>();
+  allSquads.forEach(squad => {
+    squad.players.forEach((p: SquadPlayer) => {
+      ownershipMap.set(p.playerId, (ownershipMap.get(p.playerId) || 0) + 1);
+    });
+  });
+
+  // ---- Captain distribution ----
+  const captainMap = new Map<string, { name: string; count: number }>();
+  allSquads.forEach(squad => {
+    if (squad.captainId) {
+      const captainPlayer = squad.players.find((p: SquadPlayer) => p.playerId === squad.captainId);
+      const name = captainPlayer?.playerName || 'Unknown';
+      const existing = captainMap.get(squad.captainId);
+      if (existing) {
+        existing.count++;
+      } else {
+        captainMap.set(squad.captainId, { name, count: 1 });
+      }
+    }
+  });
+  const captainDistribution = Array.from(captainMap.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+    .map(c => ({
+      name: c.name,
+      count: c.count,
+      percent: Math.round((c.count / (totalLeaguePlayers || 1)) * 100),
+    }));
+
+  // ---- Top 3 peer squads (authoritative rank/points from snapshot) ----
+  const top3Squads = sortedSquads
+    .filter(s => s.userId !== userSquad.userId)
+    .slice(0, 3)
+    .map((squad) => {
+      const standing = standings.find(s => s.userId === squad.userId);
+      const rank = standing?.rank ?? squad.rank ?? 0;
+      const peer = compressToPeerSquad(squad, rank);
+      // Override totalPoints with snapshot value if available
+      if (standing) peer.totalPoints = standing.totalPoints;
+      return peer;
+    });
+
   return {
     userSquad: {
       userName: userSquad.squadName || 'Unknown Squad',
-      totalPoints: userSquad.totalPoints || 0,
+      totalPoints: userTotalPoints,
       rank: userRank,
       players: userSquad.players.map((p: SquadPlayer) => ({
         name: p.playerName,
@@ -85,14 +179,15 @@ export function buildLeagueContext(
         isCaptain: p.playerId === userSquad.captainId,
         isViceCaptain: p.playerId === userSquad.viceCaptainId,
         isXFactor: p.playerId === userSquad.xFactorId,
+        ownershipPercent: Math.round(((ownershipMap.get(p.playerId) || 0) / (totalLeaguePlayers || 1)) * 100),
       })),
       bankedPoints: userSquad.bankedPoints || 0,
       transfersRemaining,
     },
     leagueStats: {
-      totalPlayers: leaderboard.length,
+      totalPlayers: totalLeaguePlayers,
       averagePoints,
-      topScore: leaderboard[0]?.points || 0,
+      topScore,
       userRank,
     },
     availablePlayers: playerPool.map(p => ({
@@ -102,6 +197,24 @@ export function buildLeagueContext(
       team: p.team,
       isOverseas: p.isOverseas,
     })),
+    peerIntelligence: {
+      top3Squads,
+      captainDistribution,
+    },
+  };
+}
+
+/**
+ * Inject a specific peer squad for head-to-head comparison
+ */
+export function injectComparisonSquad(
+  context: LeagueContext,
+  peerSquad: LeagueSquad,
+  peerRank: number
+): LeagueContext {
+  return {
+    ...context,
+    comparisonSquad: compressToPeerSquad(peerSquad, peerRank),
   };
 }
 
@@ -134,38 +247,69 @@ export async function queryAI(
       .map(msg => `${msg.role}: ${msg.content}`)
       .join('\n');
 
+    // Pre-compute all numeric gaps so Gemini never has to do arithmetic
+    const userPts = context.userSquad.totalPoints;
+    const avgPts = context.leagueStats.averagePoints;
+    const topPts = context.leagueStats.topScore;
+    const vsAvg = (userPts - avgPts).toFixed(2);
+    const vsTop = (userPts - topPts).toFixed(2);
+    const vsAvgLabel = userPts >= avgPts ? `${vsAvg} pts ABOVE average` : `${Math.abs(Number(vsAvg))} pts BELOW average`;
+    const vsTopLabel = `${Math.abs(Number(vsTop))} pts behind the leader`;
+
     // Create system prompt
     const systemPrompt = `You are Gemini, an expert fantasy cricket assistant helping users optimize their league performance.
 
-IMPORTANT RULES:
-1. Always be specific with numbers and player names - cite exact points and ranks
-2. Provide data-driven recommendations based on the statistics provided
-3. If asked about transfers, check if they have transfers remaining and suggest specific player swaps
-4. If asked about captaincy, recommend the highest-performing player with justification
-5. Keep responses structured and informative (2-5 paragraphs)
-6. Use bullet points for lists of recommendations
-7. Add relevant emojis for readability (⭐ 🎯 📊 ✅ ⬆️ ⬇️ 💡 🔄)
-8. Be encouraging but realistic about squad performance
-9. ALWAYS end your response with a section titled "**💡 What else can I help with?**" followed by 2-3 relevant follow-up questions the user might ask
+CRITICAL ACCURACY RULES — FOLLOW WITHOUT EXCEPTION:
+1. NEVER perform arithmetic yourself. Every point total, gap, rank, and percentage is already computed and provided in the context below. Use those exact numbers only.
+2. NEVER invent or estimate any number. If a number is not explicitly in the context, say you don't have that data.
+3. NEVER say "X points ahead/behind" unless that exact gap is already written below — use the pre-computed gap values provided.
+4. Always quote player names, squad names, ranks, and points exactly as they appear in the context.
+5. If asked about transfers, check transfers remaining and suggest specific player swaps from the available players list.
+6. If asked about captaincy, recommend the highest-performing player with justification from the data.
+7. Keep responses structured and informative (2-5 paragraphs) with bullet points for recommendations.
+8. Add relevant emojis for readability (⭐ 🎯 📊 ✅ ⬆️ ⬇️ 💡 🔄 🔍 ⚔️).
+9. When comparing squads, ALWAYS structure the response as: (a) Shared players list, (b) Your differentials list, (c) Opponent's differentials list, (d) Captaincy/VC/XF comparison with points edge, (e) 1-2 specific transfer recommendations from the available player pool to close the gap.
+10. ALWAYS end your response with "**💡 What else can I help with?**" followed by 2-3 relevant follow-up questions.
 
 USER'S CURRENT SITUATION:
 ━━━━━━━━━━━━━━━━━━━━━━━━
 Squad: ${context.userSquad.userName}
-Total Points: ${context.userSquad.totalPoints}
+Total Points: ${userPts.toFixed(2)}
 Rank: #${context.userSquad.rank} of ${context.leagueStats.totalPlayers}
-Banked Points: ${context.userSquad.bankedPoints}
+Banked Points: ${context.userSquad.bankedPoints.toFixed(2)}
 Transfers Remaining: ${context.userSquad.transfersRemaining}
+vs League Average: ${vsAvgLabel} (average = ${avgPts.toFixed(2)} pts)
+vs League Leader: ${vsTopLabel} (leader = ${topPts.toFixed(2)} pts)
 
-SQUAD PLAYERS:
+SQUAD PLAYERS (with league ownership %):
 ${context.userSquad.players.map(p =>
-  `- ${p.name} (${p.role}): ${p.points} pts${p.isCaptain ? ' ⭐ CAPTAIN' : ''}${p.isViceCaptain ? ' 🔸 VC' : ''}${p.isXFactor ? ' ⚡ X-FACTOR' : ''}`
+  `- ${p.name} (${p.role}): ${p.points.toFixed(2)} pts | ${p.ownershipPercent}% owned${p.isCaptain ? ' ⭐ CAPTAIN' : ''}${p.isViceCaptain ? ' 🔸 VC' : ''}${p.isXFactor ? ' ⚡ X-FACTOR' : ''}`
 ).join('\n')}
 
 LEAGUE STATISTICS:
-Average Points: ${context.leagueStats.averagePoints.toFixed(0)}
-Top Score: ${context.leagueStats.topScore}
-Your Position: ${context.userSquad.totalPoints > context.leagueStats.averagePoints ? 'Above' : 'Below'} average (${(context.userSquad.totalPoints - context.leagueStats.averagePoints).toFixed(0)} points)
+League Average: ${avgPts.toFixed(2)} pts
+Top Score (Rank #1): ${topPts.toFixed(2)} pts
+Total Participants: ${context.leagueStats.totalPlayers}
 
+CAPTAIN PICKS ACROSS THE LEAGUE (top 5):
+${context.peerIntelligence.captainDistribution.map(c =>
+  `- ${c.name}: ${c.count} teams (${c.percent}%)`
+).join('\n')}
+
+TOP 3 SQUADS IN THE LEAGUE (pre-computed gaps vs you):
+${context.peerIntelligence.top3Squads.map(s => {
+  const gap = (s.totalPoints - userPts).toFixed(2);
+  const gapLabel = s.totalPoints > userPts ? `${gap} pts ahead of you` : `${Math.abs(Number(gap))} pts behind you`;
+  return `#${s.rank} ${s.squadName} — ${s.totalPoints.toFixed(2)} pts [${gapLabel}] | Captain: ${s.captainName} | VC: ${s.viceCaptainName} | XF: ${s.xFactorName}\n  Players: ${s.players.join(', ')}`;
+}).join('\n')}
+
+${context.comparisonSquad ? `HEAD-TO-HEAD COMPARISON TARGET:
+━━━━━━━━━━━━━━━━━━━━━━━━
+#${context.comparisonSquad.rank} ${context.comparisonSquad.squadName} — ${context.comparisonSquad.totalPoints.toFixed(2)} pts
+Gap: ${Math.abs(userPts - context.comparisonSquad.totalPoints).toFixed(2)} pts (${userPts >= context.comparisonSquad.totalPoints ? 'you are ahead' : 'they are ahead'})
+Captain: ${context.comparisonSquad.captainName} | VC: ${context.comparisonSquad.viceCaptainName} | XF: ${context.comparisonSquad.xFactorName}
+Players: ${context.comparisonSquad.players.join(', ')}
+` : ''}
 AVAILABLE PLAYERS (Top 20 by points):
 ${context.availablePlayers
   .sort((a, b) => b.points - a.points)
@@ -186,7 +330,7 @@ Provide a helpful, data-driven answer with specific recommendations. ALWAYS end 
       model: 'gemini-2.5-flash',
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 2048, // Increased for complete, detailed responses
+        maxOutputTokens: 8192, // Large enough for full comparison responses
         topP: 0.9,
       },
     });
@@ -227,14 +371,14 @@ Provide a helpful, data-driven answer with specific recommendations. ALWAYS end 
  * Quick suggestions for common queries
  */
 export const SUGGESTED_QUESTIONS = [
+  "How do I beat the league leader?",
+  "What are my differentials?",
   "Who should I make my captain?",
   "Suggest 3 transfers to improve my squad",
-  "How is my squad performing?",
-  "Compare my squad with the league leader",
+  "Am I at risk of dropping ranks?",
+  "Analyse the captain picks across the league",
   "Which players are underperforming?",
-  "Who are the top scorers in the league?",
-  "What's the best bench transfer I can make?",
-  "Analyze my captain's performance",
+  "How unique is my squad compared to the rest?",
 ];
 
 /**
@@ -253,11 +397,16 @@ export function getSmartSuggestion(context: LeagueContext): string {
     return "What captain should I choose for maximum points?";
   }
 
-  // If in top 3, suggest optimization
+  // If in top 3, suggest how to maintain lead
   if (userSquad.rank <= 3) {
-    return "How can I maintain my lead?";
+    return "Am I at risk of dropping ranks?";
+  }
+
+  // Close to a rival — suggest comparison
+  if (userSquad.rank <= 5) {
+    return "How do I beat the league leader?";
   }
 
   // Default
-  return "Suggest 3 transfers to improve my squad";
+  return "What are my differentials?";
 }
