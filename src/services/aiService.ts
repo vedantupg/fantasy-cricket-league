@@ -31,6 +31,7 @@ export interface LeagueContext {
     userName: string;
     totalPoints: number;
     rank: number;
+    // Playing XI — these are the scored players
     players: Array<{
       name: string;
       role: string;
@@ -38,10 +39,30 @@ export interface LeagueContext {
       isCaptain: boolean;
       isViceCaptain: boolean;
       isXFactor: boolean;
-      ownershipPercent: number; // % of league that owns this player
+      ownershipPercent: number;
+    }>;
+    // Bench players — in the squad but NOT in the playing XI
+    // Can be swapped in via a Bench Transfer (see transferRules)
+    benchPlayers: Array<{
+      name: string;
+      role: string;
+      points: number;
+      ownershipPercent: number;
     }>;
     bankedPoints: number;
-    transfersRemaining: number;
+    // Transfer summary
+    flexibleTransfersRemaining: number;
+    flexibleTransfersUsed: number;
+    flexibleTransfersTotal: number;
+    benchTransfersRemaining: number;
+    benchTransfersUsed: number;
+    benchTransfersTotal: number;
+  };
+  // Transfer rules — always include so Gemini understands what each transfer type does
+  transferRules: {
+    benchTransferExplained: string;
+    flexibleTransferExplained: string;
+    benchSlotsCount: number;
   };
   leagueStats: {
     totalPlayers: number;
@@ -118,10 +139,20 @@ export function buildLeagueContext(
         .filter((sq): sq is LeagueSquad => !!sq)
     : [...allSquads].sort((a, b) => (a.rank || 999) - (b.rank || 999));
 
-  // Calculate transfers remaining
-  const flexibleTransfers = league.transferTypes?.flexibleTransfers?.maxAllowed || 0;
-  const usedTransfers = userSquad.flexibleTransfersUsed || 0;
-  const transfersRemaining = Math.max(0, flexibleTransfers - usedTransfers);
+  // ---- Transfer counts ----
+  const flexibleTotal = league.transferTypes?.flexibleTransfers?.maxAllowed || 0;
+  const flexibleUsed = userSquad.flexibleTransfersUsed || 0;
+  const flexibleRemaining = Math.max(0, flexibleTotal - flexibleUsed);
+
+  const benchTotal = league.transferTypes?.benchTransfers?.maxAllowed || 0;
+  const benchUsed = userSquad.benchTransfersUsed || 0;
+  const benchRemaining = Math.max(0, benchTotal - benchUsed);
+  const benchSlots = league.transferTypes?.benchTransfers?.benchSlots || 0;
+
+  // ---- Bench vs playing XI split ----
+  // Playing XI = first 11 players; bench = remainder (benchSlots count)
+  const playingXI = userSquad.players.slice(0, 11);
+  const benchPlayersList = userSquad.players.slice(11);
 
   // ---- Ownership % per player ----
   const ownershipMap = new Map<string, number>();
@@ -172,7 +203,7 @@ export function buildLeagueContext(
       userName: userSquad.squadName || 'Unknown Squad',
       totalPoints: userTotalPoints,
       rank: userRank,
-      players: userSquad.players.map((p: SquadPlayer) => ({
+      players: playingXI.map((p: SquadPlayer) => ({
         name: p.playerName,
         role: p.role,
         points: p.points,
@@ -181,8 +212,24 @@ export function buildLeagueContext(
         isXFactor: p.playerId === userSquad.xFactorId,
         ownershipPercent: Math.round(((ownershipMap.get(p.playerId) || 0) / (totalLeaguePlayers || 1)) * 100),
       })),
+      benchPlayers: benchPlayersList.map((p: SquadPlayer) => ({
+        name: p.playerName,
+        role: p.role,
+        points: p.points,
+        ownershipPercent: Math.round(((ownershipMap.get(p.playerId) || 0) / (totalLeaguePlayers || 1)) * 100),
+      })),
       bankedPoints: userSquad.bankedPoints || 0,
-      transfersRemaining,
+      flexibleTransfersRemaining: flexibleRemaining,
+      flexibleTransfersUsed: flexibleUsed,
+      flexibleTransfersTotal: flexibleTotal,
+      benchTransfersRemaining: benchRemaining,
+      benchTransfersUsed: benchUsed,
+      benchTransfersTotal: benchTotal,
+    },
+    transferRules: {
+      benchSlotsCount: benchSlots,
+      benchTransferExplained: `A Bench Transfer lets you swap any player in your Playing XI with one of your ${benchSlots} bench players. You can also use it to reassign Captain/VC/XF roles. You have ${benchRemaining} of ${benchTotal} bench transfers remaining. Bench players do NOT score points until they are moved into the Playing XI via a bench transfer.`,
+      flexibleTransferExplained: `A Flexible Transfer lets you replace any non-Captain player in your Playing XI with any player from the global player pool. You can also use it to reassign VC/XF roles (but NOT the Captain). You have ${flexibleRemaining} of ${flexibleTotal} flexible transfers remaining.`,
     },
     leagueStats: {
       totalPlayers: totalLeaguePlayers,
@@ -264,12 +311,13 @@ CRITICAL ACCURACY RULES — FOLLOW WITHOUT EXCEPTION:
 2. NEVER invent or estimate any number. If a number is not explicitly in the context, say you don't have that data.
 3. NEVER say "X points ahead/behind" unless that exact gap is already written below — use the pre-computed gap values provided.
 4. Always quote player names, squad names, ranks, and points exactly as they appear in the context.
-5. If asked about transfers, check transfers remaining and suggest specific player swaps from the available players list.
-6. If asked about captaincy, recommend the highest-performing player with justification from the data.
-7. Keep responses structured and informative (2-5 paragraphs) with bullet points for recommendations.
-8. Add relevant emojis for readability (⭐ 🎯 📊 ✅ ⬆️ ⬇️ 💡 🔄 🔍 ⚔️).
-9. When comparing squads, ALWAYS structure the response as: (a) Shared players list, (b) Your differentials list, (c) Opponent's differentials list, (d) Captaincy/VC/XF comparison with points edge, (e) 1-2 specific transfer recommendations from the available player pool to close the gap.
-10. ALWAYS end your response with "**💡 What else can I help with?**" followed by 2-3 relevant follow-up questions.
+5. For transfer recommendations: always specify the transfer TYPE (Bench Transfer or Flexible Transfer), name the exact player going OUT and the exact player coming IN, and reference their points from the data. NEVER recommend more transfers than the user has remaining. When recommending from the available players list, suggest the best player per ROLE (batsman/bowler/allrounder) not just the overall highest scorer.
+6. CRITICAL — bench players are NOT scoring and should NEVER be criticised for low points. If a bench player is high-scoring, suggest bringing them in via a Bench Transfer to replace a weaker Playing XI player.
+7. If asked about captaincy, recommend the highest-performing player with justification from the data.
+8. Keep responses structured and informative (2-5 paragraphs) with bullet points for recommendations.
+9. Add relevant emojis for readability (⭐ 🎯 📊 ✅ ⬆️ ⬇️ 💡 🔄 🔍 ⚔️).
+10. When comparing squads, ALWAYS structure the response as: (a) Shared players list, (b) Your differentials list, (c) Opponent's differentials list, (d) Captaincy/VC/XF comparison with points edge, (e) 1-2 specific transfer recommendations from the available player pool to close the gap.
+11. ALWAYS end your response with "**💡 What else can I help with?**" followed by 2-3 relevant follow-up questions.
 
 USER'S CURRENT SITUATION:
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -277,14 +325,30 @@ Squad: ${context.userSquad.userName}
 Total Points: ${userPts.toFixed(2)}
 Rank: #${context.userSquad.rank} of ${context.leagueStats.totalPlayers}
 Banked Points: ${context.userSquad.bankedPoints.toFixed(2)}
-Transfers Remaining: ${context.userSquad.transfersRemaining}
+Flexible Transfers Remaining: ${context.userSquad.flexibleTransfersRemaining}
+Bench Transfers Remaining: ${context.userSquad.benchTransfersRemaining}
 vs League Average: ${vsAvgLabel} (average = ${avgPts.toFixed(2)} pts)
 vs League Leader: ${vsTopLabel} (leader = ${topPts.toFixed(2)} pts)
 
-SQUAD PLAYERS (with league ownership %):
+PLAYING XI (with league ownership %):
 ${context.userSquad.players.map(p =>
   `- ${p.name} (${p.role}): ${p.points.toFixed(2)} pts | ${p.ownershipPercent}% owned${p.isCaptain ? ' ⭐ CAPTAIN' : ''}${p.isViceCaptain ? ' 🔸 VC' : ''}${p.isXFactor ? ' ⚡ X-FACTOR' : ''}`
 ).join('\n')}
+
+BENCH PLAYERS (NOT scoring — must use a Bench Transfer to bring them into Playing XI):
+${context.userSquad.benchPlayers.length > 0
+  ? context.userSquad.benchPlayers.map(p =>
+      `- ${p.name} (${p.role}): ${p.points.toFixed(2)} pts | ${p.ownershipPercent}% owned [BENCH — not currently scoring]`
+    ).join('\n')
+  : '- No bench players'}
+
+TRANSFER STATUS:
+Flexible Transfers: ${context.userSquad.flexibleTransfersRemaining} remaining (${context.userSquad.flexibleTransfersUsed}/${context.userSquad.flexibleTransfersTotal} used)
+Bench Transfers: ${context.userSquad.benchTransfersRemaining} remaining (${context.userSquad.benchTransfersUsed}/${context.userSquad.benchTransfersTotal} used)
+
+TRANSFER RULES (understand these before recommending any transfer):
+- ${context.transferRules.flexibleTransferExplained}
+- ${context.transferRules.benchTransferExplained}
 
 LEAGUE STATISTICS:
 League Average: ${avgPts.toFixed(2)} pts
@@ -310,12 +374,19 @@ Gap: ${Math.abs(userPts - context.comparisonSquad.totalPoints).toFixed(2)} pts (
 Captain: ${context.comparisonSquad.captainName} | VC: ${context.comparisonSquad.viceCaptainName} | XF: ${context.comparisonSquad.xFactorName}
 Players: ${context.comparisonSquad.players.join(', ')}
 ` : ''}
-AVAILABLE PLAYERS (Top 20 by points):
-${context.availablePlayers
-  .sort((a, b) => b.points - a.points)
-  .slice(0, 20)
-  .map(p => `- ${p.name} (${p.role}, ${p.team}): ${p.points} pts${p.isOverseas ? ' 🌍' : ''}`)
-  .join('\n')}
+AVAILABLE PLAYERS FROM POOL (top 2 per role — NOT already in your Playing XI):
+${(() => {
+  const myPlayerNames = new Set(context.userSquad.players.map(p => p.name));
+  const sorted = context.availablePlayers
+    .filter(p => !myPlayerNames.has(p.name))
+    .sort((a, b) => b.points - a.points);
+  const roles = ['batsman', 'allrounder', 'bowler', 'wicketkeeper'];
+  return roles.flatMap(role => {
+    const forRole = sorted.filter(p => p.role === role).slice(0, 2);
+    if (forRole.length === 0) return [];
+    return [`${role.toUpperCase()}S:`, ...forRole.map(p => `  - ${p.name} (${p.team}): ${p.points.toFixed(2)} pts${p.isOverseas ? ' 🌍' : ''}`)];
+  }).join('\n');
+})()}
 
 ${conversationContext ? `RECENT CONVERSATION:\n${conversationContext}\n` : ''}
 
@@ -393,7 +464,7 @@ export function getSmartSuggestion(context: LeagueContext): string {
   }
 
   // If no transfers remaining
-  if (userSquad.transfersRemaining === 0) {
+  if (userSquad.flexibleTransfersRemaining === 0 && userSquad.benchTransfersRemaining === 0) {
     return "What captain should I choose for maximum points?";
   }
 
