@@ -36,7 +36,6 @@ import {
   ExpandMore,
   ExpandLess,
 } from '@mui/icons-material';
-import { useTheme } from '@mui/material/styles';
 import { useAuth } from '../contexts/AuthContext';
 import { squadService, leagueService, playerPoolService, leaderboardSnapshotService } from '../services/firestore';
 import {
@@ -54,7 +53,6 @@ interface LeagueAssistantProps {
 }
 
 const LeagueAssistant: React.FC<LeagueAssistantProps> = ({ leagueId }) => {
-  const theme = useTheme();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -270,11 +268,26 @@ What would you like to know?`,
     return null;
   }
 
+  // ── App color palette (matches the site's Navy/Blue/Gold theme) ──
+  const C = {
+    blue:       '#1E88E5',
+    blueDark:   '#1565C0',
+    blueDeep:   '#016293',
+    navy:       '#003E5C',
+    navyDark:   '#00263A',
+    gold:       '#FFD700',
+    goldMuted:  '#FFA726',
+    bgDefault:  '#0A1929',
+    bgPaper:    '#0D2137',
+    bgElevated: '#112844',
+    textPrimary:'#FFFFFF',
+    textSecond: '#90CAF9',
+  };
+
   return (
     <>
       {/* Floating Action Button */}
       <Fab
-        color="primary"
         aria-label="AI Assistant"
         onClick={() => setOpen(true)}
         sx={{
@@ -283,42 +296,29 @@ What would you like to know?`,
           right: { xs: 16, sm: 24 },
           width: { xs: 56, sm: 64 },
           height: { xs: 56, sm: 64 },
-          background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+          background: `linear-gradient(135deg, ${C.blueDeep}, ${C.blue})`,
           '&:hover': {
-            background: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.secondary.dark})`,
+            background: `linear-gradient(135deg, ${C.navy}, ${C.blueDeep})`,
             transform: 'scale(1.1) rotate(5deg)',
           },
           transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-          boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.5)}`,
-          animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-          '@keyframes pulse': {
-            '0%, 100%': {
-              boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.5)}`,
-            },
-            '50%': {
-              boxShadow: `0 8px 40px ${alpha(theme.palette.primary.main, 0.7)}`,
-            },
+          boxShadow: `0 8px 32px ${alpha(C.blue, 0.45)}`,
+          animation: 'fabPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          '@keyframes fabPulse': {
+            '0%, 100%': { boxShadow: `0 8px 32px ${alpha(C.blue, 0.45)}` },
+            '50%':       { boxShadow: `0 8px 44px ${alpha(C.blue, 0.65)}` },
           },
           '&::before': {
             content: '""',
             position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
+            top: 0, left: 0, right: 0, bottom: 0,
             borderRadius: '50%',
-            background: `linear-gradient(135deg, ${alpha(theme.palette.primary.light, 0.3)}, ${alpha(theme.palette.secondary.light, 0.3)})`,
-            animation: 'ripple 1.5s ease-out infinite',
+            background: `linear-gradient(135deg, ${alpha(C.blue, 0.25)}, ${alpha(C.gold, 0.1)})`,
+            animation: 'fabRipple 1.8s ease-out infinite',
           },
-          '@keyframes ripple': {
-            '0%': {
-              transform: 'scale(1)',
-              opacity: 1,
-            },
-            '100%': {
-              transform: 'scale(1.5)',
-              opacity: 0,
-            },
+          '@keyframes fabRipple': {
+            '0%':   { transform: 'scale(1)',   opacity: 1 },
+            '100%': { transform: 'scale(1.6)', opacity: 0 },
           },
         }}
       >
@@ -340,25 +340,23 @@ What would you like to know?`,
         onClose={() => setOpen(false)}
         maxWidth="md"
         fullWidth
-        TransitionProps={{
-          style: {
-            transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-          },
-        }}
+        TransitionProps={{ style: { transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' } }}
         PaperProps={{
           sx: {
-            height: { xs: '100%', sm: '70vh' },
-            maxHeight: { xs: '100%', sm: '700px' },
+            height: { xs: '100%', sm: '75vh' },
+            maxHeight: { xs: '100%', sm: '740px' },
             borderRadius: { xs: 0, sm: 3 },
             overflow: 'hidden',
-            backdropFilter: 'blur(10px)',
-            boxShadow: `0 20px 60px ${alpha(theme.palette.primary.main, 0.3)}`,
+            bgcolor: C.bgDefault,
+            border: `1px solid ${alpha(C.blue, 0.2)}`,
+            boxShadow: `0 24px 80px ${alpha(C.navy, 0.8)}, 0 0 0 1px ${alpha(C.blue, 0.15)}`,
           },
         }}
       >
         <DialogTitle
           sx={{
-            background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+            background: `linear-gradient(135deg, ${C.navyDark} 0%, ${C.navy} 60%, ${C.blueDeep} 100%)`,
+            borderBottom: `1px solid ${alpha(C.blue, 0.3)}`,
             color: 'white',
             display: 'flex',
             alignItems: 'center',
@@ -403,7 +401,7 @@ What would you like to know?`,
         <DialogContent
           sx={{
             p: 2,
-            bgcolor: alpha(theme.palette.background.default, 0.5),
+            bgcolor: C.bgDefault,
             display: 'flex',
             flexDirection: 'column',
             gap: 2,
@@ -456,7 +454,7 @@ What would you like to know?`,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                        background: `linear-gradient(135deg, ${C.blueDeep}, ${C.blue})`,
                         flexShrink: 0,
                         mt: 0.5,
                       }}
@@ -480,31 +478,28 @@ What would you like to know?`,
                       p: 2.5,
                       maxWidth: '80%',
                       position: 'relative',
-                      bgcolor: msg.role === 'user'
-                        ? `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`
-                        : alpha(theme.palette.background.paper, 1),
                       background: msg.role === 'user'
-                        ? `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`
-                        : `linear-gradient(145deg, ${alpha('#ffffff', 1)}, ${alpha('#f5f7fa', 1)})`,
+                        ? `linear-gradient(135deg, ${C.blueDeep}, ${C.blue})`
+                        : `linear-gradient(145deg, ${C.bgElevated}, ${C.bgPaper})`,
                       color: msg.role === 'user'
-                        ? 'white'
-                        : theme.palette.grey[900],
+                        ? C.textPrimary
+                        : C.textPrimary,
                       borderRadius: msg.role === 'user'
                         ? '24px 24px 6px 24px'
                         : '24px 24px 24px 6px',
                       border: msg.role === 'assistant'
-                        ? `1px solid ${alpha(theme.palette.primary.main, 0.12)}`
+                        ? `1px solid ${alpha(C.blue, 0.2)}`
                         : 'none',
                       boxShadow: msg.role === 'user'
-                        ? `0 8px 32px ${alpha(theme.palette.primary.main, 0.25)}, 0 2px 8px ${alpha(theme.palette.primary.dark, 0.15)}, inset 0 1px 0 ${alpha('#fff', 0.1)}`
-                        : `0 8px 24px ${alpha(theme.palette.primary.main, 0.08)}, 0 2px 8px ${alpha('#000', 0.04)}, inset 0 1px 0 ${alpha('#fff', 0.8)}`,
+                        ? `0 8px 32px ${alpha(C.blue, 0.3)}, 0 2px 8px ${alpha(C.navyDark, 0.2)}, inset 0 1px 0 ${alpha('#fff', 0.1)}`
+                        : `0 8px 24px ${alpha(C.navyDark, 0.3)}, 0 2px 8px ${alpha('#000', 0.15)}`,
                       backdropFilter: msg.role === 'assistant' ? 'blur(10px)' : 'none',
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                       '&:hover': {
                         transform: 'translateY(-2px)',
                         boxShadow: msg.role === 'user'
-                          ? `0 12px 40px ${alpha(theme.palette.primary.main, 0.3)}, 0 4px 12px ${alpha(theme.palette.primary.dark, 0.2)}, inset 0 1px 0 ${alpha('#fff', 0.15)}`
-                          : `0 12px 32px ${alpha(theme.palette.primary.main, 0.12)}, 0 4px 12px ${alpha('#000', 0.06)}, inset 0 1px 0 ${alpha('#fff', 0.9)}`,
+                          ? `0 12px 40px ${alpha(C.blue, 0.4)}, 0 4px 12px ${alpha(C.navyDark, 0.3)}, inset 0 1px 0 ${alpha('#fff', 0.15)}`
+                          : `0 12px 32px ${alpha(C.navyDark, 0.4)}, 0 4px 12px ${alpha('#000', 0.2)}`,
                       },
                       '&::before': msg.role === 'assistant' ? {
                         content: '""',
@@ -512,7 +507,7 @@ What would you like to know?`,
                         inset: 0,
                         borderRadius: 'inherit',
                         padding: '1px',
-                        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.3)}, ${alpha(theme.palette.secondary.main, 0.2)})`,
+                        background: `linear-gradient(135deg, ${alpha(C.blue, 0.4)}, ${alpha(C.gold, 0.15)})`,
                         WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
                         WebkitMaskComposite: 'xor',
                         maskComposite: 'exclude',
@@ -540,26 +535,27 @@ What would you like to know?`,
                         },
                         '& strong': {
                           fontWeight: 700,
-                          color: msg.role === 'user' ? 'white' : theme.palette.primary.main,
+                          color: msg.role === 'user' ? C.textPrimary : C.gold,
                         },
                         '& em': {
                           fontStyle: 'italic',
-                          color: msg.role === 'user' ? alpha('#fff', 0.95) : theme.palette.grey[700],
+                          color: msg.role === 'user' ? alpha(C.textPrimary, 0.85) : C.textSecond,
                         },
                         '& code': {
                           backgroundColor: msg.role === 'user'
                             ? alpha('#000', 0.2)
-                            : alpha(theme.palette.primary.main, 0.08),
+                            : alpha(C.blue, 0.12),
                           padding: '2px 6px',
                           borderRadius: '4px',
                           fontSize: '0.95em',
                           fontFamily: 'monospace',
+                          color: msg.role === 'user' ? C.textPrimary : C.textSecond,
                         },
                         '& h1, & h2, & h3': {
                           margin: '0.8em 0 0.4em 0',
                           fontWeight: 700,
                           fontSize: '1.15rem',
-                          color: msg.role === 'user' ? 'white' : theme.palette.primary.main,
+                          color: msg.role === 'user' ? C.textPrimary : C.gold,
                         },
                       }}
                     >
@@ -613,19 +609,19 @@ What would you like to know?`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                      background: `linear-gradient(135deg, ${C.blueDeep}, ${C.blue})`,
                       flexShrink: 0,
                       mt: 0.5,
-                      boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                      boxShadow: `0 4px 12px ${alpha(C.blue, 0.4)}`,
                       animation: 'pulse 2s ease-in-out infinite',
                       '@keyframes pulse': {
                         '0%, 100%': {
                           transform: 'scale(1)',
-                          boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                          boxShadow: `0 4px 12px ${alpha(C.blue, 0.4)}`,
                         },
                         '50%': {
                           transform: 'scale(1.05)',
-                          boxShadow: `0 6px 16px ${alpha(theme.palette.primary.main, 0.4)}`,
+                          boxShadow: `0 6px 16px ${alpha(C.blue, 0.55)}`,
                         },
                       },
                     }}
@@ -645,10 +641,10 @@ What would you like to know?`,
                     elevation={0}
                     sx={{
                       p: 2.5,
-                      background: `linear-gradient(145deg, ${alpha('#ffffff', 1)}, ${alpha('#f5f7fa', 1)})`,
+                      background: `linear-gradient(145deg, ${C.bgElevated}, ${C.bgPaper})`,
                       borderRadius: '24px 24px 24px 6px',
-                      border: `1px solid ${alpha(theme.palette.primary.main, 0.12)}`,
-                      boxShadow: `0 8px 24px ${alpha(theme.palette.primary.main, 0.08)}, 0 2px 8px ${alpha('#000', 0.04)}, inset 0 1px 0 ${alpha('#fff', 0.8)}`,
+                      border: `1px solid ${alpha(C.blue, 0.2)}`,
+                      boxShadow: `0 8px 24px ${alpha(C.navyDark, 0.3)}, 0 2px 8px ${alpha('#000', 0.15)}`,
                       display: 'flex',
                       alignItems: 'center',
                       gap: 1.5,
@@ -659,7 +655,7 @@ What would you like to know?`,
                         inset: 0,
                         borderRadius: 'inherit',
                         padding: '1px',
-                        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.3)}, ${alpha(theme.palette.secondary.main, 0.2)})`,
+                        background: `linear-gradient(135deg, ${alpha(C.blue, 0.4)}, ${alpha(C.gold, 0.15)})`,
                         WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
                         WebkitMaskComposite: 'xor',
                         maskComposite: 'exclude',
@@ -679,8 +675,8 @@ What would you like to know?`,
                           width: 10,
                           height: 10,
                           borderRadius: '50%',
-                          background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-                          boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.4)}`,
+                          background: `linear-gradient(135deg, ${C.blue}, ${C.blueDeep})`,
+                          boxShadow: `0 2px 8px ${alpha(C.blue, 0.5)}`,
                           animation: 'bounce 1.4s ease-in-out infinite',
                           '@keyframes bounce': {
                             '0%, 80%, 100%': { transform: 'translateY(0) scale(1)', opacity: 0.7 },
@@ -693,8 +689,8 @@ What would you like to know?`,
                           width: 10,
                           height: 10,
                           borderRadius: '50%',
-                          background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-                          boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.4)}`,
+                          background: `linear-gradient(135deg, ${C.gold}, ${C.goldMuted})`,
+                          boxShadow: `0 2px 8px ${alpha(C.gold, 0.4)}`,
                           animation: 'bounce 1.4s ease-in-out 0.2s infinite',
                           '@keyframes bounce': {
                             '0%, 80%, 100%': { transform: 'translateY(0) scale(1)', opacity: 0.7 },
@@ -707,8 +703,8 @@ What would you like to know?`,
                           width: 10,
                           height: 10,
                           borderRadius: '50%',
-                          background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-                          boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.4)}`,
+                          background: `linear-gradient(135deg, ${C.blue}, ${C.blueDeep})`,
+                          boxShadow: `0 2px 8px ${alpha(C.blue, 0.5)}`,
                           animation: 'bounce 1.4s ease-in-out 0.4s infinite',
                           '@keyframes bounce': {
                             '0%, 80%, 100%': { transform: 'translateY(0) scale(1)', opacity: 0.7 },
@@ -720,10 +716,9 @@ What would you like to know?`,
                     <Typography
                       variant="body2"
                       sx={{
-                        color: theme.palette.primary.main,
                         fontWeight: 600,
                         fontSize: '0.9rem',
-                        background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                        background: `linear-gradient(135deg, ${C.textSecond}, ${C.gold})`,
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
                         backgroundClip: 'text',
@@ -743,7 +738,7 @@ What would you like to know?`,
           {!loading && context && allSquads.length > 1 && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <FormControl size="small" fullWidth>
-                <InputLabel sx={{ fontSize: '0.8rem' }}>⚔️ Compare with a rival...</InputLabel>
+                <InputLabel sx={{ fontSize: '0.8rem', color: C.textSecond }}>⚔️ Compare with a rival...</InputLabel>
                 <Select
                   value={selectedPeer?.userId || ''}
                   label="⚔️ Compare with a rival..."
@@ -759,13 +754,19 @@ What would you like to know?`,
                   }}
                   sx={{
                     fontSize: '0.8rem',
-                    bgcolor: alpha(theme.palette.secondary.main, 0.05),
+                    bgcolor: alpha(C.navy, 0.4),
+                    color: C.textPrimary,
                     borderRadius: 2,
+                    '& .MuiSelect-select': { color: C.textPrimary },
+                    '& .MuiSvgIcon-root': { color: C.textSecond },
                     '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: alpha(theme.palette.secondary.main, 0.3),
+                      borderColor: alpha(C.blue, 0.35),
                     },
                     '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: theme.palette.secondary.main,
+                      borderColor: C.blue,
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: C.blue,
                     },
                   }}
                 >
@@ -788,7 +789,7 @@ What would you like to know?`,
                         <MenuItem key={peer.userId} value={peer.userId} sx={{ fontSize: '0.8rem' }}>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', gap: 2 }}>
                             <span>#{rank} {peer.squadName}</span>
-                            <span style={{ color: theme.palette.text.secondary, fontVariantNumeric: 'tabular-nums' }}>{pts} pts</span>
+                            <span style={{ color: C.textSecond, fontVariantNumeric: 'tabular-nums' }}>{pts} pts</span>
                           </Box>
                         </MenuItem>
                       );
@@ -803,7 +804,7 @@ What would you like to know?`,
                     setSelectedPeer(null);
                     if (baseContext) setContext(baseContext);
                   }}
-                  sx={{ flexShrink: 0, bgcolor: alpha(theme.palette.secondary.main, 0.15), fontWeight: 'bold', fontSize: '0.65rem' }}
+                  sx={{ flexShrink: 0, bgcolor: alpha(C.gold, 0.15), color: C.gold, fontWeight: 'bold', fontSize: '0.65rem', border: `1px solid ${alpha(C.gold, 0.35)}` }}
                 />
               )}
             </Box>
@@ -822,7 +823,7 @@ What would you like to know?`,
                 }}
                 onClick={() => setShowSuggestions(!showSuggestions)}
               >
-                <Lightbulb color="primary" fontSize="small" />
+                <Lightbulb sx={{ color: C.gold }} fontSize="small" />
                 <Typography variant="caption" fontWeight="bold">
                   Suggested Questions
                 </Typography>
@@ -840,14 +841,15 @@ What would you like to know?`,
                       sx={{
                         cursor: 'pointer',
                         borderRadius: 2,
-                        border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
-                        bgcolor: alpha(theme.palette.primary.main, 0.05),
+                        color: C.textSecond,
+                        border: `1px solid ${alpha(C.blue, 0.35)}`,
+                        bgcolor: alpha(C.navy, 0.5),
                         transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                         '&:hover': {
-                          bgcolor: theme.palette.primary.main,
-                          color: 'white',
+                          bgcolor: C.blue,
+                          color: C.textPrimary,
                           transform: 'translateY(-2px)',
-                          boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                          boxShadow: `0 4px 12px ${alpha(C.blue, 0.4)}`,
                         },
                         '&:active': {
                           transform: 'translateY(0)',
@@ -864,8 +866,8 @@ What would you like to know?`,
         <DialogActions
           sx={{
             p: 2.5,
-            bgcolor: alpha(theme.palette.background.default, 0.8),
-            borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+            bgcolor: C.bgPaper,
+            borderTop: `1px solid ${alpha(C.blue, 0.2)}`,
             backdropFilter: 'blur(10px)',
           }}
         >
@@ -881,26 +883,32 @@ What would you like to know?`,
             variant="outlined"
             sx={{
               '& .MuiOutlinedInput-root': {
-                bgcolor: 'white',
+                bgcolor: alpha(C.navy, 0.6),
                 borderRadius: 3,
+                color: C.textPrimary,
                 transition: 'all 0.3s ease',
-                '&:hover': {
-                  boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.15)}`,
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: alpha(C.blue, 0.3),
                 },
-                '&.Mui-focused': {
-                  boxShadow: `0 4px 20px ${alpha(theme.palette.primary.main, 0.25)}`,
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: C.blue,
+                  boxShadow: `0 4px 12px ${alpha(C.blue, 0.15)}`,
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: C.blue,
+                  boxShadow: `0 4px 20px ${alpha(C.blue, 0.25)}`,
                 },
               },
               '& .MuiOutlinedInput-input': {
                 fontSize: '0.95rem',
-                color: theme.palette.grey[900],
+                color: C.textPrimary,
                 '&::placeholder': {
-                  color: theme.palette.grey[500],
-                  opacity: 1,
+                  color: C.textSecond,
+                  opacity: 0.8,
                 },
               },
               '& textarea': {
-                color: theme.palette.grey[900],
+                color: C.textPrimary,
               },
             }}
           />
@@ -913,15 +921,20 @@ What would you like to know?`,
               minWidth: 100,
               height: 48,
               borderRadius: 3,
-              background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
-              boxShadow: `0 4px 16px ${alpha(theme.palette.primary.main, 0.3)}`,
+              background: `linear-gradient(135deg, ${C.blueDeep}, ${C.blue})`,
+              boxShadow: `0 4px 16px ${alpha(C.blue, 0.35)}`,
+              color: C.textPrimary,
               '&:hover': {
-                background: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.secondary.dark})`,
-                boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.4)}`,
+                background: `linear-gradient(135deg, ${C.navy}, ${C.blueDeep})`,
+                boxShadow: `0 6px 20px ${alpha(C.blue, 0.5)}`,
                 transform: 'translateY(-2px)',
               },
               '&:active': {
                 transform: 'translateY(0)',
+              },
+              '&.Mui-disabled': {
+                background: alpha(C.navy, 0.5),
+                color: alpha(C.textPrimary, 0.3),
               },
               transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
               fontWeight: 600,
