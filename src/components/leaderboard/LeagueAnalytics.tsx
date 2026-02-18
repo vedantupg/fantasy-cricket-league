@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Paper, Avatar, Chip, LinearProgress } from '@mui/material';
+import { Box, Typography, Paper, Avatar, Chip } from '@mui/material';
 import {
   EmojiEvents,
   TrendingUp,
