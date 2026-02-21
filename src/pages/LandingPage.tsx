@@ -72,12 +72,6 @@ const LandingPage: React.FC = () => {
       title: "Pro Tips, No Cap",
       description: "Get insights from actual cricket experts. Real game knowledge, not just random stats. Level up while you play!",
       color: theme.palette.secondary.main
-    },
-    {
-      icon: <EmojiEvents sx={{ fontSize: 40 }} />,
-      title: "Bag the Rewards",
-      description: "Win cash, merch, and serious clout. Because why play for free when you can get paid to be right?",
-      color: theme.palette.primary.main
     }
   ];
 
@@ -757,7 +751,7 @@ const LandingPage: React.FC = () => {
             fontWeight: 400
           }}
         >
-          © 2025 FCL. All rights reserved.
+          © 2026 FCL. All rights reserved.
         </Typography>
       </Box>
     </Box>
