@@ -63,8 +63,8 @@ describe('Bench Transfer + Role Reassignment - PT-001 Bug', () => {
       players,
       squadSize,
       captainId,
-      null,
-      null,
+      undefined,
+      undefined,
       bankedPoints
     );
 
@@ -107,8 +107,8 @@ describe('Bench Transfer + Role Reassignment - PT-001 Bug', () => {
       updatedPlayers,
       squadSize,
       'p2', // New captain
-      null,
-      null,
+      undefined,
+      undefined,
       newBankedPoints
     );
 
@@ -139,7 +139,7 @@ describe('Bench Transfer + Role Reassignment - PT-001 Bug', () => {
     // Contribution: 180 - 20 = 160
     players[1] = createPlayer('p2', 'Regular Player', 180, 20);
 
-    const beforePoints = calculateSquadPoints(players, squadSize, 'p1', null, null, 200);
+    const beforePoints = calculateSquadPoints(players, squadSize, 'p1', undefined, undefined, 200);
 
     // Simulate transfer
     const updatedPlayers = players.map(p => ({ ...p }));
@@ -160,7 +160,7 @@ describe('Bench Transfer + Role Reassignment - PT-001 Bug', () => {
     newCaptain.pointsWhenRoleAssigned = newCaptain.points; // Reset to 180
 
     const newBankedPoints = 200 + additionalBankedPoints;
-    const afterPoints = calculateSquadPoints(updatedPlayers, squadSize, 'p2', null, null, newBankedPoints);
+    const afterPoints = calculateSquadPoints(updatedPlayers, squadSize, 'p2', undefined, undefined, newBankedPoints);
 
     expect(afterPoints.totalPoints).toBeCloseTo(beforePoints.totalPoints, 2);
   });
@@ -187,7 +187,7 @@ describe('Bench Transfer + Role Reassignment - PT-001 Bug', () => {
       matchPerformances: {},
     };
 
-    const beforePoints = calculateSquadPoints(players, squadSize, 'p1', null, null, 150);
+    const beforePoints = calculateSquadPoints(players, squadSize, 'p1', undefined, undefined, 150);
 
     const updatedPlayers = players.map(p => ({ ...p }));
     let additionalBankedPoints = 0;
@@ -207,7 +207,7 @@ describe('Bench Transfer + Role Reassignment - PT-001 Bug', () => {
     newCaptain.pointsWhenRoleAssigned = newCaptain.points;
 
     const newBankedPoints = 150 + additionalBankedPoints;
-    const afterPoints = calculateSquadPoints(updatedPlayers, squadSize, 'p2', null, null, newBankedPoints);
+    const afterPoints = calculateSquadPoints(updatedPlayers, squadSize, 'p2', undefined, undefined, newBankedPoints);
 
     expect(afterPoints.totalPoints).toBeCloseTo(beforePoints.totalPoints, 2);
   });

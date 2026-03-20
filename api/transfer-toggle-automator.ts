@@ -1,39 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { initializeApp, cert, getApps, App } from 'firebase-admin/app';
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
-import type * as FirebaseFirestore from 'firebase-admin/firestore';
 
-// Initialize Firebase Admin with error handling
-function initializeFirebaseAdmin() {
-  try {
-    if (getApps().length === 0) {
-      // Validate environment variables
-      if (!process.env.FIREBASE_PROJECT_ID) {
-        throw new Error('FIREBASE_PROJECT_ID environment variable is not set');
-      }
-      if (!process.env.FIREBASE_CLIENT_EMAIL) {
-        throw new Error('FIREBASE_CLIENT_EMAIL environment variable is not set');
-      }
-      if (!process.env.FIREBASE_PRIVATE_KEY) {
-        throw new Error('FIREBASE_PRIVATE_KEY environment variable is not set');
-      }
-
-      const adminApp = initializeApp({
-        credential: cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-        }),
-      });
-      return adminApp;
-    } else {
-      return getApps()[0];
-    }
-  } catch (error) {
-    console.error('Failed to initialize Firebase Admin:', error);
-    throw error;
-  }
-}
+// Lazy load Firebase Admin to prevent cold start crashes
+let firebaseAdminApp: any = null;
+let firestoreDb: any = null;
 
 // Import types (re-defined here for serverless environment)
 interface ScheduleMatch {
@@ -214,6 +183,59 @@ function convertTimestamps(data: any): any {
 }
 
 /**
+ * Initialize Firebase Admin (lazy load to catch errors properly)
+ */
+async function getFirebaseDb() {
+  if (firestoreDb) {
+    return firestoreDb;
+  }
+
+  try {
+    // Validate environment variables
+    const errors: string[] = [];
+    
+    if (!process.env.FIREBASE_PROJECT_ID) {
+      errors.push('FIREBASE_PROJECT_ID is not set');
+    }
+    if (!process.env.FIREBASE_CLIENT_EMAIL) {
+      errors.push('FIREBASE_CLIENT_EMAIL is not set');
+    }
+    if (!process.env.FIREBASE_PRIVATE_KEY) {
+      errors.push('FIREBASE_PRIVATE_KEY is not set');
+    }
+
+    if (errors.length > 0) {
+      throw new Error(`Missing environment variables: ${errors.join(', ')}`);
+    }
+
+    // Dynamic import to prevent cold start crashes
+    const { initializeApp, cert, getApps } = await import('firebase-admin/app');
+    const { getFirestore, Timestamp } = await import('firebase-admin/firestore');
+
+    if (getApps().length === 0) {
+      console.log('Initializing Firebase Admin...');
+      firebaseAdminApp = initializeApp({
+        credential: cert({
+          projectId: process.env.FIREBASE_PROJECT_ID!,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n'),
+        }),
+      });
+    } else {
+      firebaseAdminApp = getApps()[0];
+    }
+
+    firestoreDb = getFirestore(firebaseAdminApp);
+    console.log('✅ Firebase Admin initialized successfully');
+    
+    return firestoreDb;
+  } catch (error) {
+    console.error('❌ Firebase initialization failed:', error);
+    throw error;
+  }
+}
+
+/**
  * Main handler for the automation API endpoint
  * Called by GitHub Actions workflow every 10 minutes
  */
@@ -225,35 +247,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     if (!process.env.CRON_SECRET) {
       console.error('CRON_SECRET environment variable is not set');
-      return res.status(500).json({ error: 'Server configuration error: CRON_SECRET not set' });
+      return res.status(500).json({ 
+        error: 'Server configuration error',
+        details: 'CRON_SECRET not set',
+        timestamp: new Date().toISOString()
+      });
     }
     
     if (authHeader !== expectedAuth) {
       console.error('Unauthorized request - invalid or missing authorization header');
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ 
+        error: 'Unauthorized',
+        timestamp: new Date().toISOString()
+      });
     }
 
     console.log('🤖 Transfer Toggle Automator: Starting...');
     const currentTime = new Date();
     console.log(`Current time: ${currentTime.toISOString()}`);
 
-    // Initialize Firebase Admin
-    let adminApp: App;
-    let db: FirebaseFirestore.Firestore;
+    // Initialize Firebase Admin (lazy load with detailed error handling)
+    let db: any;
     
     try {
-      adminApp = initializeFirebaseAdmin();
-      db = getFirestore(adminApp);
-      console.log('✅ Firebase Admin initialized successfully');
+      db = await getFirebaseDb();
     } catch (initError) {
       console.error('❌ Firebase initialization failed:', initError);
       return res.status(500).json({ 
         error: 'Firebase initialization failed',
-        details: initError instanceof Error ? initError.message : 'Unknown error'
+        details: initError instanceof Error ? initError.message : 'Unknown error',
+        timestamp: currentTime.toISOString()
       });
     }
 
     // Fetch all active leagues
+    const { Timestamp } = await import('firebase-admin/firestore');
     const leaguesSnapshot = await db.collection('leagues')
       .where('status', 'in', ['squad_selection', 'active'])
       .get();
