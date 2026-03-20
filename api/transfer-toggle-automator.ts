@@ -162,6 +162,7 @@ function calculateToggleStatus(schedule: ScheduleMatch[], currentTime: Date): bo
 
 /**
  * Convert Firestore Timestamps to Dates
+ * Note: Checks for Timestamp-like objects using duck typing to avoid import issues
  */
 function convertTimestamps(data: any): any {
   if (data === null || typeof data !== 'object') return data;
@@ -172,10 +173,12 @@ function convertTimestamps(data: any): any {
 
   const converted = { ...data };
   Object.keys(converted).forEach(key => {
-    if (converted[key] instanceof Timestamp) {
-      converted[key] = converted[key].toDate();
-    } else if (typeof converted[key] === 'object') {
-      converted[key] = convertTimestamps(converted[key]);
+    const value = converted[key];
+    // Check if it's a Firestore Timestamp (has toDate method and _seconds property)
+    if (value && typeof value === 'object' && typeof value.toDate === 'function' && '_seconds' in value) {
+      converted[key] = value.toDate();
+    } else if (typeof value === 'object') {
+      converted[key] = convertTimestamps(value);
     }
   });
 
