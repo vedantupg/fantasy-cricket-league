@@ -181,7 +181,7 @@ FIREBASE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAA
 # Vercel Cron Job Security
 CRON_SECRET=Sn4gdV5U3hUa00JRTzDrmeA+wCpgL5BQh8PpINRaR6I=
 ```
-
+.
 ### 5. `package.json`
 
 **Added Dependencies**:
