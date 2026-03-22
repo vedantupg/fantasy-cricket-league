@@ -25,6 +25,7 @@ import EditLeaguePage from './pages/EditLeaguePage';
 import LeagueRulesPage from './pages/LeagueRulesPage';
 import PredictionsViewPage from './pages/PredictionsViewPage';
 import PowerplayManagementPage from './pages/PowerplayManagementPage';
+import HiddenPlayerManagementPage from './pages/HiddenPlayerManagementPage';
 import MatchSchedulePage from './pages/MatchSchedulePage';
 import ScheduleUploadPage from './pages/ScheduleUploadPage';
 import ScoringSystemPage from './pages/ScoringSystemPage';
@@ -222,6 +223,12 @@ function App() {
             <Route path="/admin/powerplay" element={
               <ProtectedRoute adminOnly={true}>
                 <PowerplayManagementPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/admin/hidden-player" element={
+              <ProtectedRoute adminOnly={true}>
+                <HiddenPlayerManagementPage />
               </ProtectedRoute>
             } />
 

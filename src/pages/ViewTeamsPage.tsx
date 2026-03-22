@@ -399,6 +399,51 @@ const ViewTeamsPage: React.FC = () => {
                         )}
                       </Box>
 
+                      {/* Hidden Player Section */}
+                      {league?.hiddenPlayerEnabled && squad.hiddenPlayerId && (
+                        <Box sx={{
+                          mb: 2,
+                          p: { xs: 1.5, sm: 1.75 },
+                          bgcolor: 'rgba(255,215,0,0.04)',
+                          border: '1px solid',
+                          borderColor: 'rgba(255,215,0,0.25)',
+                          borderRadius: 1.5,
+                        }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
+                            <Typography sx={{ fontSize: '1rem' }}>🔒</Typography>
+                            <Typography variant="caption" fontWeight="700" sx={{
+                              fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.8px',
+                              color: 'warning.main'
+                            }}>
+                              12th Hidden Player
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+                            {squad.userId === user?.uid ? (
+                              /* Own squad — show actual name */
+                              <Typography variant="body2" fontWeight="600" color="warning.main">
+                                {squad.hiddenPlayerName}
+                              </Typography>
+                            ) : (
+                              /* Peer squad — mask name and role, show team only */
+                              <Typography variant="body2" fontWeight="600" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                                ? Hidden
+                              </Typography>
+                            )}
+                            <Typography variant="caption" color="text.secondary">
+                              {squad.userId === user?.uid
+                                ? `${squad.hiddenPlayerTeam}`
+                                : squad.hiddenPlayerTeam}
+                            </Typography>
+                            {squad.hiddenPlayerPoints !== undefined && squad.hiddenPlayerPoints > 0 && (
+                              <Chip label={`+${squad.hiddenPlayerPoints} pts`} size="small" color="warning" variant="outlined" />
+                            )}
+                          </Box>
+                        </Box>
+                      )}
+
                       {/* Predictions and Powerplay Info */}
                       {(squad.predictions || squad.powerplayMatchNumber) && (
                         <Box sx={{ mb: 2, display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'stretch' }}>

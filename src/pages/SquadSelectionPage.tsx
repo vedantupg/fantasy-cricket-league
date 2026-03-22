@@ -20,7 +20,11 @@ import {
   TextField,
   InputAdornment,
   useTheme,
-  alpha
+  alpha,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   PersonAdd,
@@ -60,6 +64,11 @@ const SquadSelectionPage: React.FC = () => {
   const [viceCaptainId, setViceCaptainId] = useState<string | null>(null);
   const [xFactorId, setXFactorId] = useState<string | null>(null);
   const [powerplayMatch, setPowerplayMatch] = useState('');
+  const [ppActivatedAt, setPpActivatedAt] = useState<Date | null>(null);
+  const [ppMatchConfirmOpen, setPpMatchConfirmOpen] = useState(false);
+  const [ppMatchPending, setPpMatchPending] = useState('');
+  const [hiddenPlayerId, setHiddenPlayerId] = useState<string | null>(null);
+  const [hiddenPlayerSearch, setHiddenPlayerSearch] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -207,6 +216,16 @@ const SquadSelectionPage: React.FC = () => {
       setPowerplayMatch(existingSquad.powerplayMatchNumber.toString());
     }
 
+    // Load ppActivatedAt if it exists (activation mode)
+    if (existingSquad.ppActivatedAt) {
+      setPpActivatedAt(new Date(existingSquad.ppActivatedAt));
+    }
+
+    // Load hidden player if it exists
+    if (existingSquad.hiddenPlayerId) {
+      setHiddenPlayerId(existingSquad.hiddenPlayerId);
+    }
+
     // Load predictions if they exist
     if (existingSquad.predictions) {
       setTopRunScorer(existingSquad.predictions.topRunScorer || '');
@@ -281,9 +300,23 @@ const SquadSelectionPage: React.FC = () => {
     }
 
     // Check powerplay match selection if powerplay is enabled
+    // In activation mode, match selection is optional at squad submission time —
+    // the user activates and picks their match during the league, not upfront.
     let powerplayValid = true;
-    if (league.powerplayEnabled) {
+    if (league.powerplayEnabled && (league.ppMatchMode ?? 'fixed') === 'fixed') {
       powerplayValid = powerplayMatch.trim() !== '';
+    }
+
+    // Hidden player is mandatory if feature is enabled
+    let hiddenPlayerValid = true;
+    if (league.hiddenPlayerEnabled) {
+      hiddenPlayerValid = hiddenPlayerId !== null && hiddenPlayerId !== '';
+    }
+
+    // Hidden player must not be in main squad or bench
+    let hiddenPlayerNotInSquad = true;
+    if (hiddenPlayerId) {
+      hiddenPlayerNotInSquad = !selectedPlayers.some(p => p.id === hiddenPlayerId);
     }
 
     return mainSquadCount === league.squadSize &&
@@ -293,6 +326,8 @@ const SquadSelectionPage: React.FC = () => {
            counts.bench >= benchRequired &&
            overseasValid &&
            powerplayValid &&
+           hiddenPlayerValid &&
+           hiddenPlayerNotInSquad &&
            captainId !== null &&
            viceCaptainId !== null &&
            xFactorId !== null &&
@@ -406,8 +441,16 @@ const SquadSelectionPage: React.FC = () => {
       suggestions.push('Select an X-Factor');
     }
 
-    if (league.powerplayEnabled && powerplayMatch.trim() === '') {
+    if (league.powerplayEnabled && (league.ppMatchMode ?? 'fixed') === 'fixed' && powerplayMatch.trim() === '') {
       suggestions.push('Select a Powerplay match');
+    }
+
+    if (league.hiddenPlayerEnabled && !hiddenPlayerId) {
+      suggestions.push('Select your 12th Hidden Player (mandatory)');
+    }
+
+    if (hiddenPlayerId && selectedPlayers.some(p => p.id === hiddenPlayerId)) {
+      suggestions.push('Your 12th Hidden Player is in your squad — remove them from squad/bench or pick a different hidden player');
     }
 
     if (topRunScorer.trim() === '') {
@@ -512,6 +555,17 @@ const SquadSelectionPage: React.FC = () => {
           viceCaptainPoints: calculatedPoints.viceCaptainPoints,
           xFactorPoints: calculatedPoints.xFactorPoints,
           ...(powerplayMatch && { powerplayMatchNumber: parseInt(powerplayMatch) }),
+          ...(ppActivatedAt && { ppActivatedAt }),
+          ...(hiddenPlayerId && league?.hiddenPlayerEnabled && (() => {
+            const hp = availablePlayers.find(p => p.id === hiddenPlayerId);
+            return hp ? {
+              hiddenPlayerId,
+              hiddenPlayerName: hp.name,
+              hiddenPlayerRole: hp.role,
+              hiddenPlayerTeam: hp.team,
+              hiddenPlayerPoints: existingSquad.hiddenPlayerPoints || 0,
+            } : {};
+          })()),
           predictions: {
             topRunScorer: topRunScorer.trim(),
             topWicketTaker: topWicketTaker.trim(),
@@ -547,6 +601,17 @@ const SquadSelectionPage: React.FC = () => {
           viceCaptainPoints: calculatedPoints.viceCaptainPoints,
           xFactorPoints: calculatedPoints.xFactorPoints,
           ...(powerplayMatch && { powerplayMatchNumber: parseInt(powerplayMatch) }),
+          ...(ppActivatedAt && { ppActivatedAt }),
+          ...(hiddenPlayerId && league?.hiddenPlayerEnabled && (() => {
+            const hp = availablePlayers.find(p => p.id === hiddenPlayerId);
+            return hp ? {
+              hiddenPlayerId,
+              hiddenPlayerName: hp.name,
+              hiddenPlayerRole: hp.role,
+              hiddenPlayerTeam: hp.team,
+              hiddenPlayerPoints: 0,
+            } : {};
+          })()),
           predictions: {
             topRunScorer: topRunScorer.trim(),
             topWicketTaker: topWicketTaker.trim(),
@@ -690,6 +755,17 @@ const SquadSelectionPage: React.FC = () => {
           viceCaptainPoints: calculatedPoints.viceCaptainPoints,
           xFactorPoints: calculatedPoints.xFactorPoints,
           ...(powerplayMatch && { powerplayMatchNumber: parseInt(powerplayMatch) }),
+          ...(ppActivatedAt && { ppActivatedAt }),
+          ...(hiddenPlayerId && league?.hiddenPlayerEnabled && (() => {
+            const hp = availablePlayers.find(p => p.id === hiddenPlayerId);
+            return hp ? {
+              hiddenPlayerId,
+              hiddenPlayerName: hp.name,
+              hiddenPlayerRole: hp.role,
+              hiddenPlayerTeam: hp.team,
+              hiddenPlayerPoints: existingSquad.hiddenPlayerPoints || 0,
+            } : {};
+          })()),
           predictions: {
             topRunScorer: topRunScorer.trim(),
             topWicketTaker: topWicketTaker.trim(),
@@ -724,6 +800,17 @@ const SquadSelectionPage: React.FC = () => {
           viceCaptainPoints: calculatedPoints.viceCaptainPoints,
           xFactorPoints: calculatedPoints.xFactorPoints,
           ...(powerplayMatch && { powerplayMatchNumber: parseInt(powerplayMatch) }),
+          ...(ppActivatedAt && { ppActivatedAt }),
+          ...(hiddenPlayerId && league?.hiddenPlayerEnabled && (() => {
+            const hp = availablePlayers.find(p => p.id === hiddenPlayerId);
+            return hp ? {
+              hiddenPlayerId,
+              hiddenPlayerName: hp.name,
+              hiddenPlayerRole: hp.role,
+              hiddenPlayerTeam: hp.team,
+              hiddenPlayerPoints: 0,
+            } : {};
+          })()),
           predictions: {
             topRunScorer: topRunScorer.trim(),
             topWicketTaker: topWicketTaker.trim(),
@@ -2078,15 +2165,29 @@ const SquadSelectionPage: React.FC = () => {
               />
               {league?.powerplayEnabled && (
                 <Chip
-                  label={`PP Match: ${powerplayMatch.trim() !== '' ? `Match ${powerplayMatch}` : 'Not Selected'}`}
+                  label={
+                    powerplayMatch.trim() !== ''
+                      ? `PP Match: Match ${powerplayMatch}`
+                      : (league.ppMatchMode ?? 'fixed') === 'activation'
+                        ? 'PP: Activate anytime'
+                        : 'PP Match: Not Selected'
+                  }
                   variant={powerplayMatch.trim() !== '' ? 'filled' : 'outlined'}
                   sx={{
                     fontWeight: 600,
                     fontSize: { xs: '0.75rem', sm: '0.8125rem' },
                     height: { xs: 28, sm: 32 },
                     bgcolor: powerplayMatch.trim() !== '' ? alpha(theme.palette.warning.main, 0.15) : 'transparent',
-                    borderColor: powerplayMatch.trim() !== '' ? theme.palette.warning.main : alpha(theme.palette.text.secondary, 0.3),
-                    color: powerplayMatch.trim() !== '' ? theme.palette.warning.main : 'text.secondary'
+                    borderColor: powerplayMatch.trim() !== ''
+                      ? theme.palette.warning.main
+                      : (league.ppMatchMode ?? 'fixed') === 'activation'
+                        ? alpha(theme.palette.info.main, 0.4)
+                        : alpha(theme.palette.text.secondary, 0.3),
+                    color: powerplayMatch.trim() !== ''
+                      ? theme.palette.warning.main
+                      : (league.ppMatchMode ?? 'fixed') === 'activation'
+                        ? 'info.main'
+                        : 'text.secondary'
                   }}
                 />
               )}
@@ -2105,6 +2206,26 @@ const SquadSelectionPage: React.FC = () => {
               powerplayMatch={powerplayMatch}
               setPowerplayMatch={setPowerplayMatch}
               maxPowerplayMatches={league.maxPowerplayMatches || 20}
+              ppActivatedAt={ppActivatedAt}
+              onActivatePP={async () => {
+                const now = new Date();
+                setPpActivatedAt(now);
+                // If squad already exists, persist the timestamp immediately
+                if (existingSquad) {
+                  await squadService.update(existingSquad.id, { ppActivatedAt: now });
+                }
+                // If no squad yet, ppActivatedAt will be included when squad is saved/submitted
+              }}
+              ppActivationEnabled={!isDeadlinePassed || !!(league.ppActivationEnabled)}
+              ppMatchConfirmOpen={ppMatchConfirmOpen}
+              setPpMatchConfirmOpen={setPpMatchConfirmOpen}
+              ppMatchPending={ppMatchPending}
+              setPpMatchPending={setPpMatchPending}
+              onConfirmPpMatch={() => {
+                setPowerplayMatch(ppMatchPending);
+                setPpMatchConfirmOpen(false);
+                setPpMatchPending('');
+              }}
               captainId={captainId}
               viceCaptainId={viceCaptainId}
               xFactorId={xFactorId}
@@ -2113,6 +2234,11 @@ const SquadSelectionPage: React.FC = () => {
               calculatePlayerContribution={calculatePlayerContribution}
               readOnly={isDeadlinePassed && !canMakeTransfer}
               isDeadlinePassed={isDeadlinePassed}
+              hiddenPlayerId={hiddenPlayerId}
+              hiddenPlayerSearch={hiddenPlayerSearch}
+              setHiddenPlayerSearch={setHiddenPlayerSearch}
+              onSelectHiddenPlayer={(id: string) => setHiddenPlayerId(id)}
+              availablePlayers={availablePlayers}
             />
           </Grid>
 
@@ -2242,6 +2368,14 @@ const CricketPitchFormation: React.FC<{
   powerplayMatch: string;
   setPowerplayMatch: (match: string) => void;
   maxPowerplayMatches: number;
+  ppActivatedAt: Date | null;
+  onActivatePP: () => Promise<void>;
+  ppActivationEnabled: boolean;
+  ppMatchConfirmOpen: boolean;
+  setPpMatchConfirmOpen: (v: boolean) => void;
+  ppMatchPending: string;
+  setPpMatchPending: (v: string) => void;
+  onConfirmPpMatch: () => void;
   captainId: string | null;
   viceCaptainId: string | null;
   xFactorId: string | null;
@@ -2250,7 +2384,12 @@ const CricketPitchFormation: React.FC<{
   calculatePlayerContribution: (player: SquadPlayer, role: 'captain' | 'viceCaptain' | 'xFactor' | 'regular') => number;
   readOnly: boolean;
   isDeadlinePassed: boolean;
-}> = ({ league, selectedPlayers, onRemovePlayer, onUpdatePosition, powerplayMatch, setPowerplayMatch, maxPowerplayMatches, captainId, viceCaptainId, xFactorId, onSetSpecialRole, existingSquad, calculatePlayerContribution, readOnly, isDeadlinePassed }) => {
+  hiddenPlayerId: string | null;
+  hiddenPlayerSearch: string;
+  setHiddenPlayerSearch: (v: string) => void;
+  onSelectHiddenPlayer: (id: string) => void;
+  availablePlayers: Player[];
+}> = ({ league, selectedPlayers, onRemovePlayer, onUpdatePosition, powerplayMatch, setPowerplayMatch, maxPowerplayMatches, ppActivatedAt, onActivatePP, ppActivationEnabled, ppMatchConfirmOpen, setPpMatchConfirmOpen, ppMatchPending, setPpMatchPending, onConfirmPpMatch, captainId, viceCaptainId, xFactorId, onSetSpecialRole, existingSquad, calculatePlayerContribution, readOnly, isDeadlinePassed, hiddenPlayerId, hiddenPlayerSearch, setHiddenPlayerSearch, onSelectHiddenPlayer, availablePlayers }) => {
 
   // Helper function to get player points for display
   const getPlayerPointsDisplay = (player: SelectedPlayer, slotType: 'required' | 'flexible' | 'bench') => {
@@ -2656,61 +2795,170 @@ const CricketPitchFormation: React.FC<{
         {league.powerplayEnabled && (
           <Box sx={{ mb: { xs: 1.5, sm: 2, md: 3 } }}>
             <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' } }}>
-              Powerplay Match Selection
+              ⚡ Powerplay Match Selection
             </Typography>
-            <FormControl fullWidth>
-              <InputLabel sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>Select Powerplay Match</InputLabel>
-              <Select
-                value={powerplayMatch}
-                label="Select Powerplay Match"
-                onChange={(e) => setPowerplayMatch(e.target.value)}
-                disabled={isDeadlinePassed}
-                sx={{
-                  fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
-                  bgcolor: '#1a2332',
-                  '& .MuiSelect-select': {
-                    py: 1.5
-                  }
-                }}
-              >
-                {league.matchSchedule && league.matchSchedule.length > 0 ? (
-                  // If match schedule exists, show detailed match info
-                  league.matchSchedule
-                    .filter(match => match.matchNumber <= maxPowerplayMatches)
-                    .map((match) => (
-                      <MenuItem
-                        key={match.matchNumber}
-                        value={match.matchNumber.toString()}
-                        sx={{
-                          fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
-                          py: 1.5,
-                          '&:hover': {
-                            bgcolor: alpha(themeColors.blue.electric, 0.08)
-                          }
-                        }}
-                      >
-                        <Box>
-                          <Typography variant="body2" fontWeight={600} fontSize="0.875rem">
-                            {formatMatchForDropdown(match)}
-                          </Typography>
-                          {match.team1 !== 'TBC' && match.team2 !== 'TBC' && (
-                            <Typography variant="caption" color="text.secondary" fontSize="0.75rem">
-                              {match.timeGMT} GMT • {match.stadium}
-                            </Typography>
+
+            {/* Activation Mode */}
+            {(league.ppMatchMode ?? 'fixed') === 'activation' ? (
+              <Box>
+                {!ppActivatedAt && !existingSquad?.ppActivatedAt ? (
+                  /* Not yet activated */
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    <Box sx={{ p: 1.5, bgcolor: 'rgba(255,193,7,0.06)', border: '1px solid rgba(255,193,7,0.2)', borderRadius: 1.5 }}>
+                      <Typography variant="body2" fontWeight="600" color="warning.main" sx={{ mb: 0.5 }}>
+                        ⚡ On-Demand Powerplay
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.6, display: 'block' }}>
+                        Use this anytime during the league, just like transfers. Once you activate, you pick any future match as your Powerplay match. Only matches scheduled after your activation time will appear. This is a one-time action and cannot be undone.
+                      </Typography>
+                      {isDeadlinePassed && !ppActivationEnabled && (
+                        <Typography variant="caption" color="error.main" sx={{ display: 'block', mt: 0.5 }}>
+                          The admin needs to enable PP activation before you can proceed.
+                        </Typography>
+                      )}
+                    </Box>
+                    <Button
+                      variant="contained"
+                      color="warning"
+                      disabled={!ppActivationEnabled}
+                      onClick={onActivatePP}
+                      sx={{ alignSelf: 'flex-start' }}
+                    >
+                      ⚡ Activate Powerplay
+                    </Button>
+                  </Box>
+                ) : (
+                  /* Activated — show dropdown filtered to future matches */
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Alert severity="success" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                      Activated on {new Date(ppActivatedAt || existingSquad?.ppActivatedAt || '').toLocaleString()}. Pick any upcoming match below.
+                    </Alert>
+                    {powerplayMatch && (
+                      <Alert severity="info" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                        Powerplay match locked: <strong>Match {powerplayMatch}</strong>. This cannot be changed.
+                      </Alert>
+                    )}
+                    {!powerplayMatch && (() => {
+                      const activatedTime = ppActivatedAt || (existingSquad?.ppActivatedAt ? new Date(existingSquad.ppActivatedAt) : null);
+                      const futureMatches = league.matchSchedule
+                        ? league.matchSchedule.filter(m => activatedTime ? new Date(m.date) > activatedTime : true)
+                        : [];
+                      if (futureMatches.length === 0) {
+                        return <Alert severity="warning">No upcoming matches available for Powerplay at this time.</Alert>;
+                      }
+                      return (
+                        <>
+                          <FormControl fullWidth>
+                            <InputLabel sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>Select Powerplay Match</InputLabel>
+                            <Select
+                              value={ppMatchPending}
+                              label="Select Powerplay Match"
+                              onChange={(e) => setPpMatchPending(e.target.value)}
+                              sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' }, bgcolor: '#1a2332' }}
+                            >
+                              {futureMatches.map((match) => (
+                                <MenuItem key={match.matchNumber} value={match.matchNumber.toString()} sx={{ py: 1.5 }}>
+                                  <Box>
+                                    <Typography variant="body2" fontWeight={600} fontSize="0.875rem">
+                                      {formatMatchForDropdown(match)}
+                                    </Typography>
+                                    {match.team1 !== 'TBC' && match.team2 !== 'TBC' && (
+                                      <Typography variant="caption" color="text.secondary" fontSize="0.75rem">
+                                        {match.timeGMT} GMT • {match.stadium}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                          {ppMatchPending && (
+                            <Button
+                              variant="contained"
+                              color="warning"
+                              sx={{ alignSelf: 'flex-start' }}
+                              onClick={() => setPpMatchConfirmOpen(true)}
+                            >
+                              Confirm Powerplay Match
+                            </Button>
                           )}
-                        </Box>
+                          {/* Confirmation Dialog */}
+                          <Dialog open={ppMatchConfirmOpen} onClose={() => setPpMatchConfirmOpen(false)} maxWidth="xs" fullWidth>
+                            <DialogTitle sx={{ fontWeight: 'bold' }}>⚠️ Confirm Powerplay Match</DialogTitle>
+                            <DialogContent>
+                              <Typography variant="body2" sx={{ mb: 1.5 }}>
+                                You are about to lock your Powerplay match as:
+                              </Typography>
+                              <Box sx={{ p: 1.5, bgcolor: 'rgba(255,193,7,0.1)', border: '1px solid rgba(255,193,7,0.3)', borderRadius: 1.5, mb: 1.5 }}>
+                                <Typography variant="body1" fontWeight="bold" color="warning.main">
+                                  {ppMatchPending && league.matchSchedule
+                                    ? formatMatchForDropdown(league.matchSchedule.find(m => m.matchNumber.toString() === ppMatchPending)!)
+                                    : `Match ${ppMatchPending}`}
+                                </Typography>
+                              </Box>
+                              <Alert severity="error" sx={{ fontSize: '0.8rem' }}>
+                                This cannot be undone. Once confirmed, your Powerplay match is permanently locked.
+                              </Alert>
+                            </DialogContent>
+                            <DialogActions>
+                              <Button onClick={() => setPpMatchConfirmOpen(false)} color="inherit">Cancel</Button>
+                              <Button variant="contained" color="warning" onClick={onConfirmPpMatch}>
+                                Yes, Lock This Match
+                              </Button>
+                            </DialogActions>
+                          </Dialog>
+                        </>
+                      );
+                    })()}
+                  </Box>
+                )}
+              </Box>
+            ) : (
+              /* Fixed Mode — existing behavior */
+              <FormControl fullWidth>
+                <InputLabel sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>Select Powerplay Match</InputLabel>
+                <Select
+                  value={powerplayMatch}
+                  label="Select Powerplay Match"
+                  onChange={(e) => setPowerplayMatch(e.target.value)}
+                  disabled={isDeadlinePassed}
+                  sx={{
+                    fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
+                    bgcolor: '#1a2332',
+                    '& .MuiSelect-select': { py: 1.5 }
+                  }}
+                >
+                  {league.matchSchedule && league.matchSchedule.length > 0 ? (
+                    league.matchSchedule
+                      .filter(match => match.matchNumber <= maxPowerplayMatches)
+                      .map((match) => (
+                        <MenuItem
+                          key={match.matchNumber}
+                          value={match.matchNumber.toString()}
+                          sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' }, py: 1.5, '&:hover': { bgcolor: alpha(themeColors.blue.electric, 0.08) } }}
+                        >
+                          <Box>
+                            <Typography variant="body2" fontWeight={600} fontSize="0.875rem">
+                              {formatMatchForDropdown(match)}
+                            </Typography>
+                            {match.team1 !== 'TBC' && match.team2 !== 'TBC' && (
+                              <Typography variant="caption" color="text.secondary" fontSize="0.75rem">
+                                {match.timeGMT} GMT • {match.stadium}
+                              </Typography>
+                            )}
+                          </Box>
+                        </MenuItem>
+                      ))
+                  ) : (
+                    Array.from({ length: maxPowerplayMatches }, (_, i) => i + 1).map((matchNumber) => (
+                      <MenuItem key={matchNumber} value={matchNumber.toString()} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
+                        Match {matchNumber}
                       </MenuItem>
                     ))
-                ) : (
-                  // Fallback to simple match numbers if no schedule
-                  Array.from({ length: maxPowerplayMatches }, (_, i) => i + 1).map((matchNumber) => (
-                    <MenuItem key={matchNumber} value={matchNumber.toString()} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
-                      Match {matchNumber}
-                    </MenuItem>
-                  ))
-                )}
-              </Select>
-            </FormControl>
+                  )}
+                </Select>
+              </FormControl>
+            )}
           </Box>
         )}
 
@@ -3076,6 +3324,110 @@ const CricketPitchFormation: React.FC<{
                 ))}
               </Box>
             </Box>
+          </Box>
+        )}
+
+        {/* 12th Hidden Player — placed below squad formation */}
+        {league.hiddenPlayerEnabled && (
+          <Box sx={{ mt: { xs: 2, sm: 2.5, md: 3 }, p: { xs: 1.5, sm: 2 }, border: '1px solid', borderColor: 'rgba(255,215,0,0.35)', borderRadius: 2, bgcolor: 'rgba(255,215,0,0.03)' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <Typography variant="h6" sx={{ fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' }, fontWeight: 700 }}>
+                🔒 12th Hidden Player
+              </Typography>
+              <Chip label="Mandatory" size="small" color="warning" variant="outlined" sx={{ fontSize: '0.65rem', height: 18 }} />
+            </Box>
+
+            <Box sx={{ p: 1.5, mb: 1.5, bgcolor: 'rgba(255,215,0,0.05)', borderRadius: 1.5, border: '1px solid rgba(255,215,0,0.15)' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.7, display: 'block' }}>
+                Pick a secret player from the pool. They must not be in your playing XI or bench, and they can never be transferred into your squad. Your peers will see only which <strong>team</strong> this player is from, not their name. Their points are added at the end of the league. Until then, only you know who they are. This choice locks when you submit your squad.
+              </Typography>
+            </Box>
+
+            {existingSquad?.hiddenPlayerId && existingSquad.isSubmitted ? (
+              /* Locked — show read-only card */
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, bgcolor: 'rgba(255,215,0,0.08)', borderRadius: 1.5 }}>
+                <Typography variant="body1">🔒</Typography>
+                <Box>
+                  <Typography variant="body2" fontWeight="bold" color="warning.main">
+                    {existingSquad.hiddenPlayerName}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {existingSquad.hiddenPlayerTeam} · Locked
+                  </Typography>
+                </Box>
+              </Box>
+            ) : hiddenPlayerId ? (
+              /* Selected but not yet locked — show with conflict warning if in squad */
+              (() => {
+                const hp = availablePlayers.find(p => p.id === hiddenPlayerId);
+                const isInSquad = selectedPlayers.some(sp => sp.id === hiddenPlayerId);
+                return hp ? (
+                  <Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, bgcolor: isInSquad ? 'rgba(244,67,54,0.1)' : 'rgba(255,215,0,0.08)', borderRadius: 1.5, border: isInSquad ? '1px solid rgba(244,67,54,0.3)' : 'none' }}>
+                      <Typography variant="body1">{isInSquad ? '⚠️' : '👁️'}</Typography>
+                      <Box flex={1}>
+                        <Typography variant="body2" fontWeight="bold" color={isInSquad ? 'error.main' : 'warning.main'}>
+                          {hp.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {hp.team} • Will be locked on submission
+                        </Typography>
+                      </Box>
+                      {!isDeadlinePassed && (
+                        <Button size="small" color="inherit" onClick={() => onSelectHiddenPlayer('')} sx={{ minWidth: 0 }}>✕</Button>
+                      )}
+                    </Box>
+                    {isInSquad && (
+                      <Alert severity="error" sx={{ mt: 1, fontSize: '0.75rem' }}>
+                        This player is in your squad or bench. Remove them first or pick a different hidden player.
+                      </Alert>
+                    )}
+                  </Box>
+                ) : null;
+              })()
+            ) : (
+              /* Not yet picked — show search */
+              <Box>
+                {!isDeadlinePassed && (
+                  <Box>
+                    <TextField
+                      size="small"
+                      fullWidth
+                      placeholder="Search by name or team..."
+                      value={hiddenPlayerSearch}
+                      onChange={(e) => setHiddenPlayerSearch(e.target.value)}
+                      sx={{ mb: 1 }}
+                    />
+                    <Box sx={{ maxHeight: 180, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                      {availablePlayers
+                        .filter(p => {
+                          const inSquad = selectedPlayers.some(sp => sp.id === p.id);
+                          const matchesSearch = !hiddenPlayerSearch || p.name.toLowerCase().includes(hiddenPlayerSearch.toLowerCase()) || p.team.toLowerCase().includes(hiddenPlayerSearch.toLowerCase());
+                          return !inSquad && matchesSearch;
+                        })
+                        .slice(0, 20)
+                        .map(p => (
+                          <Box
+                            key={p.id}
+                            onClick={() => { onSelectHiddenPlayer(p.id); setHiddenPlayerSearch(''); }}
+                            sx={{ p: 1, borderRadius: 1, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { bgcolor: 'rgba(255,215,0,0.1)' } }}
+                          >
+                            <Box>
+                              <Typography variant="body2" fontWeight="medium">{p.name}</Typography>
+                              <Typography variant="caption" color="text.secondary">{p.team}</Typography>
+                            </Box>
+                          </Box>
+                        ))}
+                    </Box>
+                  </Box>
+                )}
+                {isDeadlinePassed && (
+                  <Alert severity="warning" sx={{ fontSize: '0.75rem' }}>
+                    Squad deadline has passed. You can no longer select your Hidden Player.
+                  </Alert>
+                )}
+              </Box>
+            )}
           </Box>
         )}
 

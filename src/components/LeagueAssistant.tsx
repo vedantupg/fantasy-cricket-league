@@ -32,10 +32,11 @@ import {
 import {
   Close,
   Send,
-  Lightbulb,
   ExpandMore,
   ExpandLess,
+  Refresh,
 } from '@mui/icons-material';
+
 import { useAuth } from '../contexts/AuthContext';
 import { squadService, leagueService, playerPoolService, leaderboardSnapshotService } from '../services/firestore';
 import {
@@ -47,6 +48,55 @@ import {
   type LeagueContext,
 } from '../services/aiService';
 import type { LeagueSquad, StandingEntry } from '../types/database';
+
+/**
+ * Stumpy — The moment the wicket wakes up.
+ * A blazing ball smashes through the stumps; instead of destruction, that impact
+ * activates an AI being. Bails orbit as thought-fragments. Glow = AI consciousness.
+ */
+const StumpyIcon: React.FC<{ size?: number; color?: string }> = ({ size = 28, color = 'white' }) => {
+  const gold = color === 'white' ? '#FFD700' : color;
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Impact burst / AI glow — outermost ring */}
+      <circle cx="24" cy="28" r="11" fill="none" stroke={gold} strokeWidth="0.7" opacity="0.25" />
+      {/* Impact burst lines radiating from impact point */}
+      <line x1="24" y1="17" x2="22" y2="12" stroke={gold} strokeWidth="1" strokeLinecap="round" opacity="0.5" />
+      <line x1="24" y1="17" x2="26" y2="12" stroke={gold} strokeWidth="1" strokeLinecap="round" opacity="0.5" />
+      <line x1="24" y1="17" x2="17" y2="14" stroke={gold} strokeWidth="0.8" strokeLinecap="round" opacity="0.35" />
+      <line x1="24" y1="17" x2="31" y2="14" stroke={gold} strokeWidth="0.8" strokeLinecap="round" opacity="0.35" />
+
+      {/* Left stump */}
+      <rect x="14" y="18" width="4" height="20" rx="2" fill={color} opacity="0.95" />
+      {/* Center stump */}
+      <rect x="22" y="18" width="4" height="20" rx="2" fill={color} />
+      {/* Right stump */}
+      <rect x="30" y="18" width="4" height="20" rx="2" fill={color} opacity="0.95" />
+
+      {/* Cricket ball — the spark of intelligence, mid-impact at top of stumps */}
+      <circle cx="24" cy="15" r="5" fill={gold} opacity="0.95" />
+      {/* Ball seam */}
+      <path d="M21 13 Q24 15.5 27 13" stroke={color} strokeWidth="0.9" fill="none" strokeLinecap="round" opacity="0.6" />
+      <path d="M21 17 Q24 14.5 27 17" stroke={color} strokeWidth="0.9" fill="none" strokeLinecap="round" opacity="0.6" />
+      {/* Ball glow */}
+      <circle cx="24" cy="15" r="6.5" fill="none" stroke={gold} strokeWidth="1" opacity="0.3" />
+
+      {/* Left bail — flying off, tilted like a signal arc / eyebrow */}
+      <rect x="8" y="11" width="12" height="3.5" rx="1.75" fill={gold} transform="rotate(-28 14 12.75)" opacity="0.9" />
+      {/* Right bail — flying off the other direction */}
+      <rect x="28" y="11" width="12" height="3.5" rx="1.75" fill={gold} transform="rotate(28 34 12.75)" opacity="0.9" />
+
+      {/* Eyes on stumps — alert, slightly smug AI consciousness */}
+      <circle cx="16" cy="23" r="1.5" fill={gold} opacity="0.85" />
+      <circle cx="24" cy="23" r="1.5" fill={gold} opacity="0.85" />
+      <circle cx="32" cy="23" r="1.5" fill={gold} opacity="0.85" />
+      {/* Pupils — all looking slightly to the side (cheeky) */}
+      <circle cx="16.5" cy="23" r="0.65" fill={color} opacity="0.7" />
+      <circle cx="24.5" cy="23" r="0.65" fill={color} opacity="0.7" />
+      <circle cx="32.5" cy="23" r="0.65" fill={color} opacity="0.7" />
+    </svg>
+  );
+};
 
 interface LeagueAssistantProps {
   leagueId?: string;
@@ -126,17 +176,17 @@ const LeagueAssistant: React.FC<LeagueAssistantProps> = ({ leagueId }) => {
         setMessages([
           {
             role: 'assistant',
-            content: `👋 Hi ${leagueContext.userSquad.userName}! I'm your AI league assistant.
+            content: `💥 *The stumps just rattled.* I'm **Stumpy** — the moment of impact, your cricket intelligence system, ${leagueContext.userSquad.userName}.
 
-🎯 You're ranked #${leagueContext.userSquad.rank} with ${leagueContext.userSquad.totalPoints} points.
+🎯 You're sitting at **#${leagueContext.userSquad.rank}** with **${leagueContext.userSquad.totalPoints} points**.
 
-I can help you with:
-• Captain and transfer recommendations
-• Squad performance analysis
-• Player comparisons
-• Strategy suggestions
+I've already read the pitch. Here's what I can crack open for you:
+• 🏏 Captain & transfer recommendations
+• 📊 Squad performance breakdown
+• ⚔️ Head-to-head rival comparisons
+• 🎯 Differential picks to outsmart the league
 
-What would you like to know?`,
+*Told you to come here sooner.* What do you want first?`,
             timestamp: new Date(),
           },
         ]);
@@ -149,10 +199,15 @@ What would you like to know?`,
     }
   }, [user, leagueId, messages.length]);
 
-  // Load context when dialog opens
+  // Load context when dialog opens (full load on first open, refresh squads on re-open)
   useEffect(() => {
-    if (open && !context && user && leagueId) {
-      loadContext();
+    if (open && user && leagueId) {
+      if (!context) {
+        loadContext();
+      } else {
+        // Refresh the squads list so the peer selector stays up to date
+        squadService.getByLeague(leagueId).then(setAllSquads).catch(() => {});
+      }
     }
   }, [open, context, user, leagueId, loadContext]);
 
@@ -288,7 +343,7 @@ What would you like to know?`,
     <>
       {/* Floating Action Button */}
       <Fab
-        aria-label="AI Assistant"
+        aria-label="Ask Stumpy"
         onClick={() => setOpen(true)}
         sx={{
           position: 'fixed',
@@ -322,16 +377,7 @@ What would you like to know?`,
           },
         }}
       >
-        <Box
-          component="img"
-          src="/images/gemini-logo.svg"
-          alt="Gemini"
-          sx={{
-            width: { xs: 32, sm: 36 },
-            height: { xs: 32, sm: 36 },
-            filter: 'brightness(0) invert(1)', // Make it white
-          }}
-        />
+        <StumpyIcon size={32} color="white" />
       </Fab>
 
       {/* Chat Dialog */}
@@ -366,31 +412,43 @@ What would you like to know?`,
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Box
-              component="img"
-              src="/images/gemini-logo.svg"
-              alt="Gemini"
               sx={{
-                width: 28,
-                height: 28,
-                filter: 'brightness(0) invert(1)',
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: `linear-gradient(135deg, ${C.blueDeep}, ${C.blue})`,
+                boxShadow: `0 4px 12px ${alpha(C.gold, 0.3)}`,
+                border: `1px solid ${alpha(C.gold, 0.4)}`,
+                flexShrink: 0,
               }}
-            />
-            <Typography variant="h6" fontWeight="bold">
-              Gemini
-            </Typography>
+            >
+              <StumpyIcon size={22} color={C.gold} />
+            </Box>
+            <Box>
+              <Typography variant="h6" fontWeight="bold" sx={{ lineHeight: 1.1 }}>
+                Stumpy
+              </Typography>
+              <Typography variant="caption" sx={{ color: alpha('#fff', 0.6), fontSize: '0.65rem' }}>
+                The Wicket That Woke Up
+              </Typography>
+            </Box>
             <Chip
-              label="AI Assistant"
+              label="Your FCL Buddy"
               size="small"
               sx={{
-                bgcolor: 'rgba(255,255,255,0.2)',
-                color: 'white',
+                bgcolor: `${alpha(C.gold, 0.2)}`,
+                color: C.gold,
                 fontWeight: 'bold',
+                border: `1px solid ${alpha(C.gold, 0.4)}`,
               }}
             />
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <IconButton onClick={handleReset} sx={{ color: 'white' }} title="Reset conversation">
-              <Lightbulb />
+              <Refresh />
             </IconButton>
             <IconButton onClick={() => setOpen(false)} sx={{ color: 'white' }}>
               <Close />
@@ -444,7 +502,7 @@ What would you like to know?`,
                     },
                   }}
                 >
-                  {/* AI Avatar */}
+                  {/* Bails Avatar */}
                   {msg.role === 'assistant' && (
                     <Box
                       sx={{
@@ -455,20 +513,12 @@ What would you like to know?`,
                         alignItems: 'center',
                         justifyContent: 'center',
                         background: `linear-gradient(135deg, ${C.blueDeep}, ${C.blue})`,
+                        border: `1px solid ${alpha(C.gold, 0.5)}`,
                         flexShrink: 0,
                         mt: 0.5,
                       }}
                     >
-                      <Box
-                        component="img"
-                        src="/images/gemini-logo.svg"
-                        alt="Gemini"
-                        sx={{
-                          width: 20,
-                          height: 20,
-                          filter: 'brightness(0) invert(1)',
-                        }}
-                      />
+                      <StumpyIcon size={20} color={C.gold} />
                     </Box>
                   )}
 
@@ -600,7 +650,7 @@ What would you like to know?`,
               {/* Loading indicator */}
               {loading && (
                 <Box sx={{ display: 'flex', justifyContent: 'flex-start', gap: 1 }}>
-                  {/* AI Avatar */}
+                  {/* Bails Avatar */}
                   <Box
                     sx={{
                       width: 32,
@@ -610,6 +660,7 @@ What would you like to know?`,
                       alignItems: 'center',
                       justifyContent: 'center',
                       background: `linear-gradient(135deg, ${C.blueDeep}, ${C.blue})`,
+                      border: `1px solid ${alpha(C.gold, 0.5)}`,
                       flexShrink: 0,
                       mt: 0.5,
                       boxShadow: `0 4px 12px ${alpha(C.blue, 0.4)}`,
@@ -626,16 +677,7 @@ What would you like to know?`,
                       },
                     }}
                   >
-                    <Box
-                      component="img"
-                      src="/images/gemini-logo.svg"
-                      alt="Gemini"
-                      sx={{
-                        width: 20,
-                        height: 20,
-                        filter: 'brightness(0) invert(1)',
-                      }}
-                    />
+                    <StumpyIcon size={20} color={C.gold} />
                   </Box>
                   <Paper
                     elevation={0}
@@ -724,7 +766,7 @@ What would you like to know?`,
                         backgroundClip: 'text',
                       }}
                     >
-                      Analyzing your squad...
+                      Stumpy is reading the pitch...
                     </Typography>
                   </Paper>
                 </Box>
@@ -735,7 +777,7 @@ What would you like to know?`,
           )}
 
           {/* Peer Comparison Selector */}
-          {!loading && context && allSquads.length > 1 && (
+          {!loading && context && allSquads.filter(s => s.userId !== user?.uid).length > 0 && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <FormControl size="small" fullWidth>
                 <InputLabel sx={{ fontSize: '0.8rem', color: C.textSecond }}>⚔️ Compare with a rival...</InputLabel>
@@ -823,9 +865,9 @@ What would you like to know?`,
                 }}
                 onClick={() => setShowSuggestions(!showSuggestions)}
               >
-                <Lightbulb sx={{ color: C.gold }} fontSize="small" />
+                <Typography sx={{ fontSize: '0.9rem' }}>🏏</Typography>
                 <Typography variant="caption" fontWeight="bold">
-                  Suggested Questions
+                  Ask Stumpy
                 </Typography>
                 {showSuggestions ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
               </Box>
@@ -878,7 +920,7 @@ What would you like to know?`,
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask me anything about your league..."
+            placeholder="Ask Stumpy anything about your squad..."
             disabled={loading || contextLoading || !context}
             variant="outlined"
             sx={{

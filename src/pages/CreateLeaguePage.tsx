@@ -30,7 +30,8 @@ import {
 // import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 // import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 // import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { SportsCricket, ContentCopy } from '@mui/icons-material';
+import { SportsCricket, ContentCopy, Visibility } from '@mui/icons-material';
+import { ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { leagueService, playerPoolService } from '../services/firestore';
@@ -71,7 +72,10 @@ const CreateLeaguePage: React.FC = () => {
     startDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 2 weeks from now
     endDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 45 days from now
     powerplayEnabled: true, // NEW: Default to enabled
+    ppMatchMode: 'fixed' as 'fixed' | 'activation',
   });
+
+  const [hiddenPlayerEnabled, setHiddenPlayerEnabled] = useState(false);
 
   const availableTournaments = [
     'IPL',
@@ -181,6 +185,8 @@ const CreateLeaguePage: React.FC = () => {
         playerPool: [], // Legacy field (kept for backward compatibility)
         squadRules,
         powerplayEnabled: leagueData.powerplayEnabled,
+        ppMatchMode: leagueData.ppMatchMode,
+        hiddenPlayerEnabled,
         transferTypes,
       };
 
@@ -359,6 +365,37 @@ const CreateLeaguePage: React.FC = () => {
           }
         />
       </Grid>
+
+      {leagueData.powerplayEnabled && (
+        <Grid size={12}>
+          <Typography variant="body2" fontWeight="bold" gutterBottom>
+            Powerplay Match Mode
+          </Typography>
+          <ToggleButtonGroup
+            value={leagueData.ppMatchMode}
+            exclusive
+            onChange={(_, val) => val && setLeagueData(prev => ({ ...prev, ppMatchMode: val }))}
+            size="small"
+          >
+            <ToggleButton value="fixed">
+              <Box textAlign="left">
+                <Typography variant="body2" fontWeight="bold">Fixed</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                  Admin pre-sets eligible matches; player picks before deadline
+                </Typography>
+              </Box>
+            </ToggleButton>
+            <ToggleButton value="activation">
+              <Box textAlign="left">
+                <Typography variant="body2" fontWeight="bold">On-Demand Activation</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                  Player activates at any time; picks from upcoming matches at that moment
+                </Typography>
+              </Box>
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Grid>
+      )}
     </Grid>
   );
 
@@ -508,6 +545,36 @@ const CreateLeaguePage: React.FC = () => {
                 error={(squadRules.maxOverseasPlayers || 4) > squadSize}
               />
             )}
+          </Card>
+        </Grid>
+
+        {/* Hidden Player Feature */}
+        <Grid size={12}>
+          <Card variant="outlined" sx={{ p: 2, mt: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Visibility color="action" />
+                <Box>
+                  <Typography variant="subtitle1" fontWeight="bold">
+                    12th Hidden Player
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Each participant secretly picks one extra player whose identity is hidden from peers until the end. Admin adds their points to the final leaderboard.
+                  </Typography>
+                </Box>
+              </Box>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={hiddenPlayerEnabled}
+                    onChange={(e) => setHiddenPlayerEnabled(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label={hiddenPlayerEnabled ? "ON" : "OFF"}
+                labelPlacement="start"
+              />
+            </Box>
           </Card>
         </Grid>
 

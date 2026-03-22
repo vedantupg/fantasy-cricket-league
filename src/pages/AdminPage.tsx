@@ -1602,6 +1602,13 @@ const AdminPage: React.FC = () => {
           >
             Manage Player Pools
           </Button>
+          <Button
+            variant="outlined"
+            color="warning"
+            onClick={() => navigate('/admin/hidden-player')}
+          >
+            Hidden Player Points
+          </Button>
         </Box>
       </Box>
 
