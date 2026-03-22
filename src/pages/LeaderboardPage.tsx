@@ -8,7 +8,6 @@ import {
   Button,
   CircularProgress,
   Alert,
-  Divider,
   Chip,
 } from '@mui/material';
 import { useParams } from 'react-router-dom';
@@ -290,12 +289,23 @@ const LeaderboardPage: React.FC = () => {
         {/* 🎨 CUSTOMIZATION ZONE - LEAGUE INFO CARD */}
         <Card sx={{
           mb: { xs: 2, sm: 3, md: 4 },
-          // 🎨 Deep Blue Gradient Background
-          background: 'linear-gradient(135deg, rgba(11, 19, 59, 0.5) 0%, rgba(11, 19, 59, 0.3) 100%)',
-          backdropFilter: 'blur(10px)', // Glass morphism effect
-          border: '2px solid #0b133b', // Deep blue border
-          borderRadius: 4, // 🎨 Increased from default (1) to 4 for smoother corners
-          boxShadow: '4px 4px 8px rgba(0, 0, 0, 0.3)', // Fine shadow on left-bottom side
+          background: 'linear-gradient(135deg, rgba(30, 136, 229, 0.08) 0%, rgba(156, 39, 176, 0.05) 100%)',
+          backdropFilter: 'blur(10px)',
+          border: 'none',
+          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08), 0 4px 24px rgba(0,0,0,0.5)',
+          borderRadius: 3,
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: 4,
+            height: '100%',
+            background: 'linear-gradient(180deg, #1E88E5 0%, #9C27B0 100%)',
+            borderRadius: '3px 0 0 3px',
+          },
         }}>
           <CardContent sx={{
             px: { xs: 2, sm: 3, md: 3.5 },
@@ -334,10 +344,12 @@ const LeaderboardPage: React.FC = () => {
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0, flex: 1 }}>
                   <Typography
                     variant="h5"
-                    fontWeight="bold"
                     sx={{
-                      fontSize: { xs: '1.1rem', sm: '1.35rem', md: '1.5rem' },
-                      lineHeight: 1.2,
+                      fontFamily: "'Satoshi', sans-serif",
+                      fontWeight: 700,
+                      letterSpacing: '0.5px',
+                      fontSize: { xs: '1.6rem', sm: '2rem', md: '2.2rem' },
+                      lineHeight: 1,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: { xs: 'normal', sm: 'nowrap' },
@@ -353,15 +365,15 @@ const LeaderboardPage: React.FC = () => {
                         label={league.format}
                         size="small"
                         sx={{
-                          fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                          fontFamily: "'Satoshi', sans-serif",
+                          fontSize: { xs: '0.6rem', sm: '0.65rem' },
                           fontWeight: 700,
-                          height: { xs: 22, sm: 26 },
-                          bgcolor: 'rgba(168,85,247,0.15)',
-                          color: '#a855f7',
-                          border: '1px solid rgba(168,85,247,0.3)',
-                          '&:hover': {
-                            bgcolor: 'rgba(168,85,247,0.25)',
-                          }
+                          height: { xs: 20, sm: 22 },
+                          bgcolor: 'rgba(156, 39, 176, 0.12)',
+                          color: '#9C27B0',
+                          border: '1px solid rgba(156, 39, 176, 0.35)',
+                          letterSpacing: '0.5px',
+                          textTransform: 'uppercase',
                         }}
                       />
                     </Box>
@@ -385,6 +397,7 @@ const LeaderboardPage: React.FC = () => {
                     label={`Avg: ${(snapshot.standings.reduce((sum, s) => sum + s.totalPoints, 0) / snapshot.standings.length).toFixed(1)}`}
                     size="small"
                     sx={{
+                      fontFamily: "'Satoshi', sans-serif",
                       fontSize: { xs: '0.7rem', sm: '0.8rem' },
                       fontWeight: 600,
                       height: { xs: 24, sm: 28 },
@@ -402,23 +415,21 @@ const LeaderboardPage: React.FC = () => {
                 {snapshot?.playerPoolVersion && (
                   <Chip
                     label={snapshot.playerPoolVersion}
-                    variant="filled"
                     size="small"
                     sx={{
-                      fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                      fontFamily: "'Satoshi', sans-serif",
+                      fontSize: { xs: '0.65rem', sm: '0.7rem' },
                       fontWeight: 600,
-                      height: { xs: 22, sm: 26 },
+                      height: { xs: 22, sm: 24 },
                       maxWidth: { xs: '180px', sm: 'none' },
-                      bgcolor: '#bf7402', // Custom orange
-                      color: 'white',
+                      bgcolor: 'rgba(255, 152, 0, 0.15)',
+                      color: '#FF9800',
+                      border: '1px solid rgba(255, 152, 0, 0.4)',
                       '& .MuiChip-label': {
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
                       },
-                      '&:hover': {
-                        bgcolor: '#a56302',
-                      }
                     }}
                   />
                 )}
@@ -428,9 +439,9 @@ const LeaderboardPage: React.FC = () => {
                   <Typography
                     variant="caption"
                     sx={{
-                      fontSize: { xs: '0.7rem', sm: '0.8rem' },
-                      color: 'text.secondary',
-                      fontStyle: 'italic',
+                      fontSize: { xs: '0.65rem', sm: '0.7rem' },
+                      color: 'text.disabled',
+                      letterSpacing: '0.3px',
                       whiteSpace: { xs: 'normal', sm: 'nowrap' },
                     }}
                   >
@@ -479,7 +490,7 @@ const LeaderboardPage: React.FC = () => {
 
         {/* Full Leaderboard - Grid layout */}
         {snapshot && snapshot.standings.length > 5 && hasLeagueStarted && (
-          <Box sx={{ mt: { xs: 3, sm: 4 } }}>
+          <Box sx={{ mt: { xs: 2, sm: 3 } }}>
             {/* Responsive grid: 6 columns per row (configurable on line below) */}
             <Box
               sx={{
@@ -490,7 +501,7 @@ const LeaderboardPage: React.FC = () => {
                   md: 'repeat(3, 1fr)',
                   lg: 'repeat(5, 1fr)', // <-- Change this number to modify cards per row
                 },
-                gap: { xs: 2, sm: 2.5, md: 3 },
+                gap: { xs: 1.25, sm: 1.75, md: 2 },
                 '& > *': {
                   minWidth: 0, // Prevent grid items from expanding beyond column width
                 },
@@ -511,7 +522,21 @@ const LeaderboardPage: React.FC = () => {
         {/* Best Performer & Rapid Riser - Below Leaderboard */}
         {hasLeagueStarted && snapshot && snapshot.standings.length > 0 && (
           <>
-            <Divider sx={{ my: { xs: 2, sm: 3, md: 4 } }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, my: { xs: 2.5, sm: 3.5, md: 4 } }}>
+              <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,255,255,0.08)' }} />
+              <Typography sx={{
+                fontFamily: "'Satoshi', sans-serif",
+                fontWeight: 800,
+                fontSize: { xs: '0.6rem', sm: '0.65rem' },
+                letterSpacing: '3px',
+                color: 'text.disabled',
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+              }}>
+                Round Highlights
+              </Typography>
+              <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,255,255,0.08)' }} />
+            </Box>
             <LeaderboardHighlights snapshot={snapshot} />
           </>
         )}

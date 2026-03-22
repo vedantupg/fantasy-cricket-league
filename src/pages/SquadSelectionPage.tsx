@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Container,
@@ -25,13 +25,16 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Autocomplete,
+  GlobalStyles,
 } from '@mui/material';
 import {
   PersonAdd,
   Close,
   SwapHoriz,
   Star,
-  Search
+  Search,
+  CheckCircle,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -96,8 +99,21 @@ const SquadSelectionPage: React.FC = () => {
   const [topWicketTaker, setTopWicketTaker] = useState('');
   const [winningTeam, setWinningTeam] = useState('');
 
+  // Hidden player conflict alert
+  const [hiddenConflictAlert, setHiddenConflictAlert] = useState('');
+
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const playerNameOptions = useMemo(() => {
+    const names = availablePlayers.map(p => p.name);
+    return names.filter((n, i) => names.indexOf(n) === i).sort();
+  }, [availablePlayers]);
+
+  const teamOptions = useMemo(() => {
+    const teams = availablePlayers.map(p => p.team).filter((t): t is string => Boolean(t));
+    return teams.filter((t, i) => teams.indexOf(t) === i).sort();
+  }, [availablePlayers]);
 
   useEffect(() => {
     const loadLeagueAndPlayers = async () => {
@@ -1698,6 +1714,13 @@ const SquadSelectionPage: React.FC = () => {
         return prev; // Don't add duplicate
       }
 
+      // Check if player is the hidden player
+      if (hiddenPlayerId && player.id === hiddenPlayerId) {
+        setHiddenConflictAlert(`⚠️ ${player.name} is your 12th Hidden Player! Remove them as hidden player first, or choose a different player.`);
+        setTimeout(() => setHiddenConflictAlert(''), 5000);
+        return prev;
+      }
+
       // Calculate current counts from LATEST state
       const currentMainSquad = prev.filter(p => p.position !== 'bench').length;
       const currentBench = prev.filter(p => p.position === 'bench').length;
@@ -2245,6 +2268,16 @@ const SquadSelectionPage: React.FC = () => {
           {/* Right Panel - Player Selection */}
           {!(isDeadlinePassed && !canMakeTransfer) && (
             <Grid size={{ xs: 12, lg: 4 }}>
+              {hiddenConflictAlert && (
+                <Alert
+                  severity="error"
+                  icon={<span>🔒</span>}
+                  sx={{ mb: 1.5, fontSize: '0.85rem' }}
+                  onClose={() => setHiddenConflictAlert('')}
+                >
+                  {hiddenConflictAlert}
+                </Alert>
+              )}
               <PlayerSelectionPanel
                 availablePlayers={availablePlayers}
                 selectedPlayers={selectedPlayers}
@@ -2273,59 +2306,83 @@ const SquadSelectionPage: React.FC = () => {
 
             <Grid container spacing={{ xs: 2, sm: 3 }}>
               <Grid size={{ xs: 12, sm: 4 }}>
-                <TextField
-                  fullWidth
-                  required
-                  label="Top Run Scorer"
-                  placeholder="e.g., Virat Kohli"
+                <Autocomplete
+                  freeSolo
+                  options={playerNameOptions}
                   value={topRunScorer}
-                  onChange={(e) => setTopRunScorer(e.target.value)}
-                  variant="outlined"
-                  size="small"
+                  onInputChange={(_e, value) => setTopRunScorer(value)}
                   disabled={existingSquad?.isSubmitted}
-                  error={!existingSquad?.isSubmitted && topRunScorer.trim() === ''}
-                  helperText={!existingSquad?.isSubmitted && topRunScorer.trim() === '' ? 'Required' : ''}
-                  InputProps={{
-                    startAdornment: <Box sx={{ mr: 1, color: 'warning.main' }}>🏏</Box>
-                  }}
+                  size="small"
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      fullWidth
+                      required
+                      label="Top Run Scorer"
+                      placeholder="e.g., Virat Kohli"
+                      variant="outlined"
+                      error={!existingSquad?.isSubmitted && topRunScorer.trim() === ''}
+                      helperText={!existingSquad?.isSubmitted && topRunScorer.trim() === '' ? 'Required' : ''}
+                      InputProps={{
+                        ...params.InputProps,
+                        startAdornment: <><Box sx={{ mr: 1, color: 'warning.main' }}>🏏</Box>{params.InputProps.startAdornment}</>
+                      }}
+                    />
+                  )}
                 />
               </Grid>
 
               <Grid size={{ xs: 12, sm: 4 }}>
-                <TextField
-                  fullWidth
-                  required
-                  label="Top Wicket Taker"
-                  placeholder="e.g., Jasprit Bumrah"
+                <Autocomplete
+                  freeSolo
+                  options={playerNameOptions}
                   value={topWicketTaker}
-                  onChange={(e) => setTopWicketTaker(e.target.value)}
-                  variant="outlined"
-                  size="small"
+                  onInputChange={(_e, value) => setTopWicketTaker(value)}
                   disabled={existingSquad?.isSubmitted}
-                  error={!existingSquad?.isSubmitted && topWicketTaker.trim() === ''}
-                  helperText={!existingSquad?.isSubmitted && topWicketTaker.trim() === '' ? 'Required' : ''}
-                  InputProps={{
-                    startAdornment: <Box sx={{ mr: 1, color: 'error.main' }}>⚡</Box>
-                  }}
+                  size="small"
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      fullWidth
+                      required
+                      label="Top Wicket Taker"
+                      placeholder="e.g., Jasprit Bumrah"
+                      variant="outlined"
+                      error={!existingSquad?.isSubmitted && topWicketTaker.trim() === ''}
+                      helperText={!existingSquad?.isSubmitted && topWicketTaker.trim() === '' ? 'Required' : ''}
+                      InputProps={{
+                        ...params.InputProps,
+                        startAdornment: <><Box sx={{ mr: 1, color: 'error.main' }}>⚡</Box>{params.InputProps.startAdornment}</>
+                      }}
+                    />
+                  )}
                 />
               </Grid>
 
               <Grid size={{ xs: 12, sm: 4 }}>
-                <TextField
-                  fullWidth
-                  required
-                  label="Winning Team Prediction"
-                  placeholder="e.g., India or Australia"
+                <Autocomplete
+                  freeSolo
+                  options={teamOptions}
                   value={winningTeam}
-                  onChange={(e) => setWinningTeam(e.target.value)}
-                  variant="outlined"
-                  size="small"
+                  onInputChange={(_e, value) => setWinningTeam(value)}
                   disabled={existingSquad?.isSubmitted}
-                  error={!existingSquad?.isSubmitted && winningTeam.trim() === ''}
-                  helperText={!existingSquad?.isSubmitted && winningTeam.trim() === '' ? 'Required' : ''}
-                  InputProps={{
-                    startAdornment: <Box sx={{ mr: 1, color: 'success.main' }}>🏆</Box>
-                  }}
+                  size="small"
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      fullWidth
+                      required
+                      label="Winning Team Prediction"
+                      placeholder="e.g., India or Australia"
+                      variant="outlined"
+                      error={!existingSquad?.isSubmitted && winningTeam.trim() === ''}
+                      helperText={!existingSquad?.isSubmitted && winningTeam.trim() === '' ? 'Required' : ''}
+                      InputProps={{
+                        ...params.InputProps,
+                        startAdornment: <><Box sx={{ mr: 1, color: 'success.main' }}>🏆</Box>{params.InputProps.startAdornment}</>
+                      }}
+                    />
+                  )}
                 />
               </Grid>
             </Grid>
@@ -2390,6 +2447,26 @@ const CricketPitchFormation: React.FC<{
   onSelectHiddenPlayer: (id: string) => void;
   availablePlayers: Player[];
 }> = ({ league, selectedPlayers, onRemovePlayer, onUpdatePosition, powerplayMatch, setPowerplayMatch, maxPowerplayMatches, ppActivatedAt, onActivatePP, ppActivationEnabled, ppMatchConfirmOpen, setPpMatchConfirmOpen, ppMatchPending, setPpMatchPending, onConfirmPpMatch, captainId, viceCaptainId, xFactorId, onSetSpecialRole, existingSquad, calculatePlayerContribution, readOnly, isDeadlinePassed, hiddenPlayerId, hiddenPlayerSearch, setHiddenPlayerSearch, onSelectHiddenPlayer, availablePlayers }) => {
+
+  const [ppDialogOpen, setPpDialogOpen] = useState(false);
+  const [ppDialogStep, setPpDialogStep] = useState<'select' | 'confirm' | 'success'>('select');
+
+  const handleOpenPpDialog = () => {
+    setPpDialogStep('select');
+    setPpMatchPending('');
+    setPpDialogOpen(true);
+  };
+
+  const handlePpDialogNext = () => {
+    setPpDialogStep('confirm');
+  };
+
+  const handlePpDialogConfirm = async () => {
+    await onActivatePP();
+    onConfirmPpMatch();
+    setPpDialogStep('success');
+    setTimeout(() => setPpDialogOpen(false), 2500);
+  };
 
   // Helper function to get player points for display
   const getPlayerPointsDisplay = (player: SelectedPlayer, slotType: 'required' | 'flexible' | 'bench') => {
@@ -2817,15 +2894,132 @@ const CricketPitchFormation: React.FC<{
                         </Typography>
                       )}
                     </Box>
+                    <GlobalStyles styles={{
+                      '@keyframes ppGlow': {
+                        '0%, 100%': { boxShadow: '0 0 18px 4px rgba(255,165,0,0.55)' },
+                        '50%': { boxShadow: '0 0 28px 8px rgba(255,165,0,0.75)' },
+                      }
+                    }} />
                     <Button
                       variant="contained"
-                      color="warning"
                       disabled={!ppActivationEnabled}
-                      onClick={onActivatePP}
-                      sx={{ alignSelf: 'flex-start' }}
+                      onClick={handleOpenPpDialog}
+                      sx={{
+                        alignSelf: 'flex-start',
+                        background: 'linear-gradient(135deg, #FFD700, #FF8C00)',
+                        boxShadow: '0 0 18px 4px rgba(255,165,0,0.55)',
+                        fontWeight: 'bold',
+                        letterSpacing: '0.5px',
+                        borderRadius: 3,
+                        px: 3,
+                        py: 1.2,
+                        color: '#000',
+                        '&:hover': { boxShadow: '0 0 28px 8px rgba(255,165,0,0.75)', background: 'linear-gradient(135deg, #FFE44D, #FF9F00)' },
+                        '&:not(:disabled)': { animation: 'ppGlow 2s ease-in-out infinite' },
+                      }}
                     >
                       ⚡ Activate Powerplay
                     </Button>
+
+                    {/* 2-step PP Activation Dialog */}
+                    <Dialog open={ppDialogOpen} onClose={() => ppDialogStep !== 'success' && setPpDialogOpen(false)} maxWidth="xs" fullWidth>
+                      {ppDialogStep === 'select' && (
+                        <>
+                          <DialogTitle sx={{ fontWeight: 'bold' }}>⚡ Activate Your Powerplay!</DialogTitle>
+                          <DialogContent>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                              This is a one-time power. Once activated, your double-points match is permanently locked. Only future matches will be available.
+                            </Typography>
+                            <FormControl fullWidth size="small">
+                              <InputLabel>Select Powerplay Match</InputLabel>
+                              <Select
+                                value={ppMatchPending}
+                                label="Select Powerplay Match"
+                                onChange={(e) => setPpMatchPending(e.target.value)}
+                                sx={{ bgcolor: '#1a2332' }}
+                              >
+                                {(league.matchSchedule || []).map((match) => (
+                                  <MenuItem key={match.matchNumber} value={match.matchNumber.toString()} sx={{ py: 1.5 }}>
+                                    <Box>
+                                      <Typography variant="body2" fontWeight={600} fontSize="0.875rem">
+                                        {formatMatchForDropdown(match)}
+                                      </Typography>
+                                      {match.team1 !== 'TBC' && match.team2 !== 'TBC' && (
+                                        <Typography variant="caption" color="text.secondary" fontSize="0.75rem">
+                                          {match.timeGMT} GMT • {match.stadium}
+                                        </Typography>
+                                      )}
+                                    </Box>
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          </DialogContent>
+                          <DialogActions>
+                            <Button onClick={() => setPpDialogOpen(false)} color="inherit">Cancel</Button>
+                            <Button
+                              variant="contained"
+                              disabled={!ppMatchPending}
+                              onClick={handlePpDialogNext}
+                              sx={{ background: 'linear-gradient(135deg, #FFD700, #FF8C00)', color: '#000', fontWeight: 'bold' }}
+                            >
+                              Next →
+                            </Button>
+                          </DialogActions>
+                        </>
+                      )}
+                      {ppDialogStep === 'confirm' && (
+                        <>
+                          <DialogTitle sx={{ fontWeight: 'bold' }}>⚠️ Confirm Powerplay Match</DialogTitle>
+                          <DialogContent>
+                            <Typography variant="body2" sx={{ mb: 1.5 }}>
+                              You are about to activate your Powerplay for:
+                            </Typography>
+                            <Box sx={{ p: 1.5, bgcolor: 'rgba(255,193,7,0.1)', border: '1px solid rgba(255,193,7,0.3)', borderRadius: 1.5, mb: 1.5 }}>
+                              <Typography variant="body1" fontWeight="bold" color="warning.main">
+                                {ppMatchPending && league.matchSchedule
+                                  ? formatMatchForDropdown(league.matchSchedule.find(m => m.matchNumber.toString() === ppMatchPending)!)
+                                  : `Match ${ppMatchPending}`}
+                              </Typography>
+                            </Box>
+                            <Alert severity="error" sx={{ fontSize: '0.8rem' }}>
+                              This cannot be undone. Once confirmed, your Powerplay is permanently activated.
+                            </Alert>
+                          </DialogContent>
+                          <DialogActions>
+                            <Button onClick={() => setPpDialogStep('select')} color="inherit">← Back</Button>
+                            <Button variant="contained" color="warning" onClick={handlePpDialogConfirm}>
+                              Confirm & Activate
+                            </Button>
+                          </DialogActions>
+                        </>
+                      )}
+                      {ppDialogStep === 'success' && (
+                        <>
+                          <DialogTitle sx={{ fontWeight: 'bold', textAlign: 'center' }}>
+                            <CheckCircle sx={{ fontSize: 48, color: 'success.main', display: 'block', mx: 'auto', mb: 1 }} />
+                            Powerplay Activated!
+                          </DialogTitle>
+                          <DialogContent>
+                            <Typography variant="body2" textAlign="center" color="text.secondary">
+                              Your Powerplay match is locked:
+                            </Typography>
+                            <Box sx={{ p: 1.5, mt: 1, bgcolor: 'rgba(76,175,80,0.1)', border: '1px solid rgba(76,175,80,0.3)', borderRadius: 1.5, textAlign: 'center' }}>
+                              <Typography variant="body1" fontWeight="bold" color="success.main">
+                                {ppMatchPending && league.matchSchedule
+                                  ? formatMatchForDropdown(league.matchSchedule.find(m => m.matchNumber.toString() === ppMatchPending)!)
+                                  : `Match ${ppMatchPending}`}
+                              </Typography>
+                            </Box>
+                          </DialogContent>
+                          <DialogActions sx={{ justifyContent: 'center' }}>
+                            <Button variant="contained" color="success" onClick={() => setPpDialogOpen(false)}>
+                              Done
+                            </Button>
+                          </DialogActions>
+                        </>
+                      )}
+                    </Dialog>
                   </Box>
                 ) : (
                   /* Activated — show dropdown filtered to future matches */

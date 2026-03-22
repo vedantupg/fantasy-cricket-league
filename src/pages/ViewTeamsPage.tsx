@@ -427,10 +427,29 @@ const ViewTeamsPage: React.FC = () => {
                                 {squad.hiddenPlayerName}
                               </Typography>
                             ) : (
-                              /* Peer squad — mask name and role, show team only */
-                              <Typography variant="body2" fontWeight="600" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                                ? Hidden
-                              </Typography>
+                              /* Peer squad — mask name, show gamified mystery badge */
+                              <Box sx={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 0.5,
+                                px: 1,
+                                py: 0.25,
+                                borderRadius: 1,
+                                background: 'linear-gradient(90deg, rgba(255,215,0,0.12), rgba(255,140,0,0.08))',
+                                border: '1px solid rgba(255,215,0,0.3)',
+                              }}>
+                                <Typography sx={{ fontSize: '0.75rem' }}>🔒</Typography>
+                                <Typography variant="body2" fontWeight="700" sx={{
+                                  background: 'linear-gradient(90deg, #FFD700, #FF8C00)',
+                                  backgroundClip: 'text',
+                                  WebkitBackgroundClip: 'text',
+                                  WebkitTextFillColor: 'transparent',
+                                  letterSpacing: '1px',
+                                  fontStyle: 'italic',
+                                }}>
+                                  ???
+                                </Typography>
+                              </Box>
                             )}
                             <Typography variant="caption" color="text.secondary">
                               {squad.userId === user?.uid

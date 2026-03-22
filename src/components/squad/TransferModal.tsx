@@ -902,8 +902,8 @@ const TransferModal: React.FC<TransferModalProps> = ({
                 {/* Before & After Cards */}
                 <Box sx={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr auto 1fr',
-                  gap: 2.5,
+                  gridTemplateColumns: { xs: '1fr', sm: '1fr auto 1fr' },
+                  gap: { xs: 1.5, sm: 2.5 },
                   alignItems: 'center',
                   my: 3
                 }}>
@@ -1134,7 +1134,7 @@ const TransferModal: React.FC<TransferModalProps> = ({
                     borderRadius: 3,
                   }}>
                     <CardContent sx={{ p: 3 }}>
-                      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 3, alignItems: 'center' }}>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr auto 1fr' }, gap: { xs: 1.5, sm: 3 }, alignItems: 'center' }}>
                         {/* BEFORE Column */}
                         <Box>
                           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2, textAlign: 'center', fontWeight: 'bold' }}>
