@@ -26,7 +26,6 @@ import {
   DialogContent,
   DialogActions,
   Autocomplete,
-  GlobalStyles,
 } from '@mui/material';
 import {
   PersonAdd,
