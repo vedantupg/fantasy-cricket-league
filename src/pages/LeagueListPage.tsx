@@ -10,9 +10,10 @@ import {
   Button,
   Chip,
   Fab,
-  CircularProgress,
-  Alert
+  Alert,
+  LinearProgress,
 } from '@mui/material';
+import Skeleton from '@mui/material/Skeleton';
 import {
   SportsCricket,
   Add,
@@ -24,6 +25,7 @@ import {
   Groups
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { leagueService, squadService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
@@ -41,42 +43,57 @@ const LeagueListPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const pullStartY = useRef(0);
 
   const { user, userData } = useAuth();
   const navigate = useNavigate();
 
+  const loadLeagues = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      const userLeagues = await leagueService.getForUser(user.uid);
+
+      const leaguesWithSquadData = await Promise.all(
+        userLeagues.map(async (league) => {
+          try {
+            const squad = await squadService.getByUserAndLeague(user.uid, league.id);
+            return { league, squad };
+          } catch (err) {
+            console.error(`Error fetching squad for league ${league.id}:`, err);
+            return { league, squad: null };
+          }
+        })
+      );
+
+      setLeaguesWithSquads(leaguesWithSquadData);
+    } catch (err: any) {
+      setError('Failed to load leagues');
+      console.error('Error loading leagues:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadUserLeagues = async () => {
-      if (!user) return;
+    loadLeagues();
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-      try {
-        setLoading(true);
-        const userLeagues = await leagueService.getForUser(user.uid);
+  const handlePullStart = (e: React.TouchEvent) => {
+    if (window.scrollY === 0) pullStartY.current = e.touches[0].clientY;
+  };
 
-        // Fetch squad data for each league
-        const leaguesWithSquadData = await Promise.all(
-          userLeagues.map(async (league) => {
-            try {
-              const squad = await squadService.getByUserAndLeague(user.uid, league.id);
-              return { league, squad };
-            } catch (err) {
-              console.error(`Error fetching squad for league ${league.id}:`, err);
-              return { league, squad: null };
-            }
-          })
-        );
-
-        setLeaguesWithSquads(leaguesWithSquadData);
-      } catch (err: any) {
-        setError('Failed to load leagues');
-        console.error('Error loading leagues:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadUserLeagues();
-  }, [user]);
+  const handlePullEnd = async (e: React.TouchEvent) => {
+    const dy = e.changedTouches[0].clientY - pullStartY.current;
+    if (dy > 70 && window.scrollY === 0) {
+      window.navigator?.vibrate?.(8);
+      setRefreshing(true);
+      await loadLeagues();
+      setRefreshing(false);
+    }
+  };
 
   const getSmartStatus = (league: League, squad: LeagueSquad | null) => {
     const now = new Date();
@@ -163,17 +180,14 @@ const LeagueListPage: React.FC = () => {
     return new Date() > new Date(startDate);
   };
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-        <CircularProgress size={60} />
-      </Box>
-    );
-  }
-
   return (
-    <Box>
+    <Box
+      onTouchStart={handlePullStart}
+      onTouchEnd={handlePullEnd}
+    >
       <AppHeader />
+
+      {refreshing && <LinearProgress sx={{ position: 'sticky', top: 0, zIndex: 1200 }} />}
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
         {/* Page Header with Actions */}
@@ -276,7 +290,14 @@ const LeagueListPage: React.FC = () => {
       )}
 
       {/* Leagues Grid */}
-      {leaguesWithSquads.length === 0 ? (
+      {loading && (
+        <Box sx={{ px: 2 }}>
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} variant="rounded" height={88} sx={{ mb: 1.5, bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 2 }} />
+          ))}
+        </Box>
+      )}
+      {!loading && leaguesWithSquads.length === 0 ? (
         <Card sx={{ textAlign: 'center', py: 8 }}>
           <CardContent>
             <SportsCricket sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />

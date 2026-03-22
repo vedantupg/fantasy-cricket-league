@@ -10,6 +10,7 @@ import {
   Alert,
   Chip,
 } from '@mui/material';
+import Skeleton from '@mui/material/Skeleton';
 import { useParams } from 'react-router-dom';
 import { Refresh as RefreshIcon, AccessTime } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
@@ -225,8 +226,19 @@ const LeaderboardPage: React.FC = () => {
             actions={quickActions}
           />
         )}
-        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3, md: 4 }, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
+        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3, md: 4 } }}>
+          <Box sx={{ px: 2 }}>
+            {[...Array(6)].map((_, i) => (
+              <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+                <Skeleton variant="circular" width={36} height={36} sx={{ bgcolor: 'rgba(255,255,255,0.08)', flexShrink: 0 }} />
+                <Box sx={{ flex: 1 }}>
+                  <Skeleton variant="text" width="60%" sx={{ bgcolor: 'rgba(255,255,255,0.08)' }} />
+                  <Skeleton variant="text" width="40%" height={12} sx={{ bgcolor: 'rgba(255,255,255,0.06)' }} />
+                </Box>
+                <Skeleton variant="rounded" width={56} height={28} sx={{ bgcolor: 'rgba(255,255,255,0.08)' }} />
+              </Box>
+            ))}
+          </Box>
         </Container>
       </Box>
     );

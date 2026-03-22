@@ -117,6 +117,24 @@ const LeagueAssistant: React.FC<LeagueAssistantProps> = ({ leagueId }) => {
   const [snapshotStandings, setSnapshotStandings] = useState<StandingEntry[]>([]);
   const [selectedPeer, setSelectedPeer] = useState<LeagueSquad | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [dragY, setDragY] = useState(0);
+  const dragStartY = useRef(0);
+
+  const handleDragStart = (e: React.TouchEvent) => {
+    dragStartY.current = e.touches[0].clientY;
+  };
+  const handleDragMove = (e: React.TouchEvent) => {
+    const dy = e.touches[0].clientY - dragStartY.current;
+    if (dy > 0) setDragY(dy);
+  };
+  const handleDragEnd = () => {
+    if (dragY > 80) {
+      setDragY(0);
+      setOpen(false);
+    } else {
+      setDragY(0);
+    }
+  };
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -178,7 +196,7 @@ const LeagueAssistant: React.FC<LeagueAssistantProps> = ({ leagueId }) => {
             role: 'assistant',
             content: `💥 *The stumps just rattled.* I'm **Stumpy** — the moment of impact, your cricket intelligence system, ${leagueContext.userSquad.userName}.
 
-🎯 You're sitting at **#${leagueContext.userSquad.rank}** with **${leagueContext.userSquad.totalPoints} points**.
+🎯 You're sitting at **#${leagueContext.userSquad.rank}** with **${Number(leagueContext.userSquad.totalPoints).toFixed(2)} pts**.
 
 I've already read the pitch. Here's what I can crack open for you:
 • 🏏 Captain & transfer recommendations
@@ -215,6 +233,7 @@ I've already read the pitch. Here's what I can crack open for you:
     const question = questionText || input.trim();
     if (!question || loading || !context) return;
 
+    window.navigator?.vibrate?.(10);
     setInput('');
     setShowSuggestions(false);
     setError(null);
@@ -238,6 +257,7 @@ I've already read the pitch. Here's what I can crack open for you:
         content: response,
         timestamp: new Date(),
       };
+      window.navigator?.vibrate?.(6);
       setMessages(prev => [...prev, aiMessage]);
     } catch (err: any) {
       console.error('AI Error:', err);
@@ -297,6 +317,7 @@ I've already read the pitch. Here's what I can crack open for you:
   // Internal: send a message with an explicit context (used for peer comparison auto-query)
   const handleSendMessageWithContext = async (question: string, ctx: LeagueContext) => {
     if (loading) return;
+    window.navigator?.vibrate?.(10);
     setShowSuggestions(false);
     setError(null);
 
@@ -347,7 +368,7 @@ I've already read the pitch. Here's what I can crack open for you:
         onClick={() => setOpen(true)}
         sx={{
           position: 'fixed',
-          bottom: { xs: 80, sm: 24 },
+          bottom: { xs: 'calc(80px + env(safe-area-inset-bottom, 0px))', sm: 24 },
           right: { xs: 16, sm: 24 },
           width: { xs: 56, sm: 64 },
           height: { xs: 56, sm: 64 },
@@ -397,6 +418,8 @@ I've already read the pitch. Here's what I can crack open for you:
             position: { xs: 'fixed', sm: 'relative' },
             bottom: { xs: 0, sm: 'auto' },
             margin: { xs: 0, sm: 'auto' },
+            transform: `translateY(${dragY}px)`,
+            transition: dragY === 0 ? 'transform 0.3s ease' : 'none',
             overflow: 'hidden',
             bgcolor: C.bgDefault,
             border: `1px solid ${alpha(C.blue, 0.2)}`,
@@ -405,6 +428,9 @@ I've already read the pitch. Here's what I can crack open for you:
         }}
       >
         <DialogTitle
+          onTouchStart={handleDragStart}
+          onTouchMove={handleDragMove}
+          onTouchEnd={handleDragEnd}
           sx={{
             background: `linear-gradient(135deg, ${C.navyDark} 0%, ${C.navy} 60%, ${C.blueDeep} 100%)`,
             borderBottom: `1px solid ${alpha(C.blue, 0.3)}`,
@@ -413,6 +439,7 @@ I've already read the pitch. Here's what I can crack open for you:
             alignItems: 'center',
             justifyContent: 'space-between',
             pb: 2,
+            cursor: 'grab',
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -435,9 +462,6 @@ I've already read the pitch. Here's what I can crack open for you:
             <Box>
               <Typography variant="h6" fontWeight="bold" sx={{ lineHeight: 1.1 }}>
                 Stumpy
-              </Typography>
-              <Typography variant="caption" sx={{ color: alpha('#fff', 0.6), fontSize: '0.65rem' }}>
-                The Wicket That Woke Up
               </Typography>
             </Box>
             <Chip
@@ -930,7 +954,10 @@ I've already read the pitch. Here's what I can crack open for you:
 
         <DialogActions
           sx={{
-            p: 2.5,
+            pt: 2,
+            pr: 2.5,
+            pl: 2.5,
+            pb: 'calc(16px + env(safe-area-inset-bottom, 0px))',
             bgcolor: C.bgPaper,
             borderTop: `1px solid ${alpha(C.blue, 0.2)}`,
             backdropFilter: 'blur(10px)',
