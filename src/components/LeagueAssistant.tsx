@@ -347,7 +347,7 @@ I've already read the pitch. Here's what I can crack open for you:
         onClick={() => setOpen(true)}
         sx={{
           position: 'fixed',
-          bottom: { xs: 16, sm: 24 },
+          bottom: { xs: 80, sm: 24 },
           right: { xs: 16, sm: 24 },
           width: { xs: 56, sm: 64 },
           height: { xs: 56, sm: 64 },
@@ -386,12 +386,17 @@ I've already read the pitch. Here's what I can crack open for you:
         onClose={() => setOpen(false)}
         maxWidth="md"
         fullWidth
+        fullScreen={false}
         TransitionProps={{ style: { transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' } }}
+        sx={{ alignItems: { xs: 'flex-end', sm: 'center' } }}
         PaperProps={{
           sx: {
-            height: { xs: '100%', sm: '75vh' },
-            maxHeight: { xs: '100%', sm: '740px' },
-            borderRadius: { xs: 0, sm: 3 },
+            height: { xs: '92dvh', sm: '75vh' },
+            maxHeight: { xs: '92dvh', sm: '740px' },
+            borderRadius: { xs: '20px 20px 0 0', sm: 3 },
+            position: { xs: 'fixed', sm: 'relative' },
+            bottom: { xs: 0, sm: 'auto' },
+            margin: { xs: 0, sm: 'auto' },
             overflow: 'hidden',
             bgcolor: C.bgDefault,
             border: `1px solid ${alpha(C.blue, 0.2)}`,
@@ -463,6 +468,7 @@ I've already read the pitch. Here's what I can crack open for you:
             display: 'flex',
             flexDirection: 'column',
             gap: 2,
+            overflowY: 'hidden',
           }}
         >
           {/* Error Alert */}
@@ -481,7 +487,7 @@ I've already read the pitch. Here's what I can crack open for you:
 
           {/* Messages */}
           {!contextLoading && (
-            <Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
               {messages.map((msg, idx) => (
                 <Box
                   key={idx}
@@ -873,7 +879,16 @@ I've already read the pitch. Here's what I can crack open for you:
               </Box>
 
               <Collapse in={showSuggestions}>
-                <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{
+                    flexWrap: { xs: 'nowrap', sm: 'wrap' },
+                    overflowX: { xs: 'auto', sm: 'visible' },
+                    pb: { xs: 0.5, sm: 0 },
+                    gap: 1,
+                  }}
+                >
                   {SUGGESTED_QUESTIONS.slice(0, 4).map((suggestion, idx) => (
                     <Chip
                       key={idx}
@@ -886,6 +901,14 @@ I've already read the pitch. Here's what I can crack open for you:
                         color: C.textSecond,
                         border: `1px solid ${alpha(C.blue, 0.35)}`,
                         bgcolor: alpha(C.navy, 0.5),
+                        flexShrink: 0,
+                        fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                        maxWidth: { xs: 160, sm: 'none' },
+                        '& .MuiChip-label': {
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        },
                         transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                         '&:hover': {
                           bgcolor: C.blue,

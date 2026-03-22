@@ -45,6 +45,7 @@ import { leagueService, squadService, userService } from '../services/firestore'
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
 import type { League, LeagueSquad, User } from '../types/database';
+import { TeamLogo } from '../utils/teamLogos';
 
 interface SquadWithUser extends LeagueSquad {
   user?: User;
@@ -482,15 +483,18 @@ const ViewTeamsPage: React.FC = () => {
                                 </Typography>
                               </Box>
                             )}
-                            <Typography variant="caption" sx={{
-                              fontFamily: "'Satoshi', sans-serif",
-                              fontSize: { xs: '0.6875rem', sm: '0.75rem' },
-                              color: 'rgba(255,255,255,0.6)',
-                            }}>
-                              {squad.userId === user?.uid
-                                ? `${squad.hiddenPlayerTeam}`
-                                : squad.hiddenPlayerTeam}
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              {squad.hiddenPlayerTeam && <TeamLogo team={squad.hiddenPlayerTeam} size={14} />}
+                              <Typography variant="caption" sx={{
+                                fontFamily: "'Satoshi', sans-serif",
+                                fontSize: { xs: '0.6875rem', sm: '0.75rem' },
+                                color: 'rgba(255,255,255,0.6)',
+                              }}>
+                                {squad.userId === user?.uid
+                                  ? `${squad.hiddenPlayerTeam}`
+                                  : squad.hiddenPlayerTeam}
+                              </Typography>
+                            </Box>
                             {squad.hiddenPlayerPoints !== undefined && squad.hiddenPlayerPoints > 0 && (
                               <Chip label={`+${squad.hiddenPlayerPoints} pts`} size="small" color="warning" variant="outlined" />
                             )}
@@ -652,9 +656,12 @@ const ViewTeamsPage: React.FC = () => {
                                           </Box>
                                         </TableCell>
                                         <TableCell sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 }, display: { xs: 'none', sm: 'table-cell' } }}>
-                                          <Typography variant="body2" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 400, fontSize: { xs: '0.75rem', sm: '0.875rem' }, opacity: 0.75 }}>
-                                            {player.team}
-                                          </Typography>
+                                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                            <TeamLogo team={player.team} size={16} />
+                                            <Typography variant="body2" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 400, fontSize: { xs: '0.75rem', sm: '0.875rem' }, opacity: 0.75 }}>
+                                              {player.team}
+                                            </Typography>
+                                          </Box>
                                         </TableCell>
                                         <TableCell align="center" sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 } }}>
                                           <Chip
@@ -722,9 +729,12 @@ const ViewTeamsPage: React.FC = () => {
                                             </Box>
                                           </TableCell>
                                           <TableCell sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 }, display: { xs: 'none', sm: 'table-cell' } }}>
-                                            <Typography variant="body2" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 400, fontSize: { xs: '0.75rem', sm: '0.875rem' }, opacity: 0.75 }}>
-                                              {player.team}
-                                            </Typography>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                              <TeamLogo team={player.team} size={16} />
+                                              <Typography variant="body2" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 400, fontSize: { xs: '0.75rem', sm: '0.875rem' }, opacity: 0.75 }}>
+                                                {player.team}
+                                              </Typography>
+                                            </Box>
                                           </TableCell>
                                           <TableCell align="center" sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 } }}>
                                             <Chip

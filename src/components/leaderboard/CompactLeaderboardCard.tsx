@@ -51,10 +51,21 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
   const getRankChangeIcon = () => {
     // Priority 1: Check if rank changed (moved up or down)
     if (standing.rankChange !== undefined && standing.rankChange !== 0) {
-      if (standing.rankChange > 0) {
-        return <ArrowUpIcon sx={{ fontSize: 12, color: 'success.main' }} />;
-      }
-      return <ArrowDownIcon sx={{ fontSize: 12, color: '#F44336' }} />;
+      const isUp = standing.rankChange > 0;
+      const color = isUp ? 'success.main' : '#F44336';
+      return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+          {isUp
+            ? <ArrowUpIcon sx={{ fontSize: 10, color }} />
+            : <ArrowDownIcon sx={{ fontSize: 10, color }} />}
+          <Typography
+            variant="caption"
+            sx={{ fontSize: '0.65rem', fontWeight: 'bold', color, lineHeight: 1 }}
+          >
+            {Math.abs(standing.rankChange)}
+          </Typography>
+        </Box>
+      );
     }
 
     // Priority 2: Check if rank stayed the same (rankChange === 0) AND has a streak
@@ -313,26 +324,24 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
         )}
       </Box>
 
-      {/* Total Points Row: Rank Change | Total Points | +Gained */}
+      {/* Total Points Row: [spacer] | rank-change | points | gained | [spacer] */}
       <Box sx={{
-        display: 'flex',
+        display: 'grid',
+        gridTemplateColumns: '15% 15% 40% 10% 20%',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: { xs: 0.5, sm: 0.75 },
         py: { xs: 0.57, sm: 0.67 },
         bgcolor: 'rgba(99,110,250, 0.1)',
         borderRadius: 2,
-        minWidth: 0,
-        overflow: 'hidden'
       }}>
-        {/* Rank change icon (left) */}
-        {getRankChangeIcon() && (
-          <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-            {getRankChangeIcon()}
-          </Box>
-        )}
+        {/* Col 1: left spacer */}
+        <Box />
 
-        {/* Total points - center */}
+        {/* Col 2: rank change icon */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {getRankChangeIcon()}
+        </Box>
+
+        {/* Col 3: total points — geometrically centered */}
         <Typography
           variant="h6"
           sx={{
@@ -342,35 +351,34 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
             fontSize: { xs: '1rem', sm: '1.1rem' },
             lineHeight: 1,
             letterSpacing: '0.5px',
-            flex: '1 1 auto',
             textAlign: 'center',
-            minWidth: 0,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
           }}
         >
           {standing.totalPoints.toFixed(2)}
         </Typography>
 
-        {/* Points gained this update - right */}
-        {standing.pointsGainedToday !== undefined && standing.pointsGainedToday !== 0 && (
-          <Typography
-            variant="caption"
-            sx={{
-              fontFamily: "'Bebas Neue', sans-serif",
-              fontWeight: 400,
-              letterSpacing: '0.5px',
-              color: standing.pointsGainedToday > 0 ? 'success.main' : '#F44336',
-              fontSize: { xs: '0.75rem', sm: '0.8rem' },
-              lineHeight: 1,
-              flexShrink: 0,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {standing.pointsGainedToday > 0 ? '+' : ''}{standing.pointsGainedToday.toFixed(2)}
-          </Typography>
-        )}
+        {/* Col 4: points gained */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {standing.pointsGainedToday !== undefined && standing.pointsGainedToday !== 0 && (
+            <Typography
+              variant="caption"
+              sx={{
+                fontFamily: "'Bebas Neue', sans-serif",
+                fontWeight: 400,
+                letterSpacing: '0.5px',
+                color: standing.pointsGainedToday > 0 ? 'success.main' : '#F44336',
+                fontSize: { xs: '0.75rem', sm: '0.8rem' },
+                lineHeight: 1,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {standing.pointsGainedToday > 0 ? '+' : ''}{standing.pointsGainedToday.toFixed(2)}
+            </Typography>
+          )}
+        </Box>
+
+        {/* Col 5: right spacer */}
+        <Box />
       </Box>
 
       {/* Points Breakdown - 4 columns: C | VC | PP | Lead */}

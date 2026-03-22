@@ -51,6 +51,7 @@ import { calculatePlayerContribution as calculatePlayerContributionUtil, calcula
 import themeColors from '../theme/colors';
 import { formatMatchForDropdown } from '../utils/scheduleParser';
 import EnhancedAlert, { SquadStatusItem, EnhancedAlertAction } from '../components/common/EnhancedAlert';
+import { TeamLogo } from '../utils/teamLogos';
 
 interface SelectedPlayer extends Player {
   position: 'regular' | 'bench';
@@ -2731,11 +2732,14 @@ const CricketPitchFormation: React.FC<{
               {player.name.split(' ').pop()}
             </Typography>
 
-            <Chip
-              size="small"
-              label={player.team}
-              sx={{ fontSize: { xs: '0.55rem', sm: '0.6rem' }, height: { xs: 14, sm: 16 }, mt: 0.5, fontFamily: "'Satoshi', sans-serif", opacity: 0.75 }}
-            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, justifyContent: 'center' }}>
+              <TeamLogo team={player.team} size={14} />
+              <Chip
+                size="small"
+                label={player.team}
+                sx={{ fontSize: { xs: '0.55rem', sm: '0.6rem' }, height: { xs: 14, sm: 16 }, fontFamily: "'Satoshi', sans-serif", opacity: 0.75 }}
+              />
+            </Box>
 
             {/* Points Display */}
             {(() => {
