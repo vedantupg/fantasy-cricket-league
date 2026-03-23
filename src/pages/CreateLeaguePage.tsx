@@ -104,7 +104,7 @@ const CreateLeaguePage: React.FC = () => {
     benchTransfers: {
       enabled: true,
       maxAllowed: 2,
-      description: 'Quick substitutions during matches',
+      description: 'Swap a player between your starting XI and bench while keeping squad rules intact.',
       benchSlots: 3 // Default 3 bench slots
     },
     midSeasonTransfers: {
