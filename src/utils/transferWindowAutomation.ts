@@ -5,7 +5,7 @@ import type { ScheduleMatch } from '../types/database';
  * 
  * Automatically manages transfer window toggles based on match schedule:
  * - Toggles turn ON after last match of the day ends (7:30 PM GMT)
- * - Toggles turn OFF 15 minutes before first match of next match day
+ * - Toggles turn OFF 1 minute after first match of next match day starts
  * - After the last match day, toggles remain OFF
  */
 
@@ -19,7 +19,7 @@ export interface MatchDay {
 
 export interface TransferWindow {
   startTime: Date; // When toggles turn ON (7:30 PM GMT on match day)
-  endTime: Date; // When toggles turn OFF (15 mins before next match day)
+  endTime: Date; // When toggles turn OFF (1 min after next match day starts)
   isActive: boolean; // Whether window is currently active
 }
 
@@ -135,11 +135,11 @@ function calculateEnableTime(matchDay: MatchDay): Date {
 
 /**
  * Calculate when toggles turn OFF before next match day
- * Toggles turn OFF 15 minutes before first match of the next day
+ * Toggles turn OFF 1 minute after first match of the next day starts
  */
 function calculateDisableTime(nextMatchDay: MatchDay): Date {
   const disableTime = new Date(nextMatchDay.firstMatchTime);
-  disableTime.setMinutes(disableTime.getMinutes() - 15);
+  disableTime.setMinutes(disableTime.getMinutes() + 1);
   return disableTime;
 }
 

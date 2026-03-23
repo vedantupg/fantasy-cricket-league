@@ -13,6 +13,16 @@ interface CompactLeaderboardCardProps {
   league?: League; // Optional league data for transfer limits
 }
 
+const getInitials = (name: string) =>
+  name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+
+const getLeadColor = (lead: number): string => {
+  if (lead < 10) return '#F44336';   // red — danger
+  if (lead <= 50) return '#FF9800';  // amber — unstable
+  if (lead <= 99) return '#66BB6A';  // green — comfortable
+  return '#1E88E5';                  // blue — dominant
+};
+
 const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standing, isCurrentUser = false, league }) => {
   // 🎨 COLOR CUSTOMIZATION ZONE - LEADERBOARD CARD COLORS
   const getRankColor = (rank: number) => {
@@ -20,9 +30,9 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
       const colors = ['#FFD700', '#C0C0C0', '#CD7F32'];
       return colors[rank - 1];
     }
-    // Special colors for 4th and 5th place - Electric Blue (brand primary)
+    // Special colors for 4th and 5th place
     if (rank === 4) return '#1E88E5'; // Electric Blue for 4th
-    if (rank === 5) return '#1E88E5'; // Electric Blue for 5th
+    if (rank === 5) return '#9C27B0'; // Purple for 5th
     return 'text.primary'; // Use theme text color for all other ranks
   };
 
@@ -32,7 +42,7 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
   const getBorderColor = (rank: number) => {
     if (rank <= 3) return rankColor;
     if (rank === 4) return '#1E88E5'; // Electric Blue for 4th
-    if (rank === 5) return '#1E88E5'; // Electric Blue for 5th
+    if (rank === 5) return '#9C27B0'; // Purple for 5th
     return 'rgba(255, 255, 255, 0.12)'; // Subtle border for others
   };
 
@@ -41,10 +51,21 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
   const getRankChangeIcon = () => {
     // Priority 1: Check if rank changed (moved up or down)
     if (standing.rankChange !== undefined && standing.rankChange !== 0) {
-      if (standing.rankChange > 0) {
-        return <ArrowUpIcon sx={{ fontSize: 12, color: 'success.main' }} />;
-      }
-      return <ArrowDownIcon sx={{ fontSize: 12, color: 'error.main' }} />;
+      const isUp = standing.rankChange > 0;
+      const color = isUp ? 'success.main' : '#F44336';
+      return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+          {isUp
+            ? <ArrowUpIcon sx={{ fontSize: 10, color }} />
+            : <ArrowDownIcon sx={{ fontSize: 10, color }} />}
+          <Typography
+            variant="caption"
+            sx={{ fontSize: '0.65rem', fontWeight: 'bold', color, lineHeight: 1 }}
+          >
+            {Math.abs(standing.rankChange)}
+          </Typography>
+        </Box>
+      );
     }
 
     // Priority 2: Check if rank stayed the same (rankChange === 0) AND has a streak
@@ -174,7 +195,7 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
       case 4:
         return 'linear-gradient(135deg, rgba(30, 136, 229, 0.15) 0%, rgba(30, 136, 229, 0.04) 100%)'; // Electric Blue
       case 5:
-        return 'linear-gradient(135deg, rgba(30, 136, 229, 0.15) 0%, rgba(30, 136, 229, 0.04) 100%)'; // Electric Blue
+        return 'linear-gradient(135deg, rgba(156, 39, 176, 0.15) 0%, rgba(156, 39, 176, 0.04) 100%)'; // Purple
       default:
         // Subtle gradient for ranks 6+
         return 'linear-gradient(135deg, rgba(100, 100, 100, 0.08) 0%, rgba(80, 80, 80, 0.02) 100%)';
@@ -197,7 +218,7 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
       case 4:
         return 'linear-gradient(135deg, rgba(30, 136, 229, 0.20) 0%, rgba(30, 136, 229, 0.06) 100%)'; // Electric Blue
       case 5:
-        return 'linear-gradient(135deg, rgba(30, 136, 229, 0.20) 0%, rgba(30, 136, 229, 0.06) 100%)'; // Electric Blue
+        return 'linear-gradient(135deg, rgba(156, 39, 176, 0.20) 0%, rgba(156, 39, 176, 0.06) 100%)'; // Purple
       default:
         return 'linear-gradient(135deg, rgba(100, 100, 100, 0.12) 0%, rgba(80, 80, 80, 0.04) 100%)';
     }
@@ -236,10 +257,12 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
           <Typography
             variant="h6"
             sx={{
-              fontWeight: 'bold',
+              fontFamily: "'Bebas Neue', sans-serif",
+              fontWeight: 400,
               color: rankColor,
-              fontSize: { xs: '1rem', sm: '1.1rem' },
+              fontSize: { xs: '1.1rem', sm: '1.2rem' },
               lineHeight: 1,
+              letterSpacing: '0.5px',
             }}
           >
             #{standing.rank}
@@ -248,7 +271,7 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
 
         {/* Avatar */}
         <Avatar
-          src={standing.profilePicUrl}
+          src={standing.profilePicUrl || undefined}
           alt={standing.displayName}
           sx={{
             width: { xs: 36, sm: 40 },
@@ -257,24 +280,35 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
             borderColor: borderColor,
             boxShadow: `0 2px 8px ${typeof borderColor === 'string' && borderColor.includes('rgba') ? borderColor : `${borderColor}30`}`,
             flexShrink: 0,
+            bgcolor: '#000',
           }}
-        />
+          slotProps={{ img: { referrerPolicy: 'no-referrer' } }}
+        >
+          <Typography sx={{ fontSize: { xs: '0.75rem', sm: '0.85rem' }, fontWeight: 700, color: '#1E88E5', lineHeight: 1 }}>
+            {getInitials(standing.displayName)}
+          </Typography>
+        </Avatar>
 
         {/* Name and Transfer Dots - Vertically stacked */}
         <Box sx={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.3 }}>
-          <Typography
-            variant="subtitle2"
-            sx={{
-              fontWeight: 700,
-              fontSize: { xs: '0.8rem', sm: '0.9rem' },
-              lineHeight: 1.3,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {standing.displayName}
-          </Typography>
+          <Box sx={{ position: 'relative', flex: 1, minWidth: 0 }}>
+            <Typography
+              variant="subtitle2"
+              sx={{
+                fontFamily: "'Satoshi', sans-serif",
+                fontWeight: 700,
+                fontSize: { xs: '0.8rem', sm: '0.9rem' },
+                lineHeight: 1.3,
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                textOverflow: 'clip',
+                maskImage: 'linear-gradient(to right, black 70%, transparent 100%)',
+                WebkitMaskImage: 'linear-gradient(to right, black 70%, transparent 100%)',
+              }}
+            >
+              {standing.displayName}
+            </Typography>
+          </Box>
           {/* Transfer Dots - Now below name */}
           {renderTransferDots()}
         </Box>
@@ -290,97 +324,109 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
         )}
       </Box>
 
-      {/* Total Points Row: Rank Change | Points | Lead/Gap from Next */}
+      {/* Total Points Row: [spacer] | rank-change | points | gained | [spacer] */}
       <Box sx={{
-        display: 'flex',
+        display: 'grid',
+        gridTemplateColumns: '15% 15% 40% 10% 20%',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: { xs: 0.5, sm: 0.75 },
         py: { xs: 0.57, sm: 0.67 },
-        // 🎨 POINTS BAR BACKGROUND (try: rgba(0,0,0,0.15), rgba(99,110,250,0.12))
         bgcolor: 'rgba(99,110,250, 0.1)',
         borderRadius: 2,
-        minWidth: 0,
-        overflow: 'hidden'
       }}>
-        {/* Rank change/streak indicator on left - shown when available */}
-        {getRankChangeIcon() && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, flexShrink: 0 }}>
-            {getRankChangeIcon()}
-            {standing.rankChange !== undefined && standing.rankChange !== 0 && (
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 600,
-                  color: (standing.rankChange || 0) > 0 ? 'success.main' : 'error.main',
-                  fontSize: { xs: '0.6rem', sm: '0.65rem' },
-                }}
-              >
-                {Math.abs(standing.rankChange || 0)}
-              </Typography>
-            )}
-          </Box>
-        )}
+        {/* Col 1: left spacer */}
+        <Box />
 
-        {/* Total points in center */}
+        {/* Col 2: rank change icon */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {getRankChangeIcon()}
+        </Box>
+
+        {/* Col 3: total points — geometrically centered */}
         <Typography
           variant="h6"
           sx={{
-            fontWeight: 'bold',
+            fontFamily: "'Bebas Neue', sans-serif",
+            fontWeight: 400,
             color: rankColor,
-            fontSize: { xs: '0.95rem', sm: '1.05rem' },
+            fontSize: { xs: '1rem', sm: '1.1rem' },
             lineHeight: 1,
-            flexShrink: 1,
-            minWidth: 0,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
+            letterSpacing: '0.5px',
+            textAlign: 'center',
           }}
         >
           {standing.totalPoints.toFixed(2)}
         </Typography>
 
-        {/* Lead/Gap from next rank on right */}
-        {standing.leadFromNext !== undefined && standing.leadFromNext !== 0 && (
-          <Typography
-            variant="caption"
-            sx={{
-              color: standing.leadFromNext > 0 ? 'success.main' : 'text.secondary',
-              fontSize: { xs: '0.58rem', sm: '0.63rem' },
-              fontWeight: 500,
-              flexShrink: 0,
-              whiteSpace: 'nowrap'
-            }}
-          >
-            ({standing.leadFromNext > 0 ? '↓' : '↑'}{Math.abs(standing.leadFromNext).toFixed(1)})
-          </Typography>
-        )}
+        {/* Col 4: points gained */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {standing.pointsGainedToday !== undefined && standing.pointsGainedToday !== 0 && (
+            <Typography
+              variant="caption"
+              sx={{
+                fontFamily: "'Bebas Neue', sans-serif",
+                fontWeight: 400,
+                letterSpacing: '0.5px',
+                color: standing.pointsGainedToday > 0 ? 'success.main' : '#F44336',
+                fontSize: { xs: '0.75rem', sm: '0.8rem' },
+                lineHeight: 1,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {standing.pointsGainedToday > 0 ? '+' : ''}{standing.pointsGainedToday.toFixed(2)}
+            </Typography>
+          )}
+        </Box>
+
+        {/* Col 5: right spacer */}
+        <Box />
       </Box>
 
-      {/* Points Breakdown - Compact */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0.5, minWidth: 0 }}>
+      {/* Points Breakdown - 4 columns: C | VC | PP | Lead */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 0.5, minWidth: 0, mt: -0.25 }}>
         <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' } }}>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' }, fontWeight: 600 }}>
             C
           </Typography>
-          <Typography variant="body2" fontWeight="bold" color="primary.main" sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' }, lineHeight: 1 }}>
+          <Typography variant="body2" sx={{ fontFamily: "'Bebas Neue', sans-serif", fontWeight: 400, letterSpacing: '0.5px', color: '#1E88E5', fontSize: { xs: '0.7rem', sm: '0.75rem' }, lineHeight: 1 }}>
             {standing.captainPoints.toFixed(2)}
           </Typography>
         </Box>
         <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' } }}>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' }, fontWeight: 600 }}>
             VC
           </Typography>
-          <Typography variant="body2" fontWeight="bold" color="secondary.main" sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' }, lineHeight: 1 }}>
+          <Typography variant="body2" sx={{ fontFamily: "'Bebas Neue', sans-serif", fontWeight: 400, letterSpacing: '0.5px', color: '#FF9800', fontSize: { xs: '0.7rem', sm: '0.75rem' }, lineHeight: 1 }}>
             {standing.viceCaptainPoints.toFixed(2)}
           </Typography>
         </Box>
         <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' } }}>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' }, fontWeight: 600 }}>
             PP
           </Typography>
-          <Typography variant="body2" fontWeight="bold" sx={{ color: '#9C27B0', fontSize: { xs: '0.65rem', sm: '0.7rem' }, lineHeight: 1 }}>
+          <Typography variant="body2" sx={{ fontFamily: "'Bebas Neue', sans-serif", fontWeight: 400, letterSpacing: '0.5px', color: '#9C27B0', fontSize: { xs: '0.7rem', sm: '0.75rem' }, lineHeight: 1 }}>
             {standing.powerplayCompleted ? (standing.powerplayPoints || 0).toFixed(2) : '--'}
+          </Typography>
+        </Box>
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' }, fontWeight: 600 }}>
+            LEAD
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              fontFamily: "'Bebas Neue', sans-serif",
+              fontWeight: 400,
+              letterSpacing: '0.5px',
+              color: standing.leadFromNext !== undefined && standing.leadFromNext !== 0
+                ? getLeadColor(Math.abs(standing.leadFromNext))
+                : 'text.secondary',
+              fontSize: { xs: '0.7rem', sm: '0.75rem' },
+              lineHeight: 1,
+            }}
+          >
+            {standing.leadFromNext !== undefined && standing.leadFromNext !== 0
+              ? Math.abs(standing.leadFromNext).toFixed(1)
+              : '--'}
           </Typography>
         </Box>
       </Box>

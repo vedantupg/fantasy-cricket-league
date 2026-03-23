@@ -11,6 +11,16 @@ interface CompactPodiumProps {
   league?: League;
 }
 
+const getInitials = (name: string) =>
+  name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+
+const getLeadColor = (lead: number): string => {
+  if (lead < 10) return '#F44336';   // red — danger
+  if (lead <= 50) return '#FF9800';  // amber — unstable
+  if (lead <= 99) return '#66BB6A';  // green — comfortable
+  return '#1E88E5';                  // blue — dominant
+};
+
 const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league }) => {
   if (topFive.length === 0) return null;
 
@@ -31,7 +41,7 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league }) => {
       case 2: return '#C0C0C0'; // 🎨 2nd Place - Silver (try: #A6ACAF, #BDC3C7, #95A5A6)
       case 3: return '#CD7F32'; // 🎨 3rd Place - Bronze (try: #E67E22, #D68910, #B87333)
       case 4: return '#1E88E5'; // 🎨 4th Place - Electric Blue (brand primary)
-      case 5: return '#1E88E5'; // 🎨 5th Place - Electric Blue (brand primary)
+      case 5: return '#9C27B0'; // 🎨 5th Place - Purple
       default: return '#757575';
     }
   };
@@ -42,7 +52,7 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league }) => {
       if (standing.rankChange > 0) {
         return <ArrowUpIcon sx={{ fontSize: { xs: 12, sm: 14 }, color: 'success.main' }} />;
       }
-      return <ArrowDownIcon sx={{ fontSize: { xs: 12, sm: 14 }, color: 'error.main' }} />;
+      return <ArrowDownIcon sx={{ fontSize: { xs: 12, sm: 14 }, color: '#F44336' }} />;
     }
 
     // Priority 2: Check if rank stayed the same (rankChange === 0) AND has a streak
@@ -134,7 +144,7 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league }) => {
             flexWrap: 'nowrap', // Keep horizontal
             justifyContent: 'center',
             alignItems: 'center',
-            mt: 0.5,
+            my: 0.2,
           }}
         >
           {dots.map((dot, index) => (
@@ -177,7 +187,7 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league }) => {
         return (
           <Paper
             key={standing.userId}
-            elevation={rank === 1 ? 8 : rank === 2 ? 6 : rank === 3 ? 4 : 2}
+            elevation={rank === 1 ? 0 : rank === 2 ? 6 : rank === 3 ? 4 : 2}
             sx={{
               // 🎨 CARD WIDTH - Fixed width to prevent username length issues
               width: { xs: 155, sm: 180, md: 205 }, // Increased width to prevent points truncation
@@ -197,9 +207,10 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league }) => {
               alignItems: 'center',
               position: 'relative',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: rank === 1 ? '0 8px 28px rgba(0,0,0,0.36), inset 0 0 12px 2px rgba(255,215,0,0.18)' : undefined,
               '&:hover': {
                 transform: 'translateY(-6px)',
-                boxShadow: rank === 1 ? 10 : 6,
+                boxShadow: rank === 1 ? '0 14px 36px rgba(0,0,0,0.45), inset 0 0 18px 3px rgba(255,215,0,0.25)' : 6,
               },
             }}
           >
@@ -218,16 +229,19 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: `0 4px 12px ${rankColor}40`,
+                boxShadow: `0 4px 12px ${rankColor}38`,
                 zIndex: 1,
               }}
             >
               <Typography
                 sx={{
-                  fontSize: { xs: '0.9rem', sm: '1.05rem', md: '1.2rem' },
-                  fontWeight: 900,
+                  fontFamily: "'Bebas Neue', sans-serif",
+                  fontWeight: 400,
+                  letterSpacing: '0.5px',
+                  fontSize: { xs: '1rem', sm: '1.15rem', md: '1.3rem' },
                   color: 'white',
                   textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                  lineHeight: 1,
                 }}
               >
                 #{rank}
@@ -236,43 +250,49 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league }) => {
 
             {/* Avatar */}
             <Avatar
-              src={standing.profilePicUrl}
+              src={standing.profilePicUrl || undefined}
               alt={standing.displayName}
               sx={{
                 width: { xs: 56, sm: 72, md: 84 },
                 height: { xs: 56, sm: 72, md: 84 },
                 border: `3px solid ${rankColor}`,
-                boxShadow: `0 4px 12px ${rankColor}30`,
+                boxShadow: `0 4px 12px ${rankColor}2b`,
                 mt: { xs: 2, sm: 2.5 },
-                mb: 1,
-              }}
-            />
-
-            {/* Name */}
-            <Typography
-              variant="subtitle2"
-              sx={{
-                fontWeight: 700,
-                textAlign: 'center',
-                fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1.05rem' },
-                lineHeight: 1.3,
                 mb: 0.4,
-                px: 0.5,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                minHeight: { xs: '2.2em', sm: '2.4em' }, // Fixed height for name
+                bgcolor: '#000',
               }}
             >
-              {standing.displayName}
-            </Typography>
+              <Typography sx={{ fontSize: { xs: '1rem', sm: '1.2rem', md: '1.4rem' }, fontWeight: 700, color: '#1E88E5', lineHeight: 1 }}>
+                {getInitials(standing.displayName)}
+              </Typography>
+            </Avatar>
+
+            {/* Name with gradient fade for long names */}
+            <Box sx={{ position: 'relative', width: '100%', mb: 0.2, px: 0.5 }}>
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontFamily: "'Satoshi', sans-serif",
+                  fontWeight: 700,
+                  textAlign: 'center',
+                  fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1.05rem' },
+                  lineHeight: 1.3,
+                  minHeight: { xs: '2.2em', sm: '2.4em' },
+                  overflow: 'hidden',
+                  whiteSpace: 'nowrap',
+                  textOverflow: 'clip',
+                  maskImage: 'linear-gradient(to right, black 70%, transparent 100%)',
+                  WebkitMaskImage: 'linear-gradient(to right, black 70%, transparent 100%)',
+                }}
+              >
+                {standing.displayName}
+              </Typography>
+            </Box>
 
             {/* Transfer Dots */}
             {renderTransferDots(standing)}
 
-            {/* Points Row: Rank Change | Points | Lead/Gap from Next */}
+            {/* Points Row: Rank Change | Total Points | +Gained */}
             <Box sx={{
               display: 'flex',
               alignItems: 'center',
@@ -280,40 +300,29 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league }) => {
               gap: { xs: 0.4, sm: 0.6, md: 0.8 },
               width: '100%',
               px: { xs: 0.5, sm: 0.75, md: 1 },
-              py: { xs: 0.67, sm: 0.77 },
-              // 🎨 POINTS BAR BACKGROUND (try: rgba(0,0,0,0.15), rgba(99,110,250,0.12))
+              py: { xs: 0.3, sm: 0.4 },
               bgcolor: 'rgba(99,110,250,0.05)',
               borderRadius: 2,
-              mb: 0.75,
+              mb: 0.4,
               overflow: 'hidden'
             }}>
-              {/* Rank change/streak indicator on left - shown when available */}
+              {/* Rank change icon */}
               {getRankChangeIcon(standing) && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, flexShrink: 0 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                   {getRankChangeIcon(standing)}
-                  {standing.rankChange !== undefined && standing.rankChange !== 0 && (
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontWeight: 600,
-                        color: (standing.rankChange || 0) > 0 ? 'success.main' : 'error.main',
-                        fontSize: { xs: '0.65rem', sm: '0.7rem', md: '0.75rem' },
-                      }}
-                    >
-                      {Math.abs(standing.rankChange || 0)}
-                    </Typography>
-                  )}
                 </Box>
               )}
 
-              {/* Total points in center */}
+              {/* Total points - center */}
               <Typography
                 variant="h6"
                 sx={{
-                  fontWeight: 'bold',
+                  fontFamily: "'Bebas Neue', sans-serif",
+                  fontWeight: 400,
                   color: rankColor,
-                  fontSize: { xs: '0.95rem', sm: '1.1rem', md: '1.25rem' },
+                  fontSize: { xs: '1rem', sm: '1.15rem', md: '1.3rem' },
                   lineHeight: 1,
+                  letterSpacing: '0.5px',
                   textAlign: 'center',
                   flex: '1 1 auto',
                   minWidth: 0,
@@ -324,47 +333,72 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league }) => {
                 {standing.totalPoints.toFixed(2)}
               </Typography>
 
-              {/* Lead/Gap from next rank on right */}
-              {standing.leadFromNext !== undefined && standing.leadFromNext !== 0 && (
+              {/* Points gained - right */}
+              {standing.pointsGainedToday !== undefined && standing.pointsGainedToday !== 0 && (
                 <Typography
                   variant="caption"
                   sx={{
-                    color: standing.leadFromNext > 0 ? 'success.main' : 'text.secondary',
-                    fontSize: { xs: '0.62rem', sm: '0.68rem', md: '0.72rem' },
-                    fontWeight: 500,
+                    fontFamily: "'Bebas Neue', sans-serif",
+                    fontWeight: 400,
+                    letterSpacing: '0.5px',
+                    color: standing.pointsGainedToday > 0 ? 'success.main' : '#F44336',
+                    fontSize: { xs: '0.8rem', sm: '0.85rem', md: '0.9rem' },
+                    lineHeight: 1,
                     flexShrink: 0,
-                    whiteSpace: 'nowrap'
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  ({standing.leadFromNext > 0 ? '↓' : '↑'}{Math.abs(standing.leadFromNext).toFixed(1)})
+                  {standing.pointsGainedToday > 0 ? '+' : ''}{standing.pointsGainedToday.toFixed(2)}
                 </Typography>
               )}
             </Box>
 
-            {/* C/VC/PP Breakdown */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0.5, width: '100%', mt: 'auto' }}>
+            {/* C/VC/PP/Lead Breakdown - 4 columns */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 0.5, width: '100%', mt: 0.25 }}>
               <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' } }}>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' }, fontWeight: 600 }}>
                   C
                 </Typography>
-                <Typography variant="body2" fontWeight="bold" color="primary.main" sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' }, lineHeight: 1 }}>
+                <Typography variant="body2" sx={{ fontFamily: "'Bebas Neue', sans-serif", fontWeight: 400, letterSpacing: '0.5px', color: '#1E88E5', fontSize: { xs: '0.7rem', sm: '0.75rem' }, lineHeight: 1 }}>
                   {standing.captainPoints.toFixed(2)}
                 </Typography>
               </Box>
               <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' } }}>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' }, fontWeight: 600 }}>
                   VC
                 </Typography>
-                <Typography variant="body2" fontWeight="bold" color="secondary.main" sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' }, lineHeight: 1 }}>
+                <Typography variant="body2" sx={{ fontFamily: "'Bebas Neue', sans-serif", fontWeight: 400, letterSpacing: '0.5px', color: '#FF9800', fontSize: { xs: '0.7rem', sm: '0.75rem' }, lineHeight: 1 }}>
                   {standing.viceCaptainPoints.toFixed(2)}
                 </Typography>
               </Box>
               <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' } }}>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' }, fontWeight: 600 }}>
                   PP
                 </Typography>
-                <Typography variant="body2" fontWeight="bold" sx={{ color: '#9C27B0', fontSize: { xs: '0.65rem', sm: '0.7rem' }, lineHeight: 1 }}>
+                <Typography variant="body2" sx={{ fontFamily: "'Bebas Neue', sans-serif", fontWeight: 400, letterSpacing: '0.5px', color: '#9C27B0', fontSize: { xs: '0.7rem', sm: '0.75rem' }, lineHeight: 1 }}>
                   {standing.powerplayCompleted ? (standing.powerplayPoints || 0).toFixed(2) : '--'}
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.5rem', sm: '0.55rem' }, fontWeight: 600 }}>
+                  LEAD
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontFamily: "'Bebas Neue', sans-serif",
+                    fontWeight: 400,
+                    letterSpacing: '0.5px',
+                    color: standing.leadFromNext !== undefined && standing.leadFromNext !== 0
+                      ? getLeadColor(Math.abs(standing.leadFromNext))
+                      : 'text.secondary',
+                    fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                    lineHeight: 1,
+                  }}
+                >
+                  {standing.leadFromNext !== undefined && standing.leadFromNext !== 0
+                    ? Math.abs(standing.leadFromNext).toFixed(1)
+                    : '--'}
                 </Typography>
               </Box>
             </Box>

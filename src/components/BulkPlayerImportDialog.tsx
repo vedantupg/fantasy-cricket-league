@@ -21,6 +21,8 @@ import {
   Stepper,
   Step,
   StepLabel,
+  Checkbox,
+  Tooltip,
 } from '@mui/material';
 import {
   ContentPaste,
@@ -168,6 +170,12 @@ const BulkPlayerImportDialog: React.FC<BulkPlayerImportDialogProps> = ({
     setParsedPlayers(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleToggleOverseas = (index: number) => {
+    setParsedPlayers(prev =>
+      prev.map((p, i) => i === index ? { ...p, isOverseas: !p.isOverseas } : p)
+    );
+  };
+
   const handleImport = async () => {
     const validPlayers = parsedPlayers.filter(p => p.isValid);
 
@@ -210,6 +218,7 @@ const BulkPlayerImportDialog: React.FC<BulkPlayerImportDialogProps> = ({
   const validCount = parsedPlayers.filter(p => p.isValid).length;
   const duplicateCount = parsedPlayers.filter(p => p.isDuplicate).length;
   const invalidCount = parsedPlayers.filter(p => !p.isValid && !p.isDuplicate).length;
+  const overseasCount = parsedPlayers.filter(p => p.isValid && p.isOverseas).length;
 
   return (
     <Dialog
@@ -338,6 +347,11 @@ Batsman`}
                     <TableCell>Name</TableCell>
                     <TableCell>Team</TableCell>
                     <TableCell>Role</TableCell>
+                    <TableCell align="center">
+                      <Tooltip title="Mark player as overseas (foreign national)">
+                        <span>Overseas</span>
+                      </Tooltip>
+                    </TableCell>
                     <TableCell>Status</TableCell>
                     <TableCell align="center">Action</TableCell>
                   </TableRow>
@@ -357,6 +371,14 @@ Batsman`}
                       <TableCell>{player.team}</TableCell>
                       <TableCell>
                         <Chip label={player.role} size="small" />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Checkbox
+                          checked={player.isOverseas}
+                          onChange={() => handleToggleOverseas(index)}
+                          size="small"
+                          color="warning"
+                        />
                       </TableCell>
                       <TableCell>
                         {player.isValid ? (
@@ -405,6 +427,9 @@ Batsman`}
             <Box sx={{ pl: 2 }}>
               <Typography variant="body2">• Total players: {parsedPlayers.length}</Typography>
               <Typography variant="body2" color="success.main">• Valid players: {validCount}</Typography>
+              {overseasCount > 0 && (
+                <Typography variant="body2" color="warning.main">• Overseas players: {overseasCount}</Typography>
+              )}
               {duplicateCount > 0 && (
                 <Typography variant="body2" color="warning.main">• Duplicates (skipped): {duplicateCount}</Typography>
               )}

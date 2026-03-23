@@ -22,8 +22,10 @@ import {
   TextField,
   Button,
   Checkbox,
+  Tabs,
+  Tab,
 } from '@mui/material';
-import { FlashOn, Save } from '@mui/icons-material';
+import { FlashOn, Save, Notifications } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { leagueService, squadService, leaderboardSnapshotService } from '../services/firestore';
@@ -42,6 +44,7 @@ const PowerplayManagementPage: React.FC = () => {
     [squadId: string]: { points: string; completed: boolean };
   }>({});
   const [savingAll, setSavingAll] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
 
   const { user, userData } = useAuth();
   const navigate = useNavigate();
@@ -203,13 +206,20 @@ const PowerplayManagementPage: React.FC = () => {
     });
   const squadsWithPowerplay = submittedSquads.filter((s) => s.powerplayMatchNumber);
 
+  // Recent activations: squads where ppActivatedAt is within the last 24 hours
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const recentActivations = submittedSquads.filter((s) => {
+    if (!s.ppActivatedAt) return false;
+    return new Date(s.ppActivatedAt) > twentyFourHoursAgo;
+  });
+
   return (
     <Box>
       <AppHeader />
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
         {/* Header */}
-        <Box mb={4}>
+        <Box mb={3}>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
             Powerplay Management
           </Typography>
@@ -217,6 +227,26 @@ const PowerplayManagementPage: React.FC = () => {
             Award powerplay points and mark matches as completed for the selected league
           </Typography>
         </Box>
+
+        {/* Tabs */}
+        <Tabs
+          value={activeTab}
+          onChange={(_, v) => setActiveTab(v)}
+          sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
+        >
+          <Tab label="All Squads" />
+          <Tab
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Notifications fontSize="small" />
+                Recent Activations (24h)
+                {recentActivations.length > 0 && (
+                  <Chip label={recentActivations.length} size="small" color="warning" />
+                )}
+              </Box>
+            }
+          />
+        </Tabs>
 
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
@@ -281,110 +311,226 @@ const PowerplayManagementPage: React.FC = () => {
           </Box>
         )}
 
-        {/* Powerplay Table */}
-        {fetchingSquads ? (
-          <Box display="flex" justifyContent="center" py={4}>
-            <CircularProgress />
-          </Box>
-        ) : submittedSquads.length === 0 ? (
-          <Card>
-            <CardContent>
-              <Typography variant="body1" color="text.secondary" textAlign="center" py={4}>
-                No squads submitted yet for this league
-              </Typography>
-            </CardContent>
-          </Card>
-        ) : (
-          <TableContainer component={Paper} elevation={2}>
-            <Table>
-              <TableHead>
-                <TableRow sx={{ bgcolor: 'primary.main' }}>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>#</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Squad Name</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <FlashOn fontSize="small" />
-                      Powerplay Match
-                    </Box>
-                  </TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>PP Points</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Completed</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Total Points</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {submittedSquads.map((squad, index) => (
-                  <TableRow
-                    key={squad.id}
-                    sx={{
-                      '&:nth-of-type(odd)': { bgcolor: 'action.hover' },
-                      '&:hover': { bgcolor: 'action.selected' },
-                    }}
-                  >
-                    <TableCell>{index + 1}</TableCell>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="600" color="primary">
-                        {squad.squadName}
-                      </Typography>
+        {/* Tab 0: All Squads */}
+        {activeTab === 0 && (
+          fetchingSquads ? (
+            <Box display="flex" justifyContent="center" py={4}>
+              <CircularProgress />
+            </Box>
+          ) : submittedSquads.length === 0 ? (
+            <Card>
+              <CardContent>
+                <Typography variant="body1" color="text.secondary" textAlign="center" py={4}>
+                  No squads submitted yet for this league
+                </Typography>
+              </CardContent>
+            </Card>
+          ) : (
+            <TableContainer component={Paper} elevation={2}>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ bgcolor: 'primary.main' }}>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>#</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Squad Name</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <FlashOn fontSize="small" />
+                        Powerplay Match
+                      </Box>
                     </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={`Match ${squad.powerplayMatchNumber}`}
-                        size="small"
-                        color="warning"
-                        variant="outlined"
-                        icon={<FlashOn />}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <TextField
-                        size="small"
-                        type="number"
-                        placeholder={squad.powerplayPoints ? `Current: ${squad.powerplayPoints}` : '0'}
-                        value={powerplayData[squad.id]?.points || ''}
-                        onChange={(e) =>
-                          setPowerplayData({
-                            ...powerplayData,
-                            [squad.id]: {
-                              points: e.target.value,
-                              completed: powerplayData[squad.id]?.completed || false,
-                            },
-                          })
-                        }
-                        sx={{ width: 120 }}
-                        inputProps={{ min: 0, step: 1 }}
-                        label="PP Points"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Checkbox
-                        checked={powerplayData[squad.id]?.completed || false}
-                        onChange={(e) =>
-                          setPowerplayData({
-                            ...powerplayData,
-                            [squad.id]: {
-                              points: powerplayData[squad.id]?.points || '',
-                              completed: e.target.checked,
-                            },
-                          })
-                        }
-                        color="success"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="bold" color="text.primary">
-                        {(
-                          (squad.totalPoints || 0) +
-                          (squad.predictionBonusPoints || 0) +
-                          (squad.powerplayPoints || 0)
-                        ).toFixed(2)}
-                      </Typography>
-                    </TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>PP Points</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Completed</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Total Points</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {submittedSquads.map((squad, index) => (
+                    <TableRow
+                      key={squad.id}
+                      sx={{
+                        '&:nth-of-type(odd)': { bgcolor: 'action.hover' },
+                        '&:hover': { bgcolor: 'action.selected' },
+                      }}
+                    >
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="600" color="primary">
+                          {squad.squadName}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {squad.powerplayMatchNumber ? (
+                          <Chip
+                            label={`Match ${squad.powerplayMatchNumber}`}
+                            size="small"
+                            color="warning"
+                            variant="outlined"
+                            icon={<FlashOn />}
+                          />
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">Not selected</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <TextField
+                          size="small"
+                          type="number"
+                          placeholder={squad.powerplayPoints ? `Current: ${squad.powerplayPoints}` : '0'}
+                          value={powerplayData[squad.id]?.points || ''}
+                          onChange={(e) =>
+                            setPowerplayData({
+                              ...powerplayData,
+                              [squad.id]: {
+                                points: e.target.value,
+                                completed: powerplayData[squad.id]?.completed || false,
+                              },
+                            })
+                          }
+                          sx={{ width: 120 }}
+                          inputProps={{ min: 0, step: 1 }}
+                          label="PP Points"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Checkbox
+                          checked={powerplayData[squad.id]?.completed || false}
+                          onChange={(e) =>
+                            setPowerplayData({
+                              ...powerplayData,
+                              [squad.id]: {
+                                points: powerplayData[squad.id]?.points || '',
+                                completed: e.target.checked,
+                              },
+                            })
+                          }
+                          color="success"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="bold" color="text.primary">
+                          {(
+                            (squad.totalPoints || 0) +
+                            (squad.predictionBonusPoints || 0) +
+                            (squad.powerplayPoints || 0)
+                          ).toFixed(2)}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )
+        )}
+
+        {/* Tab 1: Recent Activations (Last 24h) */}
+        {activeTab === 1 && (
+          fetchingSquads ? (
+            <Box display="flex" justifyContent="center" py={4}>
+              <CircularProgress />
+            </Box>
+          ) : recentActivations.length === 0 ? (
+            <Card>
+              <CardContent>
+                <Typography variant="body1" color="text.secondary" textAlign="center" py={4}>
+                  No powerplay activations in the last 24 hours
+                </Typography>
+              </CardContent>
+            </Card>
+          ) : (
+            <TableContainer component={Paper} elevation={2}>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ bgcolor: 'warning.main' }}>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>#</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Squad Name</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Activated At</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <FlashOn fontSize="small" />
+                        Match Selected
+                      </Box>
+                    </TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>PP Points</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Completed</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {recentActivations.map((squad, index) => (
+                    <TableRow
+                      key={squad.id}
+                      sx={{
+                        '&:nth-of-type(odd)': { bgcolor: 'action.hover' },
+                        '&:hover': { bgcolor: 'action.selected' },
+                      }}
+                    >
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="600" color="primary">
+                          {squad.squadName}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {squad.ppActivatedAt
+                            ? new Date(squad.ppActivatedAt).toLocaleString()
+                            : '—'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {squad.powerplayMatchNumber ? (
+                          <Chip
+                            label={`Match ${squad.powerplayMatchNumber}`}
+                            size="small"
+                            color="warning"
+                            variant="outlined"
+                            icon={<FlashOn />}
+                          />
+                        ) : (
+                          <Chip label="Not yet selected" size="small" variant="outlined" />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <TextField
+                          size="small"
+                          type="number"
+                          placeholder="0"
+                          value={powerplayData[squad.id]?.points || ''}
+                          onChange={(e) =>
+                            setPowerplayData({
+                              ...powerplayData,
+                              [squad.id]: {
+                                points: e.target.value,
+                                completed: powerplayData[squad.id]?.completed || false,
+                              },
+                            })
+                          }
+                          sx={{ width: 120 }}
+                          inputProps={{ min: 0, step: 1 }}
+                          label="PP Points"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Checkbox
+                          checked={powerplayData[squad.id]?.completed || false}
+                          onChange={(e) =>
+                            setPowerplayData({
+                              ...powerplayData,
+                              [squad.id]: {
+                                points: powerplayData[squad.id]?.points || '',
+                                completed: e.target.checked,
+                              },
+                            })
+                          }
+                          color="success"
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )
         )}
 
         {/* Summary Statistics */}

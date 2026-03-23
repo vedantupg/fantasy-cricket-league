@@ -13,7 +13,9 @@ import {
   SportsCricket,
   SwapHoriz,
   CalendarMonth,
-  EmojiEvents
+  EmojiEvents,
+  Bolt,
+  Lock
 } from '@mui/icons-material';
 import type { League } from '../../types/database';
 
@@ -378,6 +380,83 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
                 </Box>
               </Box>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Special Features */}
+      {(league.powerplayEnabled || league.hiddenPlayerEnabled) && (
+        <Card sx={{ mb: { xs: 2, sm: 3 } }}>
+          <CardContent sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: { xs: 1.5, sm: 2, md: 2.5 } }}>
+            <Box display="flex" alignItems="center" gap={{ xs: 0.5, sm: 1 }} mb={{ xs: 1.5, sm: 2 }}>
+              <EmojiEvents color="primary" sx={{ fontSize: { xs: 20, sm: 24 } }} />
+              <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                Special Features
+              </Typography>
+            </Box>
+
+            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+              {league.powerplayEnabled && (
+                <Grid size={12}>
+                  <Box sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                    <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, mb: 0.75, display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                      <Bolt fontSize="small" />
+                      {league.ppMatchMode === 'activation' ? 'On-Demand Powerplay' : 'Powerplay'}
+                    </Typography>
+                    {league.ppMatchMode === 'activation' ? (
+                      <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 3 }}>
+                        <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                          You can activate Powerplay anytime during the league, just like transfers.
+                        </Typography>
+                        <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                          Once activated, pick one upcoming match from fixtures scheduled after your activation time.
+                        </Typography>
+                        <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                          This is a one-time action and <strong>cannot be undone once activated</strong>.
+                        </Typography>
+                        <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, lineHeight: 1.6 }}>
+                          After selection, your Powerplay match stays locked for the rest of the league.
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 3 }}>
+                        <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                          Pick one Powerplay match from the allowed fixtures shown for this league.
+                        </Typography>
+                        <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, lineHeight: 1.6 }}>
+                          Powerplay bonus points are applied to that selected match as per league scoring rules.
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </Grid>
+              )}
+
+              {league.hiddenPlayerEnabled && (
+                <Grid size={12}>
+                  <Box sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                    <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, mb: 0.75, display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                      <Lock fontSize="small" />
+                      12th Hidden Player
+                    </Typography>
+                    <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 3 }}>
+                      <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                        Each participant picks one extra player as their 12th Hidden Player.
+                      </Typography>
+                      <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                        This player is outside the visible squad and remains hidden from other participants.
+                      </Typography>
+                      <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6 }}>
+                        You can track your own hidden player, but others cannot view your selection.
+                      </Typography>
+                      <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, lineHeight: 1.6 }}>
+                        At season end, the admin applies hidden player points to the final leaderboard.
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+              )}
+            </Grid>
           </CardContent>
         </Card>
       )}

@@ -13,6 +13,7 @@ import { Home, Dashboard } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import UserMenu from './UserMenu';
+import { transitionTo } from '../../utils/navigation';
 
 interface AppHeaderProps {
   hideNavigation?: boolean;
@@ -70,7 +71,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
             letterSpacing: 1,
             flexShrink: 0
           }}
-          onClick={() => navigate('/')}
+          onClick={() => transitionTo(navigate, '/')}
         >
           FCL
         </Typography>
@@ -80,8 +81,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
           <Tabs
             value={getCurrentTab()}
             onChange={(_, newValue) => {
-              if (newValue === 0) navigate('/');
-              if (newValue === 1) navigate('/dashboard');
+              if (newValue === 0) transitionTo(navigate, '/');
+              if (newValue === 1) transitionTo(navigate, '/dashboard');
             }}
             sx={{
               minHeight: 'auto',
@@ -131,7 +132,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
           <>
             <Button
               variant="outlined"
-              onClick={() => navigate('/login')}
+              onClick={() => transitionTo(navigate, '/login')}
               sx={{
                 borderRadius: 2,
                 px: { xs: 2, sm: 3 },
@@ -143,7 +144,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
             {!isSmallMobile && (
               <Button
                 variant="contained"
-                onClick={() => navigate('/register')}
+                onClick={() => transitionTo(navigate, '/register')}
                 sx={{
                   borderRadius: 2,
                   px: { xs: 2, sm: 3 },

@@ -113,6 +113,7 @@ const EditLeaguePage: React.FC = () => {
   const [flexibleChangesEnabled, setFlexibleChangesEnabled] = useState(false);
   const [benchChangesEnabled, setBenchChangesEnabled] = useState(false);
   const [autoToggleEnabled, setAutoToggleEnabled] = useState(true);
+  const [ppActivationEnabled, setPpActivationEnabled] = useState(false);
 
   // Load player pools and existing league data
   useEffect(() => {
@@ -179,6 +180,7 @@ const EditLeaguePage: React.FC = () => {
         setFlexibleChangesEnabled(leagueData.flexibleChangesEnabled || false);
         setBenchChangesEnabled(leagueData.benchChangesEnabled || false);
         setAutoToggleEnabled(leagueData.autoToggleEnabled !== false); // Default to true
+        setPpActivationEnabled(leagueData.ppActivationEnabled || false);
 
       } catch (err: any) {
         console.error('Error loading data:', err);
@@ -224,6 +226,7 @@ const EditLeaguePage: React.FC = () => {
         flexibleChangesEnabled,
         benchChangesEnabled,
         autoToggleEnabled,
+        ppActivationEnabled,
       };
 
       await leagueService.update(leagueId, updates);
@@ -881,13 +884,36 @@ const EditLeaguePage: React.FC = () => {
                 />
               </Grid>
 
+              {/* PP Activation Toggle — only relevant for activation-mode leagues */}
+              <Grid size={12}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={ppActivationEnabled}
+                      onChange={(e) => setPpActivationEnabled(e.target.checked)}
+                      color="warning"
+                    />
+                  }
+                  label={
+                    <Box sx={{ opacity: autoToggleEnabled ? 0.6 : 1 }}>
+                      <Typography variant="body1" fontWeight="medium">
+                        Enable PP Activation (Post-Deadline)
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        For On-Demand Powerplay leagues — allow participants to activate their Powerplay after the squad deadline. Before the deadline, activation is always open.
+                      </Typography>
+                    </Box>
+                  }
+                />
+              </Grid>
+
               <Grid size={12}>
                 <Alert severity={autoToggleEnabled ? "info" : "warning"}>
                   <Typography variant="body2">
                     {autoToggleEnabled ? (
                       <>
-                        <strong>Automation Active:</strong> Transfer windows will open/close automatically based on your match schedule. 
-                        Manual changes will be respected until the next scheduled toggle time. 
+                        <strong>Automation Active:</strong> Transfer windows and On-Demand Powerplay activation (for activation-mode leagues) will open/close automatically based on your match schedule.
+                        Manual changes will be respected until the next scheduled toggle time.
                         To disable automation, turn off "Automatic Transfer Window Management" above.
                       </>
                     ) : (

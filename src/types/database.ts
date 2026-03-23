@@ -52,6 +52,10 @@ export interface League {
   maxParticipants: number;
   powerplayEnabled: boolean; // NEW: Powerplay feature toggle
   maxPowerplayMatches?: number; // Number of matches for powerplay dropdown (default 20)
+  ppMatchMode?: 'fixed' | 'activation'; // 'fixed': existing behavior; 'activation': player activates on-demand
+
+  // Hidden Player Feature
+  hiddenPlayerEnabled?: boolean; // Allow each participant to secretly pick one extra hidden player
   matchSchedule?: ScheduleMatch[]; // Tournament match schedule
 
   // Squad Selection Settings
@@ -71,6 +75,7 @@ export interface League {
   // Admin Controls for Squad Changes
   flexibleChangesEnabled?: boolean; // Admin toggle for allowing flexible changes
   benchChangesEnabled?: boolean; // Admin toggle for allowing bench changes
+  ppActivationEnabled?: boolean; // Admin toggle: allow PP activation after squad deadline (activation mode only)
   
   // Transfer Window Automation
   autoToggleEnabled?: boolean; // Enable/disable automatic toggle management (default: true)
@@ -187,6 +192,14 @@ export interface LeagueSquad {
   powerplayMatchNumber?: number; // Selected match number for powerplay bonus
   powerplayPoints?: number; // Points awarded by admin for the powerplay match
   powerplayCompleted?: boolean; // Whether the powerplay match has been played and points awarded
+  ppActivatedAt?: Date; // Timestamp when user activated PP in 'activation' mode
+
+  // Hidden Player (locked in, never changes, hidden from peers)
+  hiddenPlayerId?: string;
+  hiddenPlayerName?: string;
+  hiddenPlayerRole?: 'batsman' | 'bowler' | 'allrounder' | 'wicketkeeper';
+  hiddenPlayerTeam?: string;
+  hiddenPlayerPoints?: number; // Admin-awarded points at season end
 
   // Predictions
   predictions?: {
@@ -576,6 +589,7 @@ export interface StandingEntry {
   xFactorPoints: number;
   powerplayPoints?: number; // Points from powerplay match
   powerplayCompleted?: boolean; // Whether the powerplay match has been completed
+  hiddenPlayerPoints?: number; // Points from hidden player (added at season end)
   rank: number;
   previousRank?: number;
   rankChange?: number; // Positive for improvement, negative for decline
