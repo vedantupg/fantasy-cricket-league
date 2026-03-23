@@ -2947,7 +2947,7 @@ const CricketPitchFormation: React.FC<{
                         <BoltIcon fontSize="inherit" />On-Demand Powerplay
                       </Typography>
                       <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.6, display: 'block' }}>
-                        Use this anytime during the league, just like transfers. Once you activate, you pick any future match as your Powerplay match. Only matches scheduled after your activation time will appear. This is a one-time action and cannot be undone.
+                        You can use this anytime during the league, just like transfers. After activation, pick any upcoming match as your Powerplay match. Only matches scheduled after your activation time will appear. This is a one-time action and cannot be undone once activated.
                       </Typography>
                       {isDeadlinePassed && !ppActivationEnabled && (
                         <Typography variant="caption" color="error.main" sx={{ display: 'block', mt: 0.5 }}>
