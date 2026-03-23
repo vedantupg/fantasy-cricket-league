@@ -84,7 +84,7 @@ function calculateToggleStatus(schedule, currentTime) {
 
   const calculateDisableTime = (nextMatchDay) => {
     const disableTime = new Date(nextMatchDay.firstMatchTime);
-    disableTime.setMinutes(disableTime.getMinutes() - 15);
+    disableTime.setMinutes(disableTime.getMinutes() + 1);
     return disableTime;
   };
 
@@ -251,36 +251,67 @@ export default async function handler(req, res) {
         }
 
         const desiredState = calculateToggleStatus(league.matchSchedule, currentTime);
-        const currentState = league.flexibleChangesEnabled || false;
+        const currentFlexibleState = league.flexibleChangesEnabled || false;
+        const currentBenchState = league.benchChangesEnabled || false;
+        const managesPowerplayActivation = league.powerplayEnabled && (league.ppMatchMode ?? 'fixed') === 'activation';
+        const currentPpActivationState = league.ppActivationEnabled || false;
 
-        if (currentState === desiredState) {
-          console.log(`League ${league.id} (${league.name}): Already in correct state (${currentState})`);
+        const needsTransferUpdate =
+          currentFlexibleState !== desiredState ||
+          currentBenchState !== desiredState;
+        const needsPpActivationUpdate =
+          managesPowerplayActivation &&
+          currentPpActivationState !== desiredState;
+
+        if (!needsTransferUpdate && !needsPpActivationUpdate) {
+          console.log(`League ${league.id} (${league.name}): Already in correct state (${desiredState})`);
           results.push({
             leagueId: league.id,
             name: league.name,
             status: 'no_change',
-            currentState,
-            desiredState
+            currentFlexibleState,
+            currentBenchState,
+            currentPpActivationState,
+            desiredState,
+            managesPowerplayActivation
           });
           continue;
         }
 
-        console.log(`League ${league.id} (${league.name}): Updating ${currentState} -> ${desiredState}`);
-
-        await db.collection('leagues').doc(league.id).update({
+        const updatePayload = {
           flexibleChangesEnabled: desiredState,
           benchChangesEnabled: desiredState,
           lastAutoToggleUpdate: Timestamp.now(),
           lastAutoToggleAction: desiredState ? 'enabled' : 'disabled'
-        });
+        };
+
+        if (managesPowerplayActivation) {
+          updatePayload.ppActivationEnabled = desiredState;
+        }
+
+        console.log(
+          `League ${league.id} (${league.name}): Updating transfers ${currentFlexibleState}/${currentBenchState} -> ${desiredState}` +
+          (managesPowerplayActivation ? `, ppActivation ${currentPpActivationState} -> ${desiredState}` : '')
+        );
+
+        await db.collection('leagues').doc(league.id).update(updatePayload);
 
         console.log(`League ${league.id} (${league.name}): Updated successfully`);
         results.push({
           leagueId: league.id,
           name: league.name,
           status: 'updated',
-          from: currentState,
-          to: desiredState,
+          from: {
+            flexibleChangesEnabled: currentFlexibleState,
+            benchChangesEnabled: currentBenchState,
+            ...(managesPowerplayActivation ? { ppActivationEnabled: currentPpActivationState } : {})
+          },
+          to: {
+            flexibleChangesEnabled: desiredState,
+            benchChangesEnabled: desiredState,
+            ...(managesPowerplayActivation ? { ppActivationEnabled: desiredState } : {})
+          },
+          managesPowerplayActivation,
           timestamp: currentTime.toISOString()
         });
 

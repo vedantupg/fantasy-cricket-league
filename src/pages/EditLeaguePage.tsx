@@ -895,7 +895,7 @@ const EditLeaguePage: React.FC = () => {
                     />
                   }
                   label={
-                    <Box>
+                    <Box sx={{ opacity: autoToggleEnabled ? 0.6 : 1 }}>
                       <Typography variant="body1" fontWeight="medium">
                         Enable PP Activation (Post-Deadline)
                       </Typography>
@@ -912,8 +912,8 @@ const EditLeaguePage: React.FC = () => {
                   <Typography variant="body2">
                     {autoToggleEnabled ? (
                       <>
-                        <strong>Automation Active:</strong> Transfer windows will open/close automatically based on your match schedule. 
-                        Manual changes will be respected until the next scheduled toggle time. 
+                        <strong>Automation Active:</strong> Transfer windows and On-Demand Powerplay activation (for activation-mode leagues) will open/close automatically based on your match schedule.
+                        Manual changes will be respected until the next scheduled toggle time.
                         To disable automation, turn off "Automatic Transfer Window Management" above.
                       </>
                     ) : (
