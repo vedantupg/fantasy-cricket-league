@@ -2732,13 +2732,8 @@ const CricketPitchFormation: React.FC<{
               {player.name.split(' ').pop()}
             </Typography>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, justifyContent: 'center' }}>
-              <TeamLogo team={player.team} size={14} />
-              <Chip
-                size="small"
-                label={player.team}
-                sx={{ fontSize: { xs: '0.55rem', sm: '0.6rem' }, height: { xs: 14, sm: 16 }, fontFamily: "'Satoshi', sans-serif", opacity: 0.75 }}
-              />
+            <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5, justifyContent: 'center' }}>
+              <TeamLogo team={player.team} size={30} />
             </Box>
 
             {/* Points Display */}
