@@ -26,6 +26,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { leagueService, playerPoolService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
+import LeagueAssistant from '../components/LeagueAssistant';
 import type { League, SquadRules, TransferTypeConfig, PlayerPool } from '../types/database';
 import { calculateToggleStatus, formatTimeUntilChange, formatDateTime } from '../utils/transferWindowAutomation';
 
@@ -954,6 +955,7 @@ const EditLeaguePage: React.FC = () => {
           </Button>
         </Box>
       </Container>
+      <LeagueAssistant leagueId={leagueId} />
     </Box>
   );
 };

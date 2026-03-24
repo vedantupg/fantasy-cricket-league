@@ -14,6 +14,7 @@ import { leagueService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
 import MatchScheduleViewer from '../components/schedule/MatchScheduleViewer';
+import LeagueAssistant from '../components/LeagueAssistant';
 import type { League } from '../types/database';
 import colors from '../theme/colors';
 
@@ -132,6 +133,7 @@ const MatchSchedulePage: React.FC = () => {
           highlightMatchNumber={undefined}
         />
       </Container>
+      <LeagueAssistant leagueId={leagueId} />
     </Box>
   );
 };

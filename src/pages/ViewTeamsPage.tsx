@@ -44,6 +44,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { leagueService, squadService, userService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
+import LeagueAssistant from '../components/LeagueAssistant';
 import type { League, LeagueSquad, User } from '../types/database';
 import { TeamLogo } from '../utils/teamLogos';
 
@@ -767,6 +768,7 @@ const ViewTeamsPage: React.FC = () => {
           </Grid>
         )}
       </Container>
+      <LeagueAssistant leagueId={leagueId} />
     </Box>
   );
 };

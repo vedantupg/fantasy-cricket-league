@@ -14,6 +14,7 @@ import { Refresh as RefreshIcon } from '@mui/icons-material';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
 import LeagueAnalytics from '../components/leaderboard/LeagueAnalytics';
+import LeagueAssistant from '../components/LeagueAssistant';
 import { leaderboardSnapshotService, leagueService, squadService, playerPoolService } from '../services/firestore';
 import type { LeaderboardSnapshot, League, LeagueSquad, PlayerPool } from '../types/database';
 
@@ -214,6 +215,7 @@ const AnalyticsPage: React.FC = () => {
           </Card>
         ) : null}
       </Container>
+      <LeagueAssistant leagueId={leagueId} />
     </Box>
   );
 };
