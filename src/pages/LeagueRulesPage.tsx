@@ -10,6 +10,7 @@ import { leagueService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
 import LeagueRulesDisplay from '../components/league/LeagueRulesDisplay';
+import LeagueAssistant from '../components/LeagueAssistant';
 import type { League } from '../types/database';
 
 const LeagueRulesPage: React.FC = () => {
@@ -94,6 +95,7 @@ const LeagueRulesPage: React.FC = () => {
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3, md: 4 } }}>
         <LeagueRulesDisplay league={league} />
       </Container>
+      <LeagueAssistant leagueId={leagueId} />
     </Box>
   );
 };

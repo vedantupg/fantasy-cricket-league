@@ -2685,6 +2685,18 @@ const CricketPitchFormation: React.FC<{
         elevation={player ? 8 : 2}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onClick={(e) => {
+          if (canAssignRoles) {
+            e.stopPropagation();
+            const opening = !showRoleMenu;
+            setShowRoleMenu(opening);
+            if (opening) {
+              if (hideTimeout) clearTimeout(hideTimeout);
+              const timeout = setTimeout(() => setShowRoleMenu(false), 3000);
+              setHideTimeout(timeout);
+            }
+          }
+        }}
         sx={{
           p: { xs: 1, sm: 1.5, md: 2 },
           minHeight: { xs: 80, sm: 90, md: 100 },
@@ -2700,6 +2712,7 @@ const CricketPitchFormation: React.FC<{
           bgcolor: player ? '#1a2332' : colors.bg,
           position: 'relative',
           cursor: 'pointer',
+          overflow: 'visible',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           boxShadow: player ? '0 6px 18px rgba(0,0,0,0.35)' : 'none', // Enhanced micro elevation
           '&:hover': {
@@ -2759,7 +2772,7 @@ const CricketPitchFormation: React.FC<{
 
             {/* Captain/Vice Captain/X-Factor badges with special glows */}
             {isCaptain && (
-              <Box sx={{ position: 'absolute', top: { xs: -4, sm: -5 }, left: { xs: -4, sm: -5 } }}>
+              <Box sx={{ position: 'absolute', top: { xs: -4, sm: -5 }, left: { xs: -4, sm: -5 }, zIndex: 5 }}>
                 <Chip
                   label="C"
                   size="small"
@@ -2780,7 +2793,7 @@ const CricketPitchFormation: React.FC<{
               </Box>
             )}
             {isViceCaptain && (
-              <Box sx={{ position: 'absolute', top: { xs: -4, sm: -5 }, left: { xs: -4, sm: -5 } }}>
+              <Box sx={{ position: 'absolute', top: { xs: -4, sm: -5 }, left: { xs: -4, sm: -5 }, zIndex: 5 }}>
                 <Chip
                   label="VC"
                   size="small"
@@ -2796,7 +2809,7 @@ const CricketPitchFormation: React.FC<{
               </Box>
             )}
             {isXFactor && (
-              <Box sx={{ position: 'absolute', top: { xs: -4, sm: -5 }, left: { xs: -4, sm: -5 } }}>
+              <Box sx={{ position: 'absolute', top: { xs: -4, sm: -5 }, left: { xs: -4, sm: -5 }, zIndex: 5 }}>
                 <Chip
                   label="X"
                   size="small"
@@ -2824,7 +2837,8 @@ const CricketPitchFormation: React.FC<{
                 onMouseLeave={handleMouseLeave}
                 sx={{
                   position: 'absolute',
-                  bottom: -40,
+                  bottom: { xs: 'auto', sm: -40 },
+                  top: { xs: -48, sm: 'auto' },
                   left: '50%',
                   transform: 'translateX(-50%)',
                   display: 'flex',

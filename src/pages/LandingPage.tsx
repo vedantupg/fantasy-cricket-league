@@ -123,7 +123,10 @@ const LandingPage: React.FC = () => {
       try {
         setLeaguesLoading(true);
         const leagues = await leagueService.getForUser(user.uid);
-        setUserLeagues(leagues);
+        const sorted = leagues.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        setUserLeagues(sorted);
       } catch (err) {
         console.error('Error loading leagues:', err);
       } finally {
