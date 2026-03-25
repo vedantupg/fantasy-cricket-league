@@ -29,6 +29,7 @@ import HiddenPlayerManagementPage from './pages/HiddenPlayerManagementPage';
 import MatchSchedulePage from './pages/MatchSchedulePage';
 import ScheduleUploadPage from './pages/ScheduleUploadPage';
 import ScoringSystemPage from './pages/ScoringSystemPage';
+import LeagueInvitePage from './pages/LeagueInvitePage';
 
 // Layouts
 import LeagueLayout from './components/layouts/LeagueLayout';
@@ -101,6 +102,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/invite/:code" element={<LeagueInvitePage />} />
 
             {/* Profile Setup Route */}
             <Route path="/profile-setup" element={

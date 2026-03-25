@@ -112,7 +112,7 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
         bgcolor: 'background.paper',
         borderBottom: `1px solid ${theme.palette.divider}`,
         position: 'sticky',
-        top: { xs: 72, sm: 82 }, // Height of AppHeader
+        top: { xs: 56, sm: 64, md: 72 }, // Match actual AppHeader rendered height
         zIndex: 1000,
         boxShadow: 1
       }}
