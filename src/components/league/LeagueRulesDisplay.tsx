@@ -66,9 +66,9 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
                 Role Multipliers
               </Typography>
               <Box display="flex" flexWrap="wrap" gap={1}>
-                <Chip label="Captain: 2x points" color="warning" size="small" sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }} />
-                <Chip label="Vice-Captain: 1.5x points" color="info" size="small" sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }} />
-                <Chip label="X-Factor: 1.25x points" color="secondary" size="small" sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }} />
+                <Chip label="Captain: 2x points" color="warning" size="medium" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, fontWeight: 'bold', px: 1.5, boxShadow: '0 0 8px rgba(255,193,7,0.35)' }} />
+                <Chip label="Vice-Captain: 1.5x points" color="info" size="medium" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, fontWeight: 'bold', px: 1.5, boxShadow: '0 0 8px rgba(2,136,209,0.35)' }} />
+                <Chip label="X-Factor: 1.25x points" color="secondary" size="medium" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, fontWeight: 'bold', px: 1.5, boxShadow: '0 0 8px rgba(156,39,176,0.35)' }} />
               </Box>
             </Grid>
           </Grid>

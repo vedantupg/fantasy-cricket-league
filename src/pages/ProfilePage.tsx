@@ -469,7 +469,7 @@ const ProfilePage: React.FC = () => {
                         sx={{ mb: 2 }}
                       />
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        Member since {userData?.createdAt ? new Date(userData.createdAt).toLocaleDateString() : 'N/A'}
+                        Member since {userData?.createdAt ? ((userData.createdAt as any).toDate?.() ?? new Date(userData.createdAt)).toLocaleDateString() : 'N/A'}
                       </Typography>
                       <Button
                         variant="outlined"

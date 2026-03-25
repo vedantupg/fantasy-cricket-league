@@ -20,12 +20,18 @@ import {
   TextField,
   InputAdornment,
   useTheme,
+  useMediaQuery,
   alpha,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Autocomplete,
+  Drawer,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemButton,
 } from '@mui/material';
 import {
   PersonAdd,
@@ -41,6 +47,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
+import StatusChip from '../components/common/StatusChip';
 import LeagueAssistant from '../components/LeagueAssistant';
 import TransferModal, { TransferData } from '../components/squad/TransferModal';
 import { playerPoolService, leagueService, squadService, squadPlayerUtils, leaderboardSnapshotService } from '../services/firestore';
@@ -2102,12 +2109,7 @@ const SquadSelectionPage: React.FC = () => {
                 Squad Summary
               </Typography>
               {existingSquad && (
-                <Chip
-                  label={existingSquad.isSubmitted ? "Submitted" : "Draft"}
-                  color={existingSquad.isSubmitted ? "success" : "warning"}
-                  size="small"
-                  sx={{ fontWeight: 'bold' }}
-                />
+                <StatusChip status={existingSquad.isSubmitted ? 'submitted' : 'draft'} />
               )}
             </Box>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 1, sm: 1.5 } }}>
@@ -2266,6 +2268,27 @@ const SquadSelectionPage: React.FC = () => {
                   }}
                 />
               )}
+              {league?.hiddenPlayerEnabled && hiddenPlayerId && (() => {
+                const hp = availablePlayers.find(p => p.id === hiddenPlayerId);
+                return hp ? (
+                  <Chip
+                    icon={<LockIcon sx={{ fontSize: '0.875rem !important', color: '#FFB300 !important' }} />}
+                    label={`${hp.name} · Hidden until season end`}
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                      fontFamily: "'Satoshi', sans-serif",
+                      fontWeight: 500,
+                      fontSize: { xs: '0.6875rem', sm: '0.75rem' },
+                      height: { xs: 28, sm: 32 },
+                      bgcolor: 'rgba(255,193,7,0.10)',
+                      borderColor: 'rgba(255,193,7,0.45)',
+                      color: '#FFB300',
+                      '& .MuiChip-label': { color: '#FFB300' },
+                    }}
+                  />
+                ) : null;
+              })()}
             </Box>
           </CardContent>
         </Card>
@@ -2316,6 +2339,7 @@ const SquadSelectionPage: React.FC = () => {
               availablePlayers={availablePlayers}
               submitting={submitting}
               onSavePredictionsAndHiddenPlayer={handleSavePredictionsAndHiddenPlayer}
+              onAddPlayer={addPlayerToSquad}
             />
           </Grid>
 
@@ -2516,9 +2540,16 @@ const CricketPitchFormation: React.FC<{
   availablePlayers: Player[];
   submitting: boolean;
   onSavePredictionsAndHiddenPlayer: () => Promise<void>;
-}> = ({ league, selectedPlayers, onRemovePlayer, onUpdatePosition, powerplayMatch, setPowerplayMatch, maxPowerplayMatches, ppActivatedAt, onActivatePP, ppActivationEnabled, ppMatchConfirmOpen, setPpMatchConfirmOpen, ppMatchPending, setPpMatchPending, onConfirmPpMatch, captainId, viceCaptainId, xFactorId, onSetSpecialRole, existingSquad, calculatePlayerContribution, readOnly, isDeadlinePassed, hiddenPlayerId, hiddenPlayerSearch, setHiddenPlayerSearch, onSelectHiddenPlayer, availablePlayers, submitting, onSavePredictionsAndHiddenPlayer }) => {
+  onAddPlayer: (player: Player, position: 'regular' | 'bench') => void;
+}> = ({ league, selectedPlayers, onRemovePlayer, onUpdatePosition, powerplayMatch, setPowerplayMatch, maxPowerplayMatches, ppActivatedAt, onActivatePP, ppActivationEnabled, ppMatchConfirmOpen, setPpMatchConfirmOpen, ppMatchPending, setPpMatchPending, onConfirmPpMatch, captainId, viceCaptainId, xFactorId, onSetSpecialRole, existingSquad, calculatePlayerContribution, readOnly, isDeadlinePassed, hiddenPlayerId, hiddenPlayerSearch, setHiddenPlayerSearch, onSelectHiddenPlayer, availablePlayers, submitting, onSavePredictionsAndHiddenPlayer, onAddPlayer }) => {
 
   const [ppDialogOpen, setPpDialogOpen] = useState(false);
+  const [slotPickerOpen, setSlotPickerOpen] = useState(false);
+  const [slotPickerRole, setSlotPickerRole] = useState<string | null>(null);
+  const [slotPickerTarget, setSlotPickerTarget] = useState<'regular' | 'bench'>('regular');
+  const [slotPickerSearch, setSlotPickerSearch] = useState('');
+  const pitchTheme = useTheme();
+  const isMobileSlot = useMediaQuery(pitchTheme.breakpoints.down('sm'));
   const [ppDialogStep, setPpDialogStep] = useState<'select' | 'confirm' | 'success'>('select');
 
   const handleOpenPpDialog = () => {
@@ -2695,6 +2726,13 @@ const CricketPitchFormation: React.FC<{
               const timeout = setTimeout(() => setShowRoleMenu(false), 3000);
               setHideTimeout(timeout);
             }
+          } else if (!player && !readOnly && isMobileSlot) {
+            // Mobile: tap empty slot → open filtered player picker drawer
+            e.stopPropagation();
+            setSlotPickerRole(role || null);
+            setSlotPickerTarget(slotType === 'bench' ? 'bench' : 'regular');
+            setSlotPickerSearch('');
+            setSlotPickerOpen(true);
           }
         }}
         sx={{
@@ -2737,7 +2775,7 @@ const CricketPitchFormation: React.FC<{
               </IconButton>
             )}
 
-            <Avatar sx={{ width: { xs: 24, sm: 28, md: 32 }, height: { xs: 24, sm: 28, md: 32 }, mb: 0.5, bgcolor: 'rgba(9,11,71,0.7)', color: 'rgba(255,255,255,0.85)', fontSize: { xs: '0.6875rem', sm: '0.75rem', md: '0.875rem' }, fontWeight: 500 }}>
+            <Avatar sx={{ width: { xs: 24, sm: 28, md: 32 }, height: { xs: 24, sm: 28, md: 32 }, mb: 0.5, bgcolor: 'rgba(9,11,71,0.7)', color: 'rgba(255,255,255,0.85)', fontSize: { xs: '0.6875rem', sm: '0.75rem', md: '0.875rem' }, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', lineHeight: 1 }}>
               {player.name.charAt(0)}
             </Avatar>
 
@@ -2782,11 +2820,11 @@ const CricketPitchFormation: React.FC<{
                     fontWeight: 'bold',
                     bgcolor: '#090b47',
                     color: themeColors.gold,
-                    boxShadow: `0 0 8px ${alpha(themeColors.gold, 0.45)}, 0 0 16px ${alpha(themeColors.gold, 0.22)}`,
-                    animation: 'pulse-gold 2.5s ease-in-out infinite',
-                    '@keyframes pulse-gold': {
-                      '0%, 100%': { boxShadow: `0 0 8px ${alpha(themeColors.gold, 0.45)}, 0 0 16px ${alpha(themeColors.gold, 0.22)}` },
-                      '50%': { boxShadow: `0 0 11px ${alpha(themeColors.gold, 0.6)}, 0 0 22px ${alpha(themeColors.gold, 0.3)}` }
+                    boxShadow: `0 0 8px ${alpha(themeColors.gold, 0.7)}, 0 0 16px ${alpha(themeColors.gold, 0.35)}`,
+                    animation: 'pulse-gold-c 2.5s ease-in-out infinite',
+                    '@keyframes pulse-gold-c': {
+                      '0%, 100%': { boxShadow: `0 0 8px ${alpha(themeColors.gold, 0.7)}, 0 0 16px ${alpha(themeColors.gold, 0.35)}` },
+                      '50%': { boxShadow: `0 0 14px ${alpha(themeColors.gold, 1)}, 0 0 26px ${alpha(themeColors.gold, 0.55)}` }
                     }
                   }}
                 />
@@ -2803,7 +2841,12 @@ const CricketPitchFormation: React.FC<{
                     fontWeight: 'bold',
                     bgcolor: '#090b47',
                     color: themeColors.gold,
-                    boxShadow: `0 0 8px ${alpha(themeColors.gold, 0.45)}, 0 0 16px ${alpha(themeColors.gold, 0.22)}`
+                    boxShadow: '0 0 6px rgba(156,39,176,0.5), 0 0 12px rgba(156,39,176,0.25)',
+                    animation: 'pulse-purple-vc 3s ease-in-out infinite',
+                    '@keyframes pulse-purple-vc': {
+                      '0%, 100%': { boxShadow: '0 0 6px rgba(156,39,176,0.5), 0 0 12px rgba(156,39,176,0.25)' },
+                      '50%': { boxShadow: '0 0 10px rgba(156,39,176,0.75), 0 0 20px rgba(156,39,176,0.4)' }
+                    }
                   }}
                 />
               </Box>
@@ -2818,12 +2861,12 @@ const CricketPitchFormation: React.FC<{
                     height: { xs: 16, sm: 18 },
                     fontWeight: 'bold',
                     bgcolor: '#090b47',
-                    color: themeColors.gold,
-                    boxShadow: `0 0 7px ${alpha(themeColors.gold, 0.38)}, 0 0 14px ${alpha(themeColors.gold, 0.15)}`,
-                    animation: 'pulse-gold-x 3.5s ease-in-out infinite',
-                    '@keyframes pulse-gold-x': {
-                      '0%, 100%': { boxShadow: `0 0 7px ${alpha(themeColors.gold, 0.38)}, 0 0 14px ${alpha(themeColors.gold, 0.15)}` },
-                      '50%': { boxShadow: `0 0 9px ${alpha(themeColors.gold, 0.52)}, 0 0 18px ${alpha(themeColors.gold, 0.26)}` }
+                    color: '#00BCD4',
+                    boxShadow: '0 0 8px rgba(0,188,212,0.6), 0 0 14px rgba(0,188,212,0.3)',
+                    animation: 'pulse-cyan-x 3.5s ease-in-out infinite',
+                    '@keyframes pulse-cyan-x': {
+                      '0%, 100%': { boxShadow: '0 0 8px rgba(0,188,212,0.6), 0 0 14px rgba(0,188,212,0.3)' },
+                      '50%': { boxShadow: '0 0 11px rgba(0,188,212,0.85), 0 0 20px rgba(0,188,212,0.45)' }
                     }
                   }}
                 />
@@ -3228,7 +3271,7 @@ const CricketPitchFormation: React.FC<{
         {/* Cricket Field Background */}
         <Box
           sx={{
-            background: 'linear-gradient(180deg, #32883A 0%, #1F6B27 100%)', // Brightened by ~8%
+            background: 'linear-gradient(180deg, #2A7332 0%, #1A5C22 100%)', // Reduced intensity for less overpowering ground
             borderRadius: { xs: 1.5, sm: 2, md: 3 },
             position: 'relative',
             overflow: 'visible',
@@ -3244,8 +3287,8 @@ const CricketPitchFormation: React.FC<{
               right: '5%',
               bottom: '40px',
               borderRadius: '50%',
-              border: '4px solid #FFFFFF',
-              boxShadow: 'inset 0 0 20px rgba(0,0,0,0.2), 0 0 10px rgba(255,255,255,0.4)',
+              border: '3px solid rgba(255,255,255,0.55)',
+              boxShadow: 'inset 0 0 20px rgba(0,0,0,0.15), 0 0 8px rgba(255,255,255,0.25)',
               zIndex: 0,
             },
             // Inner 30-yard circle
@@ -3257,7 +3300,7 @@ const CricketPitchFormation: React.FC<{
               right: '20%',
               bottom: '15%',
               borderRadius: '50%',
-              border: '3px dashed rgba(255,255,255,0.5)',
+              border: '2px dashed rgba(255,255,255,0.32)',
               zIndex: 0,
             }
           }}
@@ -3572,9 +3615,9 @@ const CricketPitchFormation: React.FC<{
                 justifyContent: 'center',
                 flexWrap: 'wrap',
                 p: { xs: 1.5, sm: 2, md: 3 },
-                bgcolor: 'rgba(255,255,255,0.055)',
+                bgcolor: 'rgba(255,255,255,0.12)',
                 borderRadius: { xs: 2, sm: 2.5, md: 3 },
-                border: '1px solid rgba(255,255,255,0.14)',
+                border: '1px solid rgba(255,255,255,0.18)',
                 boxShadow: '0 4px 16px rgba(0,0,0,0.35)'
               }}>
                 {requiredSlots.bench.map((_, index) => (
@@ -3615,9 +3658,31 @@ const CricketPitchFormation: React.FC<{
               />
             </Box>
 
-            <Box sx={{ p: 1.5, mb: 1.5, bgcolor: 'rgba(255,255,255,0.07)', borderRadius: 1.5, border: '1px solid rgba(255,255,255,0.12)' }}>
+            <Box sx={{ p: 1.5, mb: 1.5, bgcolor: 'rgba(255,255,255,0.07)', borderRadius: 1.5, border: '1px solid rgba(255,255,255,0.12)', borderLeft: '3px solid rgba(255,193,7,0.5)' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
+                <Typography variant="caption" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 600, fontSize: '0.6875rem', color: 'rgba(255,193,7,0.75)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  How it works
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  <Box sx={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    bgcolor: '#9C27B0',
+                    boxShadow: '0 0 6px rgba(156,39,176,0.8)',
+                    animation: 'pulse-dot 2s ease-in-out infinite',
+                    '@keyframes pulse-dot': {
+                      '0%, 100%': { opacity: 1, boxShadow: '0 0 6px rgba(156,39,176,0.8)' },
+                      '50%': { opacity: 0.6, boxShadow: '0 0 10px rgba(156,39,176,1)' }
+                    }
+                  }} />
+                  <Typography variant="caption" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 600, fontSize: '0.6rem', color: 'rgba(156,39,176,0.85)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                    New Feature
+                  </Typography>
+                </Box>
+              </Box>
               <Typography variant="caption" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 400, fontSize: '0.75rem', lineHeight: 1.7, display: 'block', color: 'rgba(255,255,255,0.7)' }}>
-                Pick a secret player from the pool. They must not be in your playing XI or bench, and they can never be transferred into your squad. Your peers will see only which <strong>team</strong> this player is from, not their name. Their points are added at the end of the league. Until then, only you know who they are. This choice is editable until the squad deadline passes.
+                Pick a secret player from the pool. They must not be in your playing XI or bench, and they can never be transferred into your squad. Your peers will see only which <strong>team</strong> this player is from — <strong>their name stays hidden from other participants</strong>. <strong>Only you know who they are</strong>. Their <strong>points are added at the end</strong> of the league. This choice is editable until the squad deadline passes.
               </Typography>
             </Box>
 
@@ -3722,6 +3787,80 @@ const CricketPitchFormation: React.FC<{
             )}
           </Box>
         )}
+
+        {/* Slot Picker Drawer — mobile only, opens when tapping empty slot */}
+        <Drawer
+          anchor="bottom"
+          open={slotPickerOpen}
+          onClose={() => setSlotPickerOpen(false)}
+          PaperProps={{
+            sx: {
+              bgcolor: 'background.paper',
+              borderRadius: '16px 16px 0 0',
+              maxHeight: '70vh',
+              pb: 'env(safe-area-inset-bottom, 0px)',
+            }
+          }}
+        >
+          <Box sx={{ p: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+              <Typography variant="h6" fontWeight={600} fontSize="1rem">
+                {slotPickerRole ? `Add ${slotPickerRole.charAt(0).toUpperCase() + slotPickerRole.slice(1)}` : 'Add Player'}
+                {slotPickerTarget === 'bench' ? ' (Bench)' : ''}
+              </Typography>
+              <IconButton size="small" onClick={() => setSlotPickerOpen(false)}>
+                <Close />
+              </IconButton>
+            </Box>
+            <TextField
+              size="small"
+              fullWidth
+              placeholder="Search players..."
+              value={slotPickerSearch}
+              onChange={(e) => setSlotPickerSearch(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ mb: 1 }}
+            />
+            <List dense sx={{ overflowY: 'auto', maxHeight: '50vh' }}>
+              {availablePlayers
+                .filter(p => {
+                  const alreadySelected = selectedPlayers.some(sp => sp.id === p.id);
+                  if (alreadySelected) return false;
+                  if (slotPickerRole && slotPickerRole !== 'flexible' && p.role !== slotPickerRole) return false;
+                  if (slotPickerSearch) {
+                    const q = slotPickerSearch.toLowerCase();
+                    return p.name.toLowerCase().includes(q) || p.team.toLowerCase().includes(q);
+                  }
+                  return true;
+                })
+                .slice(0, 30)
+                .map(p => (
+                  <ListItem key={p.id} disablePadding>
+                    <ListItemButton
+                      onClick={() => {
+                        onAddPlayer(p, slotPickerTarget);
+                        setSlotPickerOpen(false);
+                      }}
+                      sx={{ borderRadius: 1, mb: 0.25 }}
+                    >
+                      <ListItemText
+                        primary={p.name}
+                        secondary={`${p.team} · ${p.role}`}
+                        primaryTypographyProps={{ fontWeight: 500, fontSize: '0.875rem' }}
+                        secondaryTypographyProps={{ fontSize: '0.75rem' }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+            </List>
+          </Box>
+        </Drawer>
 
       </CardContent>
     </Card>

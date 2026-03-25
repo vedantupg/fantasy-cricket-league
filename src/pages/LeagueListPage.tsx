@@ -22,7 +22,8 @@ import {
   Schedule,
   PersonAdd,
   ContentCopy,
-  Groups
+  Groups,
+  Share
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useRef } from 'react';
@@ -43,6 +44,7 @@ const LeagueListPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [copiedInvite, setCopiedInvite] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const pullStartY = useRef(0);
 
@@ -67,6 +69,13 @@ const LeagueListPage: React.FC = () => {
           }
         })
       );
+
+      // Sort: most recently created (joined) leagues first
+      leaguesWithSquadData.sort((a, b) => {
+        const aTime = new Date(a.league.createdAt).getTime();
+        const bTime = new Date(b.league.createdAt).getTime();
+        return bTime - aTime;
+      });
 
       setLeaguesWithSquads(leaguesWithSquadData);
     } catch (err: any) {
@@ -173,6 +182,17 @@ const LeagueListPage: React.FC = () => {
       setTimeout(() => setCopiedCode(null), 2000); // Reset after 2 seconds
     } catch (err) {
       console.error('Failed to copy code:', err);
+    }
+  };
+
+  const handleCopyInviteLink = async (code: string) => {
+    try {
+      const url = `${window.location.origin}/invite/${code}`;
+      await navigator.clipboard.writeText(url);
+      setCopiedInvite(code);
+      setTimeout(() => setCopiedInvite(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy invite link:', err);
     }
   };
 
@@ -420,37 +440,64 @@ const LeagueListPage: React.FC = () => {
                     </Typography>
                   </Box>
 
-                  {/* League Code */}
-                  <Box 
-                    display="flex" 
-                    alignItems="center" 
-                    gap={1} 
-                    sx={{ 
-                      bgcolor: 'action.hover',
-                      borderRadius: 1,
-                      p: 1,
-                      cursor: 'pointer',
-                      '&:hover': {
-                        bgcolor: 'action.selected'
-                      }
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCopyCode(league.code);
-                    }}
-                  >
-                    <Typography variant="body2" fontWeight="bold">
-                      Code: {league.code}
-                    </Typography>
-                    <ContentCopy 
-                      fontSize="small" 
-                      color={copiedCode === league.code ? "success" : "action"}
-                    />
-                    {copiedCode === league.code && (
-                      <Typography variant="caption" color="success.main">
-                        Copied!
+                  {/* League Code + Invite Link */}
+                  <Box display="flex" gap={1} alignItems="center">
+                    <Box
+                      display="flex"
+                      alignItems="center"
+                      gap={1}
+                      flex={1}
+                      sx={{
+                        bgcolor: 'action.hover',
+                        borderRadius: 1,
+                        p: 1,
+                        cursor: 'pointer',
+                        '&:hover': {
+                          bgcolor: 'action.selected'
+                        }
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopyCode(league.code);
+                      }}
+                    >
+                      <Typography variant="body2" fontWeight="bold">
+                        Code: {league.code}
                       </Typography>
-                    )}
+                      <ContentCopy
+                        fontSize="small"
+                        color={copiedCode === league.code ? "success" : "action"}
+                      />
+                      {copiedCode === league.code && (
+                        <Typography variant="caption" color="success.main">
+                          Copied!
+                        </Typography>
+                      )}
+                    </Box>
+                    <Box
+                      display="flex"
+                      alignItems="center"
+                      gap={0.5}
+                      sx={{
+                        bgcolor: 'action.hover',
+                        borderRadius: 1,
+                        p: 1,
+                        cursor: 'pointer',
+                        '&:hover': { bgcolor: 'action.selected' }
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopyInviteLink(league.code);
+                      }}
+                      title="Copy invite link"
+                    >
+                      <Share fontSize="small" color={copiedInvite === league.code ? "success" : "action"} />
+                      {copiedInvite === league.code && (
+                        <Typography variant="caption" color="success.main" sx={{ whiteSpace: 'nowrap' }}>
+                          Link copied!
+                        </Typography>
+                      )}
+                    </Box>
                   </Box>
                 </CardContent>
 

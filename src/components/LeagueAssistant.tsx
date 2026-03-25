@@ -44,6 +44,7 @@ import {
   buildLeagueContext,
   injectComparisonSquad,
   SUGGESTED_QUESTIONS,
+  PRE_LEAGUE_SUGGESTED_QUESTIONS,
   type Message,
   type LeagueContext,
 } from '../services/aiService';
@@ -913,7 +914,7 @@ I've already read the pitch. Here's what I can crack open for you:
                     gap: 1,
                   }}
                 >
-                  {SUGGESTED_QUESTIONS.slice(0, 4).map((suggestion, idx) => (
+                  {(context?.leagueHasStarted === false ? PRE_LEAGUE_SUGGESTED_QUESTIONS : SUGGESTED_QUESTIONS).slice(0, 4).map((suggestion, idx) => (
                     <Chip
                       key={idx}
                       label={suggestion}

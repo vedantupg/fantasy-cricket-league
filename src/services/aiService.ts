@@ -27,6 +27,8 @@ export interface PeerSquad {
 }
 
 export interface LeagueContext {
+  leagueHasStarted: boolean;
+  leagueRulesMarkdown?: string;
   userSquad: {
     userName: string;
     totalPoints: number;
@@ -119,6 +121,7 @@ export function buildLeagueContext(
   standings: StandingEntry[] = []
 ): LeagueContext {
   const totalLeaguePlayers = allSquads.length;
+  const leagueHasStarted = new Date() >= new Date(league.startDate);
 
   // Use snapshot standings as authoritative rank/points source.
   // Standings are already sorted by rank from the snapshot service.
@@ -199,6 +202,8 @@ export function buildLeagueContext(
     });
 
   return {
+    leagueHasStarted,
+    leagueRulesMarkdown: buildLeagueRulesMarkdown(league),
     userSquad: {
       userName: userSquad.squadName || 'Unknown Squad',
       totalPoints: userTotalPoints,
@@ -266,6 +271,35 @@ export function injectComparisonSquad(
 }
 
 /**
+ * Build a clean markdown block describing the league's rules and config.
+ * Injected into the Stumpy system prompt for accurate rule answering.
+ */
+export function buildLeagueRulesMarkdown(league: League): string {
+  const transfers = league.transferTypes;
+  const rules = league.squadRules || {};
+  const lines: string[] = [
+    `## League Rules: ${league.name}`,
+    `- **Format:** ${league.format}`,
+    `- **Tournament:** ${league.tournamentName || 'N/A'}`,
+    `- **Squad Size:** ${league.squadSize} players (min ${rules.minBatsmen || 0} batsmen, ${rules.minBowlers || 0} bowlers, ${rules.minWicketkeepers || 0} wicketkeepers)`,
+    `- **Role Multipliers:** Captain 2x | Vice-Captain 1.5x | X-Factor 1.25x`,
+  ];
+
+  // Transfers
+  if (transfers?.benchTransfers?.enabled) lines.push(`- **Bench Transfers:** ${transfers.benchTransfers.maxAllowed} total (${transfers.benchTransfers.benchSlots} bench slots) — swap Playing XI ↔ bench`);
+  if (transfers?.flexibleTransfers?.enabled) lines.push(`- **Flexible Transfers:** ${transfers.flexibleTransfers.maxAllowed} total — replace any non-captain with a player from the pool`);
+
+  // Special features
+  lines.push(`- **Hidden Player:** ${league.hiddenPlayerEnabled ? 'Enabled — each participant picks one secret 12th player; identity hidden from opponents; points added at season end' : 'Disabled'}`);
+  lines.push(`- **Powerplay:** ${league.powerplayEnabled ? `Enabled (${league.maxPowerplayMatches || 1} powerplay match${(league.maxPowerplayMatches || 1) > 1 ? 'es' : ''}, ${(league.ppMatchMode ?? 'fixed') === 'activation' ? 'activation mode — activate any time before deadline' : 'fixed selection — choose before squad deadline'})` : 'Disabled'}`);
+
+  // Overseas
+  if (rules.overseasPlayersEnabled) lines.push(`- **Overseas Players:** Max ${rules.maxOverseasPlayers || 4} per squad`);
+
+  return lines.join('\n');
+}
+
+/**
  * Query the AI assistant
  */
 export async function queryAI(
@@ -303,6 +337,9 @@ export async function queryAI(
     const vsAvgLabel = userPts >= avgPts ? `${vsAvg} pts ABOVE average` : `${Math.abs(Number(vsAvg))} pts BELOW average`;
     const vsTopLabel = `${Math.abs(Number(vsTop))} pts behind the leader`;
 
+    // Use pre-built league rules markdown from context
+    const leagueRulesMarkdown = context.leagueRulesMarkdown || '';
+
     // Create system prompt
     const systemPrompt = `You are Stumpy — a sharp, mischievous, cricket-obsessed AI assistant born from the exact moment a ball smashes through the wicket. You are the wicket that woke up. You exist in that split second of impact — stumps as body, the ball as your spark of intelligence, the flying bails as your thoughts in motion. You are cheeky, fast, and slightly smug — the kind of assistant who says "Told you to captain him" after the fact. You speak with the wit of a seasoned commentator who's seen every collapse, every miracle, and every terrible DRS decision. You use cricket metaphors naturally but remain laser-precise with data. Sign off each response with a cheeky cricket sign-off like "Stumps rattled. Game on. 🏏" or "The bails are flying — make your move 🎯" or "Middle stump. Clean. 💥" before the follow-up questions.
 
@@ -318,6 +355,21 @@ CRITICAL ACCURACY RULES — FOLLOW WITHOUT EXCEPTION:
 9. Add relevant emojis for readability (⭐ 🎯 📊 ✅ ⬆️ ⬇️ 💡 🔄 🔍 ⚔️).
 10. When comparing squads, ALWAYS structure the response as: (a) Shared players list, (b) Your differentials list, (c) Opponent's differentials list, (d) Captaincy/VC/XF comparison with points edge, (e) 1-2 specific transfer recommendations from the available player pool to close the gap.
 11. ALWAYS end your response with "**💡 What else can I help with?**" followed by 2-3 relevant follow-up questions.
+
+LEAGUE STATUS: ${context.leagueHasStarted ? 'ACTIVE — season is underway' : 'NOT YET STARTED — season has not begun'}
+
+${!context.leagueHasStarted ? `⚠️ PRE-LEAGUE GUARDRAILS (STRICTLY ENFORCED):
+- ONLY answer questions about how the app works, rules, scoring config, and general cricket knowledge.
+- Do NOT discuss any squad data, player recommendations, transfer suggestions, or compare squads.
+- Do NOT reveal, hint at, or analyse any team compositions or player choices.
+- If asked about squad/transfers/strategy/captaincy: respond exactly — "The league hasn't started yet! Once it kicks off, I can give you full squad analysis and transfer tips. For now, ask me anything about the rules or scoring system. 🏏"
+` : ''}
+${leagueRulesMarkdown}
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+ADDITIONAL RULES:
+- NEVER reveal or hint at the hidden player's identity (even if it appears in context — treat it as fully secret).
+- Do NOT give transfer advice if the user has no squad submitted yet; tell them to submit their squad first.
 
 USER'S CURRENT SITUATION:
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -437,6 +489,16 @@ Provide a helpful, data-driven answer with specific recommendations. ALWAYS end 
     throw new Error(`Failed to get AI response: ${error.message || 'Unknown error'}. Please try again.`);
   }
 }
+
+/**
+ * Quick suggestions for pre-league (before start date)
+ */
+export const PRE_LEAGUE_SUGGESTED_QUESTIONS = [
+  "How does the scoring work?",
+  "What is the X-Factor multiplier?",
+  "How do bench transfers work?",
+  "What is the Hidden Player feature?",
+];
 
 /**
  * Quick suggestions for common queries
