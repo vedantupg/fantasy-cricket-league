@@ -25,13 +25,19 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  CircularProgress
+  CircularProgress,
+  IconButton,
+  Checkbox,
+  FormControlLabel,
+  Tooltip
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowBack,
   Undo,
-  SwapHoriz
+  SwapHoriz,
+  Delete as DeleteIcon,
+  ContentCopy as ContentCopyIcon
 } from '@mui/icons-material';
 import { leagueService, squadService, playerPoolService, playerPoolSnapshotService, leaderboardSnapshotService, squadPlayerUtils } from '../services/firestore';
 import type { League, LeagueSquad, LeaderboardSnapshot, PlayerPool, PlayerPoolSnapshot } from '../types/database';
@@ -152,6 +158,17 @@ const AdminPage: React.FC = () => {
   const [loadingTransfers, setLoadingTransfers] = useState(false);
   const [transferSnapshots, setTransferSnapshots] = useState<PlayerPoolSnapshot[]>([]);
   const [playerNameMap, setPlayerNameMap] = useState<Map<string, string>>(new Map());
+
+  // Squad Copy State
+  const [copySourceLeagueId, setCopySourceLeagueId] = useState<string>('');
+  const [copyTargetLeagueId, setCopyTargetLeagueId] = useState<string>('');
+  const [copySourceSquads, setCopySourceSquads] = useState<LeagueSquad[]>([]);
+  const [copySelectedUserIds, setCopySelectedUserIds] = useState<string[]>([]);
+  const [copyResults, setCopyResults] = useState<{ userId: string; status: 'success' | 'error'; message: string }[]>([]);
+  const [copying, setCopying] = useState(false);
+  const [loadingCopySquads, setLoadingCopySquads] = useState(false);
+  const [deleteConfirmSquad, setDeleteConfirmSquad] = useState<LeagueSquad | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Load leagues on mount
   useEffect(() => {
@@ -1627,6 +1644,7 @@ const AdminPage: React.FC = () => {
               <Tab label="Player Pool History" />
               <Tab label="Squad Changes" />
               <Tab label="Data Audit & Repair" />
+              <Tab label="Squad Copy" />
             </Tabs>
           </Box>
 
@@ -3090,6 +3108,208 @@ const AdminPage: React.FC = () => {
           <TabPanel value={tabValue} index={5}>
             <TransferDataAuditTool />
           </TabPanel>
+
+          {/* Squad Copy Tab */}
+          <TabPanel value={tabValue} index={6}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3 }}>
+              Squad Copy
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Copy squads from one league to another league that shares the same player pool. Scoring fields are reset to zero on copy.
+            </Typography>
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {/* Source League selector */}
+              <FormControl fullWidth>
+                <InputLabel>Source League</InputLabel>
+                <Select
+                  value={copySourceLeagueId}
+                  label="Source League"
+                  onChange={async (e) => {
+                    const leagueId = e.target.value as string;
+                    setCopySourceLeagueId(leagueId);
+                    setCopyTargetLeagueId('');
+                    setCopySelectedUserIds([]);
+                    setCopyResults([]);
+                    if (leagueId) {
+                      try {
+                        setLoadingCopySquads(true);
+                        const squadsForLeague = await squadService.getByLeague(leagueId);
+                        setCopySourceSquads(squadsForLeague);
+                      } catch (err) {
+                        console.error('Error loading squads:', err);
+                      } finally {
+                        setLoadingCopySquads(false);
+                      }
+                    } else {
+                      setCopySourceSquads([]);
+                    }
+                  }}
+                >
+                  <MenuItem value=""><em>Select a league</em></MenuItem>
+                  {leagues.map((l) => (
+                    <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Legacy pool warning */}
+              {copySourceLeagueId && !leagues.find(l => l.id === copySourceLeagueId)?.playerPoolId && (
+                <Alert severity="warning">
+                  This league uses a legacy player pool — squad copy is not supported.
+                </Alert>
+              )}
+
+              {/* Squad list */}
+              {copySourceLeagueId && leagues.find(l => l.id === copySourceLeagueId)?.playerPoolId && (
+                <>
+                  {loadingCopySquads ? (
+                    <CircularProgress size={24} />
+                  ) : copySourceSquads.length === 0 ? (
+                    <Alert severity="info">No squads found in this league.</Alert>
+                  ) : (
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                            Squads in source league ({copySourceSquads.length})
+                          </Typography>
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                checked={copySelectedUserIds.length === copySourceSquads.length && copySourceSquads.length > 0}
+                                indeterminate={copySelectedUserIds.length > 0 && copySelectedUserIds.length < copySourceSquads.length}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setCopySelectedUserIds(copySourceSquads.map(s => s.userId));
+                                  } else {
+                                    setCopySelectedUserIds([]);
+                                  }
+                                }}
+                              />
+                            }
+                            label="Select All"
+                          />
+                        </Box>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell padding="checkbox" />
+                              <TableCell>Squad Name</TableCell>
+                              <TableCell>User ID</TableCell>
+                              <TableCell>Points</TableCell>
+                              <TableCell align="center">Delete</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {copySourceSquads.map((squad) => (
+                              <TableRow key={squad.id} selected={copySelectedUserIds.includes(squad.userId)}>
+                                <TableCell padding="checkbox">
+                                  <Checkbox
+                                    checked={copySelectedUserIds.includes(squad.userId)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setCopySelectedUserIds(prev => [...prev, squad.userId]);
+                                      } else {
+                                        setCopySelectedUserIds(prev => prev.filter(id => id !== squad.userId));
+                                      }
+                                    }}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    {squad.squadName}
+                                    {copyResults.find(r => r.userId === squad.userId) && (
+                                      <Chip
+                                        size="small"
+                                        label={copyResults.find(r => r.userId === squad.userId)!.message}
+                                        color={copyResults.find(r => r.userId === squad.userId)!.status === 'success' ? 'success' : 'error'}
+                                      />
+                                    )}
+                                  </Box>
+                                </TableCell>
+                                <TableCell>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {squad.userId}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell>{squad.totalPoints.toFixed(1)}</TableCell>
+                                <TableCell align="center">
+                                  <Tooltip title="Delete squad">
+                                    <IconButton
+                                      size="small"
+                                      color="error"
+                                      onClick={() => setDeleteConfirmSquad(squad)}
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Target League selector */}
+                  <FormControl fullWidth>
+                    <InputLabel>Target League</InputLabel>
+                    <Select
+                      value={copyTargetLeagueId}
+                      label="Target League"
+                      onChange={(e) => {
+                        setCopyTargetLeagueId(e.target.value as string);
+                        setCopyResults([]);
+                      }}
+                    >
+                      <MenuItem value=""><em>Select a target league</em></MenuItem>
+                      {leagues
+                        .filter(l => {
+                          if (l.id === copySourceLeagueId) return false;
+                          const sourcePoolId = leagues.find(s => s.id === copySourceLeagueId)?.playerPoolId;
+                          return sourcePoolId && l.playerPoolId === sourcePoolId;
+                        })
+                        .map((l) => (
+                          <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>
+                        ))}
+                    </Select>
+                  </FormControl>
+
+                  {copyTargetLeagueId && copySelectedUserIds.length === 0 && (
+                    <Alert severity="info">Select at least one squad to copy.</Alert>
+                  )}
+
+                  <Button
+                    variant="contained"
+                    startIcon={copying ? <CircularProgress size={16} color="inherit" /> : <ContentCopyIcon />}
+                    disabled={copying || !copyTargetLeagueId || copySelectedUserIds.length === 0}
+                    onClick={async () => {
+                      setCopying(true);
+                      setCopyResults([]);
+                      const results: typeof copyResults = [];
+                      for (const userId of copySelectedUserIds) {
+                        const squad = copySourceSquads.find(s => s.userId === userId);
+                        if (!squad) continue;
+                        try {
+                          await squadService.copyToLeague(squad.id, copyTargetLeagueId);
+                          results.push({ userId, status: 'success', message: '✅ Copied' });
+                        } catch (err: any) {
+                          results.push({ userId, status: 'error', message: `❌ ${err.message}` });
+                        }
+                      }
+                      setCopyResults(results);
+                      setCopying(false);
+                    }}
+                    sx={{ alignSelf: 'flex-start' }}
+                  >
+                    {copying ? 'Copying...' : `Copy ${copySelectedUserIds.length} Squad${copySelectedUserIds.length !== 1 ? 's' : ''}`}
+                  </Button>
+                </>
+              )}
+            </Box>
+          </TabPanel>
         </Card>
       </Container>
 
@@ -3279,6 +3499,46 @@ const AdminPage: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowSnapshotDialog(false)}>Cancel</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Squad Delete Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmSquad} onClose={() => setDeleteConfirmSquad(null)}>
+        <DialogTitle>Delete Squad?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            This will permanently remove{' '}
+            <strong>{deleteConfirmSquad?.squadName}</strong> from{' '}
+            <strong>{leagues.find(l => l.id === deleteConfirmSquad?.leagueId)?.name ?? deleteConfirmSquad?.leagueId}</strong>.
+            This cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="outlined" onClick={() => setDeleteConfirmSquad(null)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={deleting}
+            onClick={async () => {
+              if (!deleteConfirmSquad) return;
+              try {
+                setDeleting(true);
+                await squadService.deleteSquad(deleteConfirmSquad.id);
+                setCopySourceSquads(prev => prev.filter(s => s.id !== deleteConfirmSquad.id));
+                setCopySelectedUserIds(prev => prev.filter(id => id !== deleteConfirmSquad.userId));
+                setDeleteConfirmSquad(null);
+                setSuccessMessage(`Squad "${deleteConfirmSquad.squadName}" deleted.`);
+              } catch (err: any) {
+                setErrorMessage(`Delete failed: ${err.message}`);
+              } finally {
+                setDeleting(false);
+              }
+            }}
+          >
+            {deleting ? 'Deleting...' : 'Delete'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

@@ -259,6 +259,73 @@ export const squadService = {
       submittedAt: new Date(),
     });
   },
+
+  /**
+   * Copy a squad to a target league, resetting all scoring fields to zero.
+   * If the user already has a squad in the target league, it is overwritten.
+   * Returns the id of the created/updated squad.
+   */
+  async copyToLeague(sourceSquadId: string, targetLeagueId: string): Promise<string> {
+    const source = await squadService.getById(sourceSquadId);
+    if (!source) throw new Error(`Source squad ${sourceSquadId} not found`);
+
+    const resetFields = {
+      leagueId: targetLeagueId,
+      totalPoints: 0,
+      captainPoints: 0,
+      viceCaptainPoints: 0,
+      xFactorPoints: 0,
+      predictionBonusPoints: 0,
+      rank: 0,
+      previousRank: 0,
+      rankChange: 0,
+      pointsGainedToday: 0,
+      matchPoints: {},
+      transfersUsed: 0,
+      benchTransfersUsed: 0,
+      flexibleTransfersUsed: 0,
+      midSeasonTransfersUsed: 0,
+      transferHistory: [],
+      bankedPoints: 0,
+      powerplayPoints: 0,
+      powerplayCompleted: false,
+      ppActivatedAt: undefined,
+      hiddenPlayerPoints: 0,
+      isSubmitted: true,
+    };
+
+    const preserved = {
+      userId: source.userId,
+      squadName: source.squadName,
+      players: source.players,
+      captainId: source.captainId,
+      viceCaptainId: source.viceCaptainId,
+      xFactorId: source.xFactorId,
+      hiddenPlayerId: source.hiddenPlayerId,
+      hiddenPlayerName: source.hiddenPlayerName,
+      hiddenPlayerTeam: source.hiddenPlayerTeam,
+      hiddenPlayerRole: source.hiddenPlayerRole,
+      predictions: source.predictions,
+      powerplayMatchNumber: source.powerplayMatchNumber,
+      isValid: source.isValid,
+      validationErrors: source.validationErrors,
+    };
+
+    const existing = await squadService.getByUserAndLeague(source.userId, targetLeagueId);
+    if (existing) {
+      await squadService.update(existing.id, { ...preserved, ...resetFields });
+      return existing.id;
+    } else {
+      return await squadService.create({ ...preserved, ...resetFields } as unknown as Omit<LeagueSquad, 'id' | 'createdAt'>);
+    }
+  },
+
+  /**
+   * Permanently delete a squad document.
+   */
+  async deleteSquad(squadId: string): Promise<void> {
+    await deleteDoc(doc(db, COLLECTIONS.SQUADS, squadId));
+  },
 };
 
 // Player Operations
