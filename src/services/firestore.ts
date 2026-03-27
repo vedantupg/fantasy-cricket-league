@@ -246,6 +246,12 @@ export const leagueService = {
   },
 };
 
+function stripUndefined<T extends object>(obj: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined)
+  ) as Partial<T>;
+}
+
 // Squad Operations
 export const squadService = {
   // Create squad for user in league
@@ -342,7 +348,6 @@ export const squadService = {
       bankedPoints: 0,
       powerplayPoints: 0,
       powerplayCompleted: false,
-      ppActivatedAt: undefined,
       hiddenPlayerPoints: 0,
       isSubmitted: true,
     };
@@ -364,12 +369,14 @@ export const squadService = {
       validationErrors: source.validationErrors,
     };
 
+    const payload = stripUndefined({ ...preserved, ...resetFields });
+
     const existing = await squadService.getByUserAndLeague(source.userId, targetLeagueId);
     if (existing) {
-      await squadService.update(existing.id, { ...preserved, ...resetFields });
+      await squadService.update(existing.id, payload);
       return existing.id;
     } else {
-      return await squadService.create({ ...preserved, ...resetFields } as unknown as Omit<LeagueSquad, 'id' | 'createdAt'>);
+      return await squadService.create(payload as unknown as Omit<LeagueSquad, 'id' | 'createdAt'>);
     }
   },
 
