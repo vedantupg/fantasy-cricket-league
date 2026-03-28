@@ -179,6 +179,59 @@ export const leagueService = {
     await deleteDoc(docRef);
   },
 
+  /**
+   * Remove selected participants (contestants) from a league.
+   * Also removes their squads from that league.
+   */
+  async removeParticipantsFromLeague(
+    leagueId: string,
+    userIds: string[]
+  ): Promise<{
+    removedParticipants: number;
+    deletedSquads: number;
+  }> {
+    if (!leagueId) {
+      throw new Error('League ID is required');
+    }
+
+    const uniqueUserIds = Array.from(new Set(userIds.filter(Boolean)));
+    if (uniqueUserIds.length === 0) {
+      return { removedParticipants: 0, deletedSquads: 0 };
+    }
+
+    const league = await this.getById(leagueId);
+    if (!league) {
+      throw new Error('League not found');
+    }
+
+    const userIdSet = new Set(uniqueUserIds);
+    const updatedParticipants = (league.participants || []).filter((id) => !userIdSet.has(id));
+    const updatedSquadsSubmitted = (league.squadsSubmitted || []).filter((id) => !userIdSet.has(id));
+    const removedParticipants = (league.participants || []).length - updatedParticipants.length;
+
+    await updateDoc(doc(db, COLLECTIONS.LEAGUES, leagueId), {
+      participants: updatedParticipants,
+      squadsSubmitted: updatedSquadsSubmitted,
+    });
+
+    const squads = await squadService.getByLeague(leagueId);
+    const squadsToDelete = squads.filter((squad) => userIdSet.has(squad.userId));
+    let deletedSquads = 0;
+
+    if (squadsToDelete.length > 0) {
+      const batch = writeBatch(db);
+      squadsToDelete.forEach((squad) => {
+        batch.delete(doc(db, COLLECTIONS.SQUADS, squad.id));
+      });
+      await batch.commit();
+      deletedSquads = squadsToDelete.length;
+    }
+
+    await leaderboardSnapshotService.create(leagueId);
+
+    return { removedParticipants, deletedSquads };
+  },
+
   // Real-time listener for league updates
   subscribeToLeague(leagueId: string, callback: (league: League | null) => void): () => void {
     const docRef = doc(db, COLLECTIONS.LEAGUES, leagueId);

@@ -609,6 +609,7 @@ describe('Admin Panel - Integration Tests', () => {
     test('Should handle recalculation when player pool not found', async () => {
       (playerPoolService.getById as jest.Mock).mockResolvedValue(null);
 
+      // eslint-disable-next-line testing-library/no-await-sync-query
       const playerPool = await playerPoolService.getById('pool-1');
 
       expect(playerPool).toBeNull();

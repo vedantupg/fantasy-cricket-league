@@ -39,7 +39,7 @@ import {
   Delete as DeleteIcon,
   ContentCopy as ContentCopyIcon
 } from '@mui/icons-material';
-import { leagueService, squadService, playerPoolService, playerPoolSnapshotService, leaderboardSnapshotService, squadPlayerUtils } from '../services/firestore';
+import { leagueService, squadService, playerPoolService, playerPoolSnapshotService, leaderboardSnapshotService, squadPlayerUtils, userService } from '../services/firestore';
 import type { League, LeagueSquad, LeaderboardSnapshot, PlayerPool, PlayerPoolSnapshot } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 import TransferDataAuditTool from '../components/admin/TransferDataAuditTool';
@@ -170,13 +170,34 @@ const AdminPage: React.FC = () => {
   const [deleteConfirmSquad, setDeleteConfirmSquad] = useState<LeagueSquad | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // League Contestant Removal State
+  const [removeContestantLeagueId, setRemoveContestantLeagueId] = useState<string>('');
+  const [leagueContestantsForRemoval, setLeagueContestantsForRemoval] = useState<
+    Array<{ userId: string; displayName: string; email: string; squadName: string }>
+  >([]);
+  const [selectedContestantIdsForRemoval, setSelectedContestantIdsForRemoval] = useState<string[]>([]);
+  const [loadingLeagueContestantsForRemoval, setLoadingLeagueContestantsForRemoval] = useState(false);
+  const [removingContestantsFromLeague, setRemovingContestantsFromLeague] = useState(false);
+  const [confirmContestantRemovalOpen, setConfirmContestantRemovalOpen] = useState(false);
+  const [contestantRemovalSuccessDialog, setContestantRemovalSuccessDialog] = useState<{
+    open: boolean;
+    removedContestants: number;
+    deletedSquads: number;
+  }>({ open: false, removedContestants: 0, deletedSquads: 0 });
+
   // Load leagues on mount
   useEffect(() => {
     const loadLeagues = async () => {
       if (!user) return;
       try {
-        const userLeagues = await leagueService.getForUser(user.uid);
-        setLeagues(userLeagues);
+        const userDoc = await userService.getById(user.uid);
+        if (userDoc?.isAdmin) {
+          const allLeagues = await leagueService.getAll();
+          setLeagues(allLeagues);
+        } else {
+          const userLeagues = await leagueService.getForUser(user.uid);
+          setLeagues(userLeagues);
+        }
       } catch (error) {
         console.error('Error loading leagues:', error);
       }
@@ -297,6 +318,54 @@ const AdminPage: React.FC = () => {
     };
     loadTransferHistory();
   }, [transferHistoryLeagueId, leagues]);
+
+  // Load contestants from selected league (for removal task)
+  useEffect(() => {
+    const loadLeagueContestantsForRemoval = async () => {
+      if (!removeContestantLeagueId) {
+        setLeagueContestantsForRemoval([]);
+        setSelectedContestantIdsForRemoval([]);
+        return;
+      }
+
+      try {
+        setLoadingLeagueContestantsForRemoval(true);
+        const leagueData = await leagueService.getById(removeContestantLeagueId);
+        if (!leagueData) {
+          throw new Error('League not found');
+        }
+
+        const leagueSquads = await squadService.getByLeague(removeContestantLeagueId);
+        const squadNameByUserId = new Map<string, string>();
+        leagueSquads.forEach((squad) => {
+          squadNameByUserId.set(squad.userId, squad.squadName || '-');
+        });
+
+        const contestants = await Promise.all(
+          (leagueData.participants || []).map(async (participantId) => {
+            const participant = await userService.getById(participantId);
+            return {
+              userId: participantId,
+              displayName: participant?.displayName || 'Unknown User',
+              email: participant?.email || '-',
+              squadName: squadNameByUserId.get(participantId) || '-',
+            };
+          })
+        );
+
+        contestants.sort((a, b) => a.displayName.localeCompare(b.displayName));
+        setLeagueContestantsForRemoval(contestants);
+        setSelectedContestantIdsForRemoval([]);
+      } catch (error) {
+        console.error('Error loading league contestants for removal:', error);
+        setErrorMessage('Failed to load contestants for this league');
+      } finally {
+        setLoadingLeagueContestantsForRemoval(false);
+      }
+    };
+
+    loadLeagueContestantsForRemoval();
+  }, [removeContestantLeagueId]);
 
   const loadSquads = async () => {
     if (!selectedLeagueId) return;
@@ -550,6 +619,70 @@ const AdminPage: React.FC = () => {
       xFactorPoints: calculatedPoints.xFactorPoints,
       lastUpdated: new Date()
     });
+  };
+
+  const handleConfirmContestantRemoval = async () => {
+    if (!removeContestantLeagueId || selectedContestantIdsForRemoval.length === 0) {
+      return;
+    }
+
+    try {
+      setRemovingContestantsFromLeague(true);
+      setErrorMessage('');
+      setSuccessMessage('');
+
+      const result = await leagueService.removeParticipantsFromLeague(
+        removeContestantLeagueId,
+        selectedContestantIdsForRemoval
+      );
+
+      const selectedCount = selectedContestantIdsForRemoval.length;
+      setSuccessMessage(
+        `Removed ${selectedCount} contestant${selectedCount !== 1 ? 's' : ''} from the league. ` +
+        `${result.deletedSquads} squad${result.deletedSquads !== 1 ? 's were' : ' was'} deleted.`
+      );
+      setContestantRemovalSuccessDialog({
+        open: true,
+        removedContestants: result.removedParticipants,
+        deletedSquads: result.deletedSquads,
+      });
+
+      setConfirmContestantRemovalOpen(false);
+      setSelectedContestantIdsForRemoval([]);
+
+      // Refresh selected league in state so participant counts are updated in dropdown labels.
+      const refreshedLeague = await leagueService.getById(removeContestantLeagueId);
+      if (refreshedLeague) {
+        setLeagues((prev) => prev.map((league) => (league.id === refreshedLeague.id ? refreshedLeague : league)));
+      }
+
+      // Refresh contestant list.
+      const refreshedLeagueData = await leagueService.getById(removeContestantLeagueId);
+      const refreshedSquads = await squadService.getByLeague(removeContestantLeagueId);
+      const squadNameByUserId = new Map<string, string>();
+      refreshedSquads.forEach((squad) => {
+        squadNameByUserId.set(squad.userId, squad.squadName || '-');
+      });
+
+      const contestants = await Promise.all(
+        (refreshedLeagueData?.participants || []).map(async (participantId) => {
+          const participant = await userService.getById(participantId);
+          return {
+            userId: participantId,
+            displayName: participant?.displayName || 'Unknown User',
+            email: participant?.email || '-',
+            squadName: squadNameByUserId.get(participantId) || '-',
+          };
+        })
+      );
+      contestants.sort((a, b) => a.displayName.localeCompare(b.displayName));
+      setLeagueContestantsForRemoval(contestants);
+    } catch (error: any) {
+      console.error('Error removing contestants from league:', error);
+      setErrorMessage(error.message || 'Failed to remove selected contestants');
+    } finally {
+      setRemovingContestantsFromLeague(false);
+    }
   };
 
   const handleRecalculatePoints = async () => {
@@ -1645,6 +1778,7 @@ const AdminPage: React.FC = () => {
               <Tab label="Squad Changes" />
               <Tab label="Data Audit & Repair" />
               <Tab label="Squad Copy" />
+              <Tab label="League Contestant Removal" />
             </Tabs>
           </Box>
 
@@ -3310,6 +3444,150 @@ const AdminPage: React.FC = () => {
               )}
             </Box>
           </TabPanel>
+
+          {/* League Contestant Removal Tab */}
+          <TabPanel value={tabValue} index={7}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3 }}>
+              Remove Contestants from League
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Select a league, choose contestants, and permanently remove them from that league.
+            </Typography>
+
+            {successMessage && (
+              <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMessage('')}>
+                {successMessage}
+              </Alert>
+            )}
+            {errorMessage && (
+              <Alert severity="error" sx={{ mb: 2 }} onClose={() => setErrorMessage('')}>
+                {errorMessage}
+              </Alert>
+            )}
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <FormControl fullWidth>
+                <InputLabel>Select League</InputLabel>
+                <Select
+                  value={removeContestantLeagueId}
+                  label="Select League"
+                  onChange={(e) => setRemoveContestantLeagueId(e.target.value as string)}
+                >
+                  <MenuItem value="">
+                    <em>Select a league</em>
+                  </MenuItem>
+                  {leagues.map((league) => (
+                    <MenuItem key={league.id} value={league.id}>
+                      {league.name} - {league.tournamentName}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {!removeContestantLeagueId && (
+                <Alert severity="info">
+                  Choose a league to see all contestants in that league.
+                </Alert>
+              )}
+
+              {loadingLeagueContestantsForRemoval && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                  <CircularProgress />
+                </Box>
+              )}
+
+              {removeContestantLeagueId && !loadingLeagueContestantsForRemoval && leagueContestantsForRemoval.length === 0 && (
+                <Alert severity="info">
+                  No contestants found in this league.
+                </Alert>
+              )}
+
+              {removeContestantLeagueId && !loadingLeagueContestantsForRemoval && leagueContestantsForRemoval.length > 0 && (
+                <Card variant="outlined">
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                        Contestants in this league ({leagueContestantsForRemoval.length})
+                      </Typography>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={
+                              selectedContestantIdsForRemoval.length === leagueContestantsForRemoval.length &&
+                              leagueContestantsForRemoval.length > 0
+                            }
+                            indeterminate={
+                              selectedContestantIdsForRemoval.length > 0 &&
+                              selectedContestantIdsForRemoval.length < leagueContestantsForRemoval.length
+                            }
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedContestantIdsForRemoval(
+                                  leagueContestantsForRemoval.map((contestant) => contestant.userId)
+                                );
+                              } else {
+                                setSelectedContestantIdsForRemoval([]);
+                              }
+                            }}
+                          />
+                        }
+                        label="Select All"
+                      />
+                    </Box>
+
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell padding="checkbox" />
+                          <TableCell>Contestant</TableCell>
+                          <TableCell>Email</TableCell>
+                          <TableCell>Team (Squad)</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {leagueContestantsForRemoval.map((contestant) => (
+                          <TableRow
+                            key={contestant.userId}
+                            selected={selectedContestantIdsForRemoval.includes(contestant.userId)}
+                          >
+                            <TableCell padding="checkbox">
+                              <Checkbox
+                                checked={selectedContestantIdsForRemoval.includes(contestant.userId)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedContestantIdsForRemoval((prev) => [...prev, contestant.userId]);
+                                  } else {
+                                    setSelectedContestantIdsForRemoval((prev) => prev.filter((id) => id !== contestant.userId));
+                                  }
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell>{contestant.displayName}</TableCell>
+                            <TableCell>{contestant.email}</TableCell>
+                            <TableCell>{contestant.squadName}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+
+                    <Alert severity="warning" sx={{ mt: 2 }}>
+                      This operation permanently removes selected contestants from this league and deletes their squads. This cannot be reversed.
+                    </Alert>
+
+                    <Button
+                      variant="contained"
+                      color="error"
+                      disabled={selectedContestantIdsForRemoval.length === 0 || removingContestantsFromLeague}
+                      onClick={() => setConfirmContestantRemovalOpen(true)}
+                      sx={{ mt: 2 }}
+                    >
+                      Remove Selected Contestants ({selectedContestantIdsForRemoval.length})
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </Box>
+          </TabPanel>
         </Card>
       </Container>
 
@@ -3342,6 +3620,61 @@ const AdminPage: React.FC = () => {
           </Button>
           <Button onClick={handleConfirmReverse} color="warning" variant="contained" disabled={loading}>
             {loading ? 'Reversing...' : 'Confirm Reverse'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* League Contestant Removal Confirmation Dialog */}
+      <Dialog
+        open={confirmContestantRemovalOpen}
+        onClose={() => !removingContestantsFromLeague && setConfirmContestantRemovalOpen(false)}
+      >
+        <DialogTitle>Confirm Contestant Removal</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to remove {selectedContestantIdsForRemoval.length} selected contestant
+            {selectedContestantIdsForRemoval.length !== 1 ? 's' : ''} from this league?
+          </Typography>
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            This cannot be reversed. Selected contestants and their squads will be removed from this league.
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmContestantRemovalOpen(false)} disabled={removingContestantsFromLeague}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleConfirmContestantRemoval}
+            disabled={removingContestantsFromLeague || selectedContestantIdsForRemoval.length === 0}
+          >
+            {removingContestantsFromLeague ? 'Removing...' : 'Yes, Remove Contestants'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Contestant Removal Success Dialog */}
+      <Dialog
+        open={contestantRemovalSuccessDialog.open}
+        onClose={() => setContestantRemovalSuccessDialog({ open: false, removedContestants: 0, deletedSquads: 0 })}
+      >
+        <DialogTitle>Contestants Removed</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Successfully removed {contestantRemovalSuccessDialog.removedContestants} contestant
+            {contestantRemovalSuccessDialog.removedContestants !== 1 ? 's' : ''} from the league.
+          </Typography>
+          <Typography sx={{ mt: 1 }}>
+            Deleted squads: {contestantRemovalSuccessDialog.deletedSquads}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant="contained"
+            onClick={() => setContestantRemovalSuccessDialog({ open: false, removedContestants: 0, deletedSquads: 0 })}
+          >
+            OK
           </Button>
         </DialogActions>
       </Dialog>
