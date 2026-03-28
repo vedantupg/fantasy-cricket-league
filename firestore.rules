@@ -23,6 +23,10 @@ service cloud.firestore {
              (get(/databases/$(database)/documents/leagues/$(leagueId)).data.creatorId == request.auth.uid ||
               request.auth.uid in get(/databases/$(database)/documents/leagues/$(leagueId)).data.adminIds);
     }
+
+    function canManageLeague(leagueId) {
+      return isLeagueAdmin(leagueId) || isAdmin();
+    }
     
     function isLeagueParticipant(leagueId) {
       return isAuthenticated() && 
@@ -68,12 +72,12 @@ service cloud.firestore {
       allow create: if isAuthenticated();
       // Allow league admins to update everything
       // Allow authenticated users to join league (update participants array only)
-      allow update: if isLeagueAdmin(leagueId) ||
+      allow update: if canManageLeague(leagueId) ||
                        (isAuthenticated() &&
                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants']) &&
                         request.auth.uid in request.resource.data.participants &&
                         !(request.auth.uid in resource.data.participants));
-      allow delete: if isLeagueAdmin(leagueId);
+      allow delete: if canManageLeague(leagueId);
     }
 
     // Squads collection
@@ -84,6 +88,7 @@ service cloud.firestore {
       // League admins can read all squads in their league
       allow read: if isAuthenticated() &&
                      (resource.data.userId == request.auth.uid ||
+                      isAdmin() ||
                       isLeagueAdmin(resource.data.leagueId) ||
                       isTournamentStarted(resource.data.leagueId) ||
                       isLeagueParticipant(resource.data.leagueId));
@@ -93,14 +98,14 @@ service cloud.firestore {
                        request.resource.data.userId == request.auth.uid;
       
       allow update: if isAuthenticated() &&
-                       (resource.data.userId == request.auth.uid || isLeagueAdmin(resource.data.leagueId)) &&
+                       (resource.data.userId == request.auth.uid || canManageLeague(resource.data.leagueId)) &&
                        (!resource.data.isSubmitted ||
-                        isLeagueAdmin(resource.data.leagueId) ||
+                        canManageLeague(resource.data.leagueId) ||
                         isBeforeSquadDeadline(resource.data.leagueId) ||
                         areFlexibleChangesEnabled(resource.data.leagueId) ||
                         areBenchChangesEnabled(resource.data.leagueId));
       
-      allow delete: if isLeagueAdmin(resource.data.leagueId);
+      allow delete: if canManageLeague(resource.data.leagueId);
     }
 
     // Players collection (read-only for users, write for admins)
@@ -122,9 +127,9 @@ service cloud.firestore {
                        isLeagueParticipant(request.resource.data.leagueId);
       
       // Only league admins can approve/reject transfers
-      allow update: if isLeagueAdmin(resource.data.leagueId);
+      allow update: if canManageLeague(resource.data.leagueId);
       
-      allow delete: if isLeagueAdmin(resource.data.leagueId);
+      allow delete: if canManageLeague(resource.data.leagueId);
     }
 
     // Matches collection (read-only for users, write for admins)
@@ -169,8 +174,10 @@ service cloud.firestore {
       // All authenticated users can read leaderboard snapshots
       allow read: if isAuthenticated();
       // Only league admins can create or delete snapshots
-      allow create: if isAuthenticated();
-      allow delete: if isAuthenticated();
+      allow create: if isAuthenticated() &&
+                      canManageLeague(request.resource.data.leagueId);
+      allow delete: if isAuthenticated() &&
+                      canManageLeague(resource.data.leagueId);
     }
 
     // Deny all other reads/writes
