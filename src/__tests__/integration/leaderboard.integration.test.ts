@@ -447,6 +447,7 @@ describe('Leaderboard and Snapshot System - Integration Tests', () => {
 
       (leaderboardSnapshotService.getByLeague as jest.Mock).mockResolvedValue(mockSnapshots);
 
+      // eslint-disable-next-line testing-library/no-await-sync-query
       const snapshots = await leaderboardSnapshotService.getByLeague('league-1');
       const sortedSnapshots = [...snapshots].sort((a, b) => a.snapshotDate.getTime() - b.snapshotDate.getTime());
 
@@ -477,6 +478,7 @@ describe('Leaderboard and Snapshot System - Integration Tests', () => {
 
       (leaderboardSnapshotService.getByLeague as jest.Mock).mockResolvedValue(mockSnapshots);
 
+      // eslint-disable-next-line testing-library/no-await-sync-query
       const snapshots = await leaderboardSnapshotService.getByLeague('league-1');
       const latestSnapshot = snapshots.reduce((latest, snapshot) =>
         snapshot.snapshotDate > latest.snapshotDate ? snapshot : latest
