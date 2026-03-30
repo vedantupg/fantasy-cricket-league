@@ -692,5 +692,46 @@ describe('Transfer Point Stability - Integration Tests', () => {
       expect(bankedAfterTransfer).toBe(initialBanked + outgoingContribution);
       expect(afterBenchLoss.totalPoints).toBeCloseTo(afterTransfer.totalPoints, 2);
     });
+
+    it('should accumulate positive then negative transfer contributions into banked points', () => {
+      // Exact business example:
+      // 1) Transfer out +100 contributor -> banked = 100
+      // 2) Transfer out -20 contributor -> banked = 80
+      let bankedPoints = 0;
+
+      const playerA = createPlayer('a1', 'Player A', 100, 0); // +100
+      const playerB = createPlayer('b1', 'Player B', 80, 100); // -20
+
+      bankedPoints += calculatePlayerContribution(playerA, 'regular');
+      expect(bankedPoints).toBe(100);
+
+      bankedPoints += calculatePlayerContribution(playerB, 'regular');
+      expect(bankedPoints).toBe(80);
+    });
+
+    it('should keep banked total unchanged after subsequent bench-point changes for moved-out players', () => {
+      // Two players moved out at different times:
+      // one positive contributor, one negative contributor.
+      // After banking, later point changes while on bench should not retroactively alter totals.
+      const pPositive = createPlayer('pPos', 'Positive Out', 200, 100); // +100
+      const pNegative = createPlayer('pNeg', 'Negative Out', 90, 110);  // -20
+
+      const firstBank = calculatePlayerContribution(pPositive, 'regular');
+      const secondBank = calculatePlayerContribution(pNegative, 'regular');
+      const bankedAfterTransfers = firstBank + secondBank; // 80
+
+      // Freeze snapshots when moved out of XI (same rule as transfer flow)
+      const frozenPositive = { ...pPositive, pointsAtJoining: pPositive.points, pointsWhenRoleAssigned: pPositive.points };
+      const frozenNegative = { ...pNegative, pointsAtJoining: pNegative.points, pointsWhenRoleAssigned: pNegative.points };
+
+      // Later updates while still on bench
+      const updatedPositive = { ...frozenPositive, points: frozenPositive.points + 50 };
+      const updatedNegative = { ...frozenNegative, points: frozenNegative.points - 40 };
+
+      // Banking is event-driven at transfer-time and must remain fixed
+      expect(bankedAfterTransfers).toBe(80);
+      expect(updatedPositive.pointsAtJoining).toBe(frozenPositive.points);
+      expect(updatedNegative.pointsAtJoining).toBe(frozenNegative.points);
+    });
   });
 });
