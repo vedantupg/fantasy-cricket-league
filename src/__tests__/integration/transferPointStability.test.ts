@@ -482,11 +482,11 @@ describe('Transfer Point Stability - Integration Tests', () => {
       expect(contribution).toBe(0);
     });
 
-    it('should handle negative point calculations (use Math.max)', () => {
-      // Edge case: pointsAtJoining > current points (shouldn't happen, but be defensive)
+    it('should include negative point calculations when current drops below join snapshot', () => {
+      // Valid scenario with penalties/corrections after player joins squad
       const player = createPlayer('p1', 'Player 1', 50, 100);
       const contribution = calculatePlayerContribution(player, 'regular');
-      expect(contribution).toBe(0); // Math.max prevents negative
+      expect(contribution).toBe(-50);
     });
 
     it('should handle very large point values', () => {
@@ -515,6 +515,124 @@ describe('Transfer Point Stability - Integration Tests', () => {
       // Base: 50 * 1.0 = 50
       // Bonus: 0 * 2.0 = 0
       expect(contribution).toBeCloseTo(50, 2);
+    });
+
+    it('should bank negative regular contribution and keep transfer totals stable', () => {
+      // Before transfer: old player has negative contribution (-40)
+      // After transfer: remove old player, bank -40, new player starts at 0 contribution
+      // Net total should remain unchanged
+      const squadSize = 11;
+
+      const captain = createPlayer('c1', 'Captain', 200, 100, 150); // +150 as captain
+      const oldPlayer = createPlayer('o1', 'Old Player', 80, 120); // -40 regular
+      const other = createPlayer('p3', 'Other', 130, 100); // +30 regular
+      const bankedPoints = 50;
+
+      const before = calculateSquadPoints(
+        [captain, oldPlayer, other],
+        squadSize,
+        'c1',
+        undefined,
+        undefined,
+        bankedPoints
+      );
+
+      const oldContribution = calculatePlayerContribution(oldPlayer, 'regular');
+      expect(oldContribution).toBe(-40);
+
+      const newBanked = bankedPoints + oldContribution; // 10
+      const replacement = createPlayer('n1', 'Replacement', 160, 160); // starts fresh at 0 contribution
+
+      const after = calculateSquadPoints(
+        [captain, replacement, other],
+        squadSize,
+        'c1',
+        undefined,
+        undefined,
+        newBanked
+      );
+
+      expect(after.totalPoints).toBeCloseTo(before.totalPoints, 2);
+    });
+
+    it('should bank negative VC contribution and keep totals stable on replacement', () => {
+      // VC contribution can be negative when post-assignment points fall sharply.
+      // Banking that negative amount should still preserve total continuity across transfer.
+      const squadSize = 11;
+
+      const captain = createPlayer('c1', 'Captain', 180, 80, 120); // +180 as captain
+      const oldVC = createPlayer('vc1', 'Old VC', 90, 100, 120); // base +20, bonus -30*1.5 => -25
+      const regular = createPlayer('r1', 'Regular', 140, 100); // +40
+      const bankedPoints = 70;
+
+      const before = calculateSquadPoints(
+        [captain, oldVC, regular],
+        squadSize,
+        'c1',
+        'vc1',
+        undefined,
+        bankedPoints
+      );
+
+      const oldVcContribution = calculatePlayerContribution(oldVC, 'viceCaptain');
+      expect(oldVcContribution).toBeCloseTo(-25, 2);
+
+      const newBanked = bankedPoints + oldVcContribution; // 45
+      const newVC = createPlayer('vc2', 'New VC', 150, 150, 150); // new VC starts from 0 effective points
+
+      const after = calculateSquadPoints(
+        [captain, newVC, regular],
+        squadSize,
+        'c1',
+        'vc2',
+        undefined,
+        newBanked
+      );
+
+      expect(after.totalPoints).toBeCloseTo(before.totalPoints, 2);
+    });
+  });
+
+  describe('Negative Delta Pool Updates', () => {
+    it('should decrease total correctly when pool update contains losses after transfer', () => {
+      const squadSize = 11;
+
+      // Post-transfer baseline squad
+      const captain = createPlayer('c1', 'Captain', 220, 100, 160); // captain
+      const vc = createPlayer('vc1', 'VC', 170, 140, 150); // vc
+      const regular = createPlayer('r1', 'Regular', 130, 110); // regular
+      const bankedPoints = 90;
+
+      const beforeUpdate = calculateSquadPoints(
+        [captain, vc, regular],
+        squadSize,
+        'c1',
+        'vc1',
+        undefined,
+        bankedPoints
+      );
+
+      // Pool update applies penalties/corrections:
+      // captain: -10 raw => -20 contribution at 2x
+      // vc: -20 raw => -30 contribution at 1.5x
+      // regular: -15 raw => -15 contribution at 1x
+      const afterUpdate = calculateSquadPoints(
+        [
+          { ...captain, points: 210 },
+          { ...vc, points: 150 },
+          { ...regular, points: 115 },
+        ],
+        squadSize,
+        'c1',
+        'vc1',
+        undefined,
+        bankedPoints
+      );
+
+      const actualDelta = afterUpdate.totalPoints - beforeUpdate.totalPoints;
+      const expectedDelta = -20 - 30 - 15;
+
+      expect(actualDelta).toBeCloseTo(expectedDelta, 2);
     });
   });
 });

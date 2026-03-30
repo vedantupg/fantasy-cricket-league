@@ -388,18 +388,15 @@ describe('Transfer System - Critical Requirements', () => {
 
   describe('7. Edge Cases and Error Prevention', () => {
 
-    test('Should handle negative banking scenarios (should not happen)', () => {
-      // Edge case: player points somehow decreased (shouldn't happen in real scenario)
+    test('Should allow negative banking scenarios when player points decrease', () => {
+      // Penalties/corrections can reduce points after joining.
       const playerOut = createMockPlayer({
         points: 100,
         pointsAtJoining: 200, // Joined at higher points?
       });
 
       const contribution = playerOut.points - playerOut.pointsAtJoining; // = -100
-
-      // In real implementation, we should use Math.max(0, contribution) to prevent negative banking
-      const safeContribution = Math.max(0, contribution);
-      expect(safeContribution).toBe(0);
+      expect(contribution).toBe(-100);
     });
 
     test('Should handle missing pointsAtJoining (legacy data)', () => {

@@ -91,12 +91,14 @@ service cloud.firestore {
                       isAdmin() ||
                       isLeagueAdmin(resource.data.leagueId) ||
                       isTournamentStarted(resource.data.leagueId) ||
-                      isLeagueParticipant(resource.data.leagueId));
+                      isLeagueParticipant(resource.data.leagueId) ||
+                      isAdmin());
       
       // Users can create/update their own squad (if not submitted and tournament not started)
-      allow create: if isAuthenticated() && 
-                       request.resource.data.userId == request.auth.uid;
-      
+      allow create: if isAuthenticated() &&
+                       (request.resource.data.userId == request.auth.uid ||
+                        isAdmin());
+
       allow update: if isAuthenticated() &&
                        (resource.data.userId == request.auth.uid || canManageLeague(resource.data.leagueId)) &&
                        (!resource.data.isSubmitted ||
@@ -104,7 +106,7 @@ service cloud.firestore {
                         isBeforeSquadDeadline(resource.data.leagueId) ||
                         areFlexibleChangesEnabled(resource.data.leagueId) ||
                         areBenchChangesEnabled(resource.data.leagueId));
-      
+
       allow delete: if canManageLeague(resource.data.leagueId);
     }
 

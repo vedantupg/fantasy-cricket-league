@@ -262,16 +262,16 @@ describe('Multi-User Concurrent Operations - Integration Tests', () => {
 
       const transfers = [
         { playerOut: { points: 500, pointsAtJoining: 300 } }, // Bank 200
-        { playerOut: { points: 400, pointsAtJoining: 250 } }, // Bank 150
+        { playerOut: { points: 200, pointsAtJoining: 250 } }, // Bank -50
         { playerOut: { points: 350, pointsAtJoining: 200 } }, // Bank 150
       ];
 
       for (const transfer of transfers) {
-        const contribution = Math.max(0, transfer.playerOut.points - transfer.playerOut.pointsAtJoining);
+        const contribution = transfer.playerOut.points - transfer.playerOut.pointsAtJoining;
         bankedPoints += contribution;
       }
 
-      expect(bankedPoints).toBe(600); // 100 + 200 + 150 + 150
+      expect(bankedPoints).toBe(400); // 100 + 200 - 50 + 150
     });
 
     test('Should rollback changes on error during multi-step operation', async () => {

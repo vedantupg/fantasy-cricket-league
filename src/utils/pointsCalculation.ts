@@ -179,11 +179,13 @@ export function calculatePlayerContribution(
   const pointsAtJoining = player.pointsAtJoining ?? 0;
   const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
 
-  // Base points: earned before role assignment (or all points if no role)
-  const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
+  // Base points: earned before role assignment (or all points if no role).
+  // Keep signed deltas so penalties/negative points reduce squad totals correctly.
+  const basePoints = pointsWhenRoleAssigned - pointsAtJoining;
 
-  // Bonus points: earned after role assignment (only if role assigned)
-  const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
+  // Bonus points: earned after role assignment (only if role assigned).
+  // Keep signed deltas so role multipliers apply to both gains and losses.
+  const bonusPoints = player.points - pointsWhenRoleAssigned;
 
   // Apply role-specific multipliers
   if (role === 'captain') {
@@ -197,7 +199,7 @@ export function calculatePlayerContribution(
     return basePoints * 1.0 + bonusPoints * 1.25;
   } else {
     // Regular player: all points at 1x (no multiplier)
-    return Math.max(0, player.points - pointsAtJoining);
+    return player.points - pointsAtJoining;
   }
 }
 
@@ -305,13 +307,6 @@ export function validateRoleTimestamp(
     return {
       valid: false,
       warning: `⚠️ ${player.playerName} has pointsWhenRoleAssigned (${player.pointsWhenRoleAssigned}) less than pointsAtJoining (${pointsAtJoining}). Data corruption detected.`,
-    };
-  }
-
-  if (player.pointsWhenRoleAssigned > player.points) {
-    return {
-      valid: false,
-      warning: `⚠️ ${player.playerName} has pointsWhenRoleAssigned (${player.pointsWhenRoleAssigned}) greater than current points (${player.points}). Data corruption detected.`,
     };
   }
 

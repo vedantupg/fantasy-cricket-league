@@ -677,19 +677,19 @@ describe('Squad Management - End-to-End Integration Tests', () => {
       };
 
       const pointsAtJoining = player.pointsAtJoining ?? 0;
-      const contribution = Math.max(0, player.points - pointsAtJoining);
+      const contribution = player.points - pointsAtJoining;
 
       expect(contribution).toBe(500); // Defaults to contributing all points
     });
 
-    test('Should handle negative contribution with Math.max', async () => {
+    test('Should preserve negative contribution when points drop', async () => {
       const player = {
         points: 100,
         pointsAtJoining: 200, // Edge case
       };
 
-      const contribution = Math.max(0, player.points - player.pointsAtJoining);
-      expect(contribution).toBe(0); // Should not go negative
+      const contribution = player.points - player.pointsAtJoining;
+      expect(contribution).toBe(-100);
     });
   });
 });
