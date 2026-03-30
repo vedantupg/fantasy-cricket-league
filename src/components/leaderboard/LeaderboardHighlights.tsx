@@ -3,17 +3,19 @@ import { Box, Avatar, Typography, Paper } from '@mui/material';
 import {
   EmojiEvents as TrophyIcon,
   TrendingUp as TrendingUpIcon,
+  LocalFireDepartment as FireIcon,
 } from '@mui/icons-material';
-import type { LeaderboardSnapshot } from '../../types/database';
+import type { LeaderboardSnapshot, PlayerPoolSnapshot } from '../../types/database';
 
 interface LeaderboardHighlightsProps {
   snapshot: LeaderboardSnapshot;
+  poolSnapshot?: PlayerPoolSnapshot | null;
 }
 
 const getInitials = (name: string) =>
   name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
-const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot }) => {
+const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot, poolSnapshot }) => {
   const { bestPerformer: snapshotBestPerformer, rapidRiser: snapshotRapidRiser, standings } = snapshot;
 
   // Calculate fallback highlights if not provided (e.g., first snapshot)
@@ -76,7 +78,14 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
     ? standings.find(s => s.userId === rapidRiser!.userId)
     : undefined;
 
-  if (!bestPerformer && !rapidRiser) {
+  const topGainers = poolSnapshot?.changes
+    ? [...poolSnapshot.changes]
+        .filter(c => c.delta > 0)
+        .sort((a, b) => b.delta - a.delta)
+        .slice(0, 5)
+    : [];
+
+  if (!bestPerformer && !rapidRiser && topGainers.length === 0) {
     return null;
   }
 
@@ -362,6 +371,77 @@ const LeaderboardHighlights: React.FC<LeaderboardHighlightsProps> = ({ snapshot 
           </Box>
         )}
       </Box>
+
+      {/* Top Gainers Strip */}
+      {topGainers.length > 0 && (
+        <Box sx={{ mt: { xs: 1.5, sm: 2 } }}>
+          <Paper elevation={2} sx={{
+            px: { xs: 1, sm: 1.25 },
+            py: { xs: 0.75, sm: 1 },
+            background: 'linear-gradient(135deg, rgba(67, 160, 71, 0.12) 0%, rgba(67, 160, 71, 0.03) 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+            borderLeft: '4px solid #43A047',
+            borderRadius: 2.5,
+          }}>
+            {/* Header */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.75, sm: 1 }, mb: { xs: 0.5, sm: 0.75 } }}>
+              <FireIcon sx={{ fontSize: { xs: 18, sm: 20 }, color: '#43A047' }} />
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontWeight: 800,
+                  color: '#43A047',
+                  textTransform: 'uppercase',
+                  letterSpacing: '2px',
+                  fontSize: { xs: '0.6rem', sm: '0.65rem' },
+                }}
+              >
+                Top Gainers
+              </Typography>
+            </Box>
+
+            {/* Scrollable chips row */}
+            <Box sx={{
+              display: 'flex',
+              gap: { xs: 0.75, sm: 1 },
+              overflowX: 'auto',
+              pb: 0.25,
+              '&::-webkit-scrollbar': { height: 3 },
+              '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
+              '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(67, 160, 71, 0.3)', borderRadius: 2 },
+            }}>
+              {topGainers.map((gainer) => (
+                <Box
+                  key={gainer.playerId}
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.75,
+                    px: 1.25,
+                    py: 0.5,
+                    bgcolor: 'rgba(67, 160, 71, 0.08)',
+                    border: '1px solid rgba(67, 160, 71, 0.25)',
+                    borderRadius: 1.5,
+                    flexShrink: 0,
+                  }}
+                >
+                  <Typography sx={{ fontWeight: 700, fontSize: '0.75rem', color: 'text.primary' }}>
+                    {gainer.name}
+                  </Typography>
+                  <Typography sx={{
+                    fontFamily: "'Bebas Neue', sans-serif",
+                    fontSize: '0.9rem',
+                    color: '#43A047',
+                    lineHeight: 1,
+                  }}>
+                    +{gainer.delta.toFixed(1)}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </Paper>
+        </Box>
+      )}
     </Box>
   );
 };

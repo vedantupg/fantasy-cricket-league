@@ -20,8 +20,8 @@ import CompactPodium from '../components/leaderboard/CompactPodium';
 import CompactLeaderboardCard from '../components/leaderboard/CompactLeaderboardCard';
 import LeaderboardHighlights from '../components/leaderboard/LeaderboardHighlights';
 import LeagueAssistant from '../components/LeagueAssistant';
-import { leaderboardSnapshotService, leagueService, squadService } from '../services/firestore';
-import type { LeaderboardSnapshot, League, StandingEntry } from '../types/database';
+import { leaderboardSnapshotService, leagueService, squadService, playerPoolSnapshotService } from '../services/firestore';
+import type { LeaderboardSnapshot, League, StandingEntry, PlayerPoolSnapshot } from '../types/database';
 import { calculateRankStreaks, attachStreaksToStandings } from '../utils/streakCalculator';
 
 const LeaderboardPage: React.FC = () => {
@@ -30,6 +30,7 @@ const LeaderboardPage: React.FC = () => {
 
   const [snapshot, setSnapshot] = useState<LeaderboardSnapshot | null>(null);
   const [league, setLeague] = useState<League | null>(null);
+  const [poolSnapshot, setPoolSnapshot] = useState<PlayerPoolSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,6 +53,16 @@ const LeaderboardPage: React.FC = () => {
         return;
       }
       setLeague(leagueData);
+
+      // Fetch latest player pool snapshot (non-fatal)
+      if (leagueData.playerPoolId) {
+        try {
+          const ps = await playerPoolSnapshotService.getLatest(leagueData.playerPoolId);
+          setPoolSnapshot(ps);
+        } catch {
+          // non-fatal — strip simply won't render
+        }
+      }
 
       // Try to fetch latest snapshot
       try {
@@ -549,7 +560,7 @@ const LeaderboardPage: React.FC = () => {
               </Typography>
               <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,255,255,0.08)' }} />
             </Box>
-            <LeaderboardHighlights snapshot={snapshot} />
+            <LeaderboardHighlights snapshot={snapshot} poolSnapshot={poolSnapshot} />
           </>
         )}
 

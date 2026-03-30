@@ -3434,6 +3434,15 @@ const AdminPage: React.FC = () => {
                         }
                       }
                       setCopyResults(results);
+                      // Refresh target league leaderboard snapshot so copied squads are visible
+                      const successCount = results.filter(r => r.status === 'success').length;
+                      if (successCount > 0) {
+                        try {
+                          await leaderboardSnapshotService.create(copyTargetLeagueId);
+                        } catch (snapshotErr) {
+                          console.warn('Leaderboard snapshot refresh failed after copy:', snapshotErr);
+                        }
+                      }
                       setCopying(false);
                     }}
                     sx={{ alignSelf: 'flex-start' }}

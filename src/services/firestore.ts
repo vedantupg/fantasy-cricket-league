@@ -907,6 +907,18 @@ export const playerPoolSnapshotService = {
         // Sort changes by delta (highest first)
         changes.sort((a, b) => b.delta - a.delta);
         snapshotData.changes = changes;
+      } else {
+        // First/baseline snapshot — treat all current points as gained from zero
+        snapshotData.changes = playerPool.players
+          .filter(p => p.points > 0)
+          .map(p => ({
+            playerId: p.playerId,
+            name: p.name,
+            previousPoints: 0,
+            newPoints: p.points,
+            delta: p.points,
+          }))
+          .sort((a, b) => b.delta - a.delta);
       }
 
       // Save the snapshot
@@ -996,9 +1008,10 @@ export const leaderboardSnapshotService = {
         }
       }
 
-      // Get all squads for this league
-      const squads = await squadService.getByLeague(leagueId);
-      console.log(`Found ${squads.length} squads in league`);
+      // Get all squads for this league, filtering to only submitted ones
+      const allSquads = await squadService.getByLeague(leagueId);
+      const squads = allSquads.filter(s => s.isSubmitted);
+      console.log(`Found ${squads.length} submitted squads in league (${allSquads.length} total)`);
 
       if (squads.length === 0) {
         console.warn(`No squads found for league ${leagueId}. Creating empty snapshot.`);
