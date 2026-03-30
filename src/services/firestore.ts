@@ -1565,6 +1565,6 @@ export const squadPlayerUtils = {
    */
   calculateEffectivePoints(player: SquadPlayer): number {
     const pointsAtJoining = player.pointsAtJoining ?? 0;
-    return Math.max(0, player.points - pointsAtJoining);
+    return player.points - pointsAtJoining;
   },
 };

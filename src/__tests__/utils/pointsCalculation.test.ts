@@ -257,12 +257,22 @@ describe('Points Calculation - Complete Coverage', () => {
       expect(contrib).toBe(0);
     });
 
-    it('should handle negative calculation results using Math.max', () => {
-      // Edge case: current points less than pointsAtJoining (shouldn't happen in real data)
+    it('should include negative contribution when current points drop below join points', () => {
       const player = createPlayer('p1', 50, 100);
       
       const contrib = calculatePlayerContribution(player, 'regular');
-      expect(contrib).toBe(0); // Math.max(0, 50-100) = 0
+      expect(contrib).toBe(-50);
+    });
+
+    it('should apply role multipliers to negative post-assignment deltas', () => {
+      // Captain assigned at 150, then player drops to 130.
+      // Base: (150-100)*1 = 50
+      // Bonus: (130-150)*2 = -40
+      // Total: 10
+      const player = createPlayer('p1', 130, 100, 150);
+
+      const contrib = calculatePlayerContribution(player, 'captain');
+      expect(contrib).toBe(10);
     });
   });
 
@@ -377,6 +387,60 @@ describe('Points Calculation - Complete Coverage', () => {
 
       expect(result.totalPoints).toBe(50);
     });
+
+    it('should include negative regular contributions in squad total', () => {
+      const players = [
+        createPlayer('p1', 80, 100),  // -20
+        createPlayer('p2', 150, 100), // +50
+      ];
+
+      const result = calculateSquadPoints(players, 2, undefined, undefined, undefined, 0);
+
+      expect(result.totalPoints).toBe(30);
+    });
+
+    it('should apply captain multiplier to negative post-assignment points', () => {
+      const players = [
+        createPlayer('c1', 130, 100, 150), // Base +50, Bonus -20 * 2 => +10 total
+        createPlayer('p2', 110, 100),      // +10
+      ];
+
+      const result = calculateSquadPoints(players, 2, 'c1', undefined, undefined, 0);
+
+      expect(result.captainPoints).toBe(10);
+      expect(result.totalPoints).toBe(20);
+    });
+
+    it('should allow negative total when losses exceed gains', () => {
+      const players = [
+        createPlayer('c1', 120, 100, 140), // Base +40, Bonus -20 * 2 => 0
+        createPlayer('p2', 60, 100),       // -40
+      ];
+
+      const result = calculateSquadPoints(players, 2, 'c1', undefined, undefined, 0);
+
+      expect(result.captainPoints).toBe(0);
+      expect(result.totalPoints).toBe(-40);
+    });
+
+    it('should apply negative banked points to final total', () => {
+      const players = [createPlayer('p1', 140, 100)]; // +40
+
+      const result = calculateSquadPoints(players, 1, undefined, undefined, undefined, -25);
+
+      expect(result.totalPoints).toBe(15);
+    });
+
+    it('should ignore bench penalties when computing starting XI total', () => {
+      const players = [
+        createPlayer('p1', 150, 100), // +50 (starting XI)
+        createPlayer('b1', 0, 100),   // -100 (bench, should be ignored)
+      ];
+
+      const result = calculateSquadPoints(players, 1, undefined, undefined, undefined, 0);
+
+      expect(result.totalPoints).toBe(50);
+    });
   });
 
   describe('validateRoleTimestamp', () => {
@@ -417,14 +481,13 @@ describe('Points Calculation - Complete Coverage', () => {
       expect(result.warning).toContain('corruption');
     });
 
-    it('should detect timestamp greater than current points (corruption)', () => {
+    it('should allow timestamp greater than current points when player lost points later', () => {
       const player = createPlayer('p1', 150, 100, 200); // 200 > 150
       
       const result = validateRoleTimestamp(player, 'viceCaptain');
 
-      expect(result.valid).toBe(false);
-      expect(result.warning).toContain('greater than current points');
-      expect(result.warning).toContain('corruption');
+      expect(result.valid).toBe(true);
+      expect(result.warning).toBeUndefined();
     });
 
     it('should validate all role types', () => {

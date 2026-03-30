@@ -1247,7 +1247,7 @@ const AdminPage: React.FC = () => {
       const startingXI = updatedPlayers.slice(0, squadSize);
       const playerBreakdown = startingXI.map(player => {
         const pointsAtJoining = player.pointsAtJoining ?? 0;
-        const effectivePoints = Math.max(0, player.points - pointsAtJoining);
+        const effectivePoints = player.points - pointsAtJoining;
 
         let contribution = effectivePoints;
         let role = undefined;
@@ -1257,22 +1257,22 @@ const AdminPage: React.FC = () => {
           role = 'Captain';
           multiplier = 2.0;
           const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
-          const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
-          const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
+          const basePoints = pointsWhenRoleAssigned - pointsAtJoining;
+          const bonusPoints = player.points - pointsWhenRoleAssigned;
           contribution = basePoints * 1.0 + bonusPoints * 2.0;
         } else if (squad.viceCaptainId === player.playerId) {
           role = 'Vice-Captain';
           multiplier = 1.5;
           const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
-          const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
-          const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
+          const basePoints = pointsWhenRoleAssigned - pointsAtJoining;
+          const bonusPoints = player.points - pointsWhenRoleAssigned;
           contribution = basePoints * 1.0 + bonusPoints * 1.5;
         } else if (squad.xFactorId === player.playerId) {
           role = 'X-Factor';
           multiplier = 1.25;
           const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
-          const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
-          const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
+          const basePoints = pointsWhenRoleAssigned - pointsAtJoining;
+          const bonusPoints = player.points - pointsWhenRoleAssigned;
           contribution = basePoints * 1.0 + bonusPoints * 1.25;
         }
 
@@ -1600,26 +1600,26 @@ const AdminPage: React.FC = () => {
 
     mainSquad.forEach(player => {
       const pointsAtJoining = player.pointsAtJoining ?? 0;
-      const effectivePoints = Math.max(0, player.points - pointsAtJoining);
+      const effectivePoints = player.points - pointsAtJoining;
 
       let playerPoints = 0;
 
       if (captainId === player.playerId) {
         const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
-        const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
-        const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
+        const basePoints = pointsWhenRoleAssigned - pointsAtJoining;
+        const bonusPoints = player.points - pointsWhenRoleAssigned;
         captainPoints = basePoints * 1.0 + bonusPoints * 2.0;
         playerPoints = captainPoints;
       } else if (viceCaptainId === player.playerId) {
         const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
-        const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
-        const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
+        const basePoints = pointsWhenRoleAssigned - pointsAtJoining;
+        const bonusPoints = player.points - pointsWhenRoleAssigned;
         viceCaptainPoints = basePoints * 1.0 + bonusPoints * 1.5;
         playerPoints = viceCaptainPoints;
       } else if (xFactorId === player.playerId) {
         const pointsWhenRoleAssigned = player.pointsWhenRoleAssigned ?? pointsAtJoining;
-        const basePoints = Math.max(0, pointsWhenRoleAssigned - pointsAtJoining);
-        const bonusPoints = Math.max(0, player.points - pointsWhenRoleAssigned);
+        const basePoints = pointsWhenRoleAssigned - pointsAtJoining;
+        const bonusPoints = player.points - pointsWhenRoleAssigned;
         xFactorPoints = basePoints * 1.0 + bonusPoints * 1.25;
         playerPoints = xFactorPoints;
       } else {
