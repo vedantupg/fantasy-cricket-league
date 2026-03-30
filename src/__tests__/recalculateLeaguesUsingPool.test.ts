@@ -71,7 +71,7 @@ describe('recalculateLeaguesUsingPool - Integration Tests', () => {
       // Total: 80 + 50 + 80 = 210
 
       const expectedTotal = 210;
-      const calculatedTotal = players.reduce((sum, p) => sum + Math.max(0, p.points - (p.pointsAtJoining ?? 0)), 0);
+      const calculatedTotal = players.reduce((sum, p) => sum + (p.points - (p.pointsAtJoining ?? 0)), 0);
 
       expect(calculatedTotal).toBe(expectedTotal);
     });
@@ -100,11 +100,11 @@ describe('recalculateLeaguesUsingPool - Integration Tests', () => {
       };
 
       // Base points (before captain): 300 - 100 = 200 (1x)
-      const basePoints = Math.max(0, captain.pointsWhenRoleAssigned - captain.pointsAtJoining);
+      const basePoints = captain.pointsWhenRoleAssigned - captain.pointsAtJoining;
       expect(basePoints).toBe(200);
 
       // Bonus points (after captain): 500 - 300 = 200 (2x)
-      const bonusPoints = Math.max(0, captain.points - captain.pointsWhenRoleAssigned);
+      const bonusPoints = captain.points - captain.pointsWhenRoleAssigned;
       expect(bonusPoints).toBe(200);
 
       // Total contribution: 200 * 1.0 + 200 * 2.0 = 600
@@ -124,11 +124,11 @@ describe('recalculateLeaguesUsingPool - Integration Tests', () => {
       };
 
       // Base points: 100 - 100 = 0
-      const basePoints = Math.max(0, captain.pointsWhenRoleAssigned - captain.pointsAtJoining);
+      const basePoints = captain.pointsWhenRoleAssigned - captain.pointsAtJoining;
       expect(basePoints).toBe(0);
 
       // Bonus points: 400 - 100 = 300 (all points get 2x)
-      const bonusPoints = Math.max(0, captain.points - captain.pointsWhenRoleAssigned);
+      const bonusPoints = captain.points - captain.pointsWhenRoleAssigned;
       expect(bonusPoints).toBe(300);
 
       // Total: 0 + 300 * 2.0 = 600
@@ -150,8 +150,8 @@ describe('recalculateLeaguesUsingPool - Integration Tests', () => {
       const pointsWhenAssigned = captain.pointsWhenRoleAssigned ?? captain.pointsAtJoining;
       expect(pointsWhenAssigned).toBe(200);
 
-      const basePoints = Math.max(0, pointsWhenAssigned - captain.pointsAtJoining); // 0
-      const bonusPoints = Math.max(0, captain.points - pointsWhenAssigned); // 300
+      const basePoints = pointsWhenAssigned - captain.pointsAtJoining; // 0
+      const bonusPoints = captain.points - pointsWhenAssigned; // 300
 
       const captainContribution = basePoints * 1.0 + bonusPoints * 2.0; // 600
       expect(captainContribution).toBe(600);
@@ -172,11 +172,11 @@ describe('recalculateLeaguesUsingPool - Integration Tests', () => {
       };
 
       // Base points: 400 - 100 = 300 (1x)
-      const basePoints = Math.max(0, viceCaptain.pointsWhenRoleAssigned - viceCaptain.pointsAtJoining);
+      const basePoints = viceCaptain.pointsWhenRoleAssigned - viceCaptain.pointsAtJoining;
       expect(basePoints).toBe(300);
 
       // Bonus points: 600 - 400 = 200 (1.5x)
-      const bonusPoints = Math.max(0, viceCaptain.points - viceCaptain.pointsWhenRoleAssigned);
+      const bonusPoints = viceCaptain.points - viceCaptain.pointsWhenRoleAssigned;
       expect(bonusPoints).toBe(200);
 
       // Total: 300 * 1.0 + 200 * 1.5 = 600
@@ -199,11 +199,11 @@ describe('recalculateLeaguesUsingPool - Integration Tests', () => {
       };
 
       // Base points: 600 - 200 = 400 (1x)
-      const basePoints = Math.max(0, xFactor.pointsWhenRoleAssigned - xFactor.pointsAtJoining);
+      const basePoints = xFactor.pointsWhenRoleAssigned - xFactor.pointsAtJoining;
       expect(basePoints).toBe(400);
 
       // Bonus points: 800 - 600 = 200 (1.25x)
-      const bonusPoints = Math.max(0, xFactor.points - xFactor.pointsWhenRoleAssigned);
+      const bonusPoints = xFactor.points - xFactor.pointsWhenRoleAssigned;
       expect(bonusPoints).toBe(200);
 
       // Total: 400 * 1.0 + 200 * 1.25 = 650
@@ -351,19 +351,19 @@ describe('recalculateLeaguesUsingPool - Integration Tests', () => {
         pointsAtJoining: 500, // Just joined, no contribution yet
       };
 
-      const contribution = Math.max(0, player.points - player.pointsAtJoining);
+      const contribution = player.points - player.pointsAtJoining;
       expect(contribution).toBe(0);
     });
 
-    test('Should handle negative scenarios with Math.max(0, ...)', () => {
+    test('Should preserve negative contributions when points drop', () => {
       const player = {
         playerId: 'p1',
         points: 100,
-        pointsAtJoining: 200, // Edge case: shouldn't happen but handle gracefully
+        pointsAtJoining: 200,
       };
 
-      const contribution = Math.max(0, player.points - player.pointsAtJoining);
-      expect(contribution).toBe(0); // Should not go negative
+      const contribution = player.points - player.pointsAtJoining;
+      expect(contribution).toBe(-100);
     });
 
     test('Should handle missing pointsAtJoining (legacy data)', () => {
@@ -374,7 +374,7 @@ describe('recalculateLeaguesUsingPool - Integration Tests', () => {
       };
 
       const pointsAtJoining = player.pointsAtJoining ?? 0;
-      const contribution = Math.max(0, player.points - pointsAtJoining);
+      const contribution = player.points - pointsAtJoining;
       expect(contribution).toBe(500);
     });
 
@@ -405,7 +405,7 @@ describe('recalculateLeaguesUsingPool - Integration Tests', () => {
 
       // Player contributed: 750 - 250 = 500 points
       // This should be banked when transferred out
-      const contributionToBanked = Math.max(0, transferredOutPlayer.points - transferredOutPlayer.pointsAtJoining);
+      const contributionToBanked = transferredOutPlayer.points - transferredOutPlayer.pointsAtJoining;
       expect(contributionToBanked).toBe(500);
     });
 
@@ -413,16 +413,25 @@ describe('recalculateLeaguesUsingPool - Integration Tests', () => {
       let bankedPoints = 0;
 
       // Transfer 1: Player with 600 total, 200 at joining
-      bankedPoints += Math.max(0, 600 - 200); // +400
+      bankedPoints += (600 - 200); // +400
       expect(bankedPoints).toBe(400);
 
       // Transfer 2: Player with 500 total, 300 at joining
-      bankedPoints += Math.max(0, 500 - 300); // +200
+      bankedPoints += (500 - 300); // +200
       expect(bankedPoints).toBe(600);
 
       // Transfer 3: Player with 350 total, 100 at joining
-      bankedPoints += Math.max(0, 350 - 100); // +250
+      bankedPoints += (350 - 100); // +250
       expect(bankedPoints).toBe(850);
+    });
+
+    test('Should allow negative transfer contribution to reduce bankedPoints', () => {
+      let bankedPoints = 120;
+
+      // Player dropped below join snapshot before transfer-out
+      bankedPoints += (90 - 150); // -60
+
+      expect(bankedPoints).toBe(60);
     });
 
     test('CRITICAL: totalPoints must include bankedPoints', () => {
