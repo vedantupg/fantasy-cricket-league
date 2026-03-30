@@ -972,6 +972,13 @@ const SquadSelectionPage: React.FC = () => {
           updatedPlayers[playerOutIndex] = updatedPlayers[playerInIndex];
           updatedPlayers[playerInIndex] = temp;
 
+          // CRITICAL: Freeze transferred-out player's contribution at transfer time.
+          // Once moved out of playing XI, they should contribute 0 until explicitly
+          // brought back (where pointsAtJoining is reset again on promotion).
+          const playerNowOnBench = updatedPlayers[playerInIndex];
+          playerNowOnBench.pointsAtJoining = playerNowOnBench.points;
+          playerNowOnBench.pointsWhenRoleAssigned = playerNowOnBench.points;
+
           // CRITICAL FIX: Reset pointsAtJoining for bench player moving to main squad
           // This ensures their contribution starts at 0, preventing immediate point changes
           const playerMovingToMain = updatedPlayers[playerOutIndex];

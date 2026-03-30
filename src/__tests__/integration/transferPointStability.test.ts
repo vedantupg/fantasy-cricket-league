@@ -12,7 +12,7 @@
  */
 
 import { calculatePlayerContribution, calculateSquadPoints } from '../../utils/pointsCalculation';
-import type { SquadPlayer, LeagueSquad } from '../../types/database';
+import type { SquadPlayer } from '../../types/database';
 
 describe('Transfer Point Stability - Integration Tests', () => {
   // Helper to create a test player
@@ -633,6 +633,64 @@ describe('Transfer Point Stability - Integration Tests', () => {
       const expectedDelta = -20 - 30 - 15;
 
       expect(actualDelta).toBeCloseTo(expectedDelta, 2);
+    });
+
+    it('should keep banked points frozen after player is moved out of playing XI', () => {
+      const squadSize = 11;
+
+      // Playing XI + bench
+      const captain = createPlayer('c1', 'Captain', 180, 100, 140); // +160
+      const outgoing = createPlayer('p11', 'Outgoing XI', 140, 100); // +40
+      const incomingBench = createPlayer('b1', 'Bench In', 90, 50); // bench player
+
+      // Build minimal XI structure for slice(0, squadSize)
+      const main = [captain, outgoing, ...Array(9).fill(null).map((_, i) => createPlayer(`m${i}`, `Main ${i}`, 120, 100))];
+      const squadBefore = [...main, incomingBench];
+      const initialBanked = 60;
+
+      const before = calculateSquadPoints(
+        squadBefore,
+        squadSize,
+        'c1',
+        undefined,
+        undefined,
+        initialBanked
+      );
+
+      // Transfer: move outgoing from XI to bench, bank their current contribution
+      const outgoingContribution = calculatePlayerContribution(outgoing, 'regular'); // +40
+      const bankedAfterTransfer = initialBanked + outgoingContribution;
+
+      const squadAfterTransfer = [...main];
+      squadAfterTransfer[1] = { ...incomingBench, pointsAtJoining: incomingBench.points }; // promoted to XI
+      const movedToBench = { ...outgoing, pointsAtJoining: outgoing.points, pointsWhenRoleAssigned: outgoing.points };
+      const withBench = [...squadAfterTransfer, movedToBench];
+
+      const afterTransfer = calculateSquadPoints(
+        withBench,
+        squadSize,
+        'c1',
+        undefined,
+        undefined,
+        bankedAfterTransfer
+      );
+
+      expect(afterTransfer.totalPoints).toBeCloseTo(before.totalPoints, 2);
+
+      // Later pool update: transferred-out player loses points on bench.
+      // Banked points must remain unchanged because the player is out of playing XI.
+      const benchUpdated = { ...movedToBench, points: movedToBench.points - 70 };
+      const afterBenchLoss = calculateSquadPoints(
+        [...squadAfterTransfer, benchUpdated],
+        squadSize,
+        'c1',
+        undefined,
+        undefined,
+        bankedAfterTransfer
+      );
+
+      expect(bankedAfterTransfer).toBe(initialBanked + outgoingContribution);
+      expect(afterBenchLoss.totalPoints).toBeCloseTo(afterTransfer.totalPoints, 2);
     });
   });
 });
