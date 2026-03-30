@@ -907,19 +907,8 @@ export const playerPoolSnapshotService = {
         // Sort changes by delta (highest first)
         changes.sort((a, b) => b.delta - a.delta);
         snapshotData.changes = changes;
-      } else {
-        // First/baseline snapshot — treat all current points as gained from zero
-        snapshotData.changes = playerPool.players
-          .filter(p => p.points > 0)
-          .map(p => ({
-            playerId: p.playerId,
-            name: p.name,
-            previousPoints: 0,
-            newPoints: p.points,
-            delta: p.points,
-          }))
-          .sort((a, b) => b.delta - a.delta);
       }
+      // No else branch: first snapshot has no prior state, so changes stays undefined
 
       // Save the snapshot
       const docRef = await addDoc(collection(db, COLLECTIONS.PLAYER_POOL_SNAPSHOTS), {
