@@ -29,7 +29,7 @@ describe('transfer-toggle-automator API logic', () => {
     ]);
 
     const boundaries = getDisableBoundaries(schedule);
-    expect(boundaries[0].toISOString()).toBe('2026-06-02T11:30:00.000Z');
+    expect(boundaries[0].toISOString()).toBe('2026-06-02T11:25:00.000Z');
   });
 
   it('falls back to 10:00 GMT when day has 2+ matches and no parsable times', () => {
@@ -39,7 +39,7 @@ describe('transfer-toggle-automator API logic', () => {
     ]);
 
     const boundaries = getDisableBoundaries(schedule);
-    expect(boundaries[0].toISOString()).toBe('2026-06-02T10:00:00.000Z');
+    expect(boundaries[0].toISOString()).toBe('2026-06-02T09:55:00.000Z');
   });
 
   it('falls back to 14:00 GMT when day has 1 match and no parsable times', () => {
@@ -48,7 +48,7 @@ describe('transfer-toggle-automator API logic', () => {
     ]);
 
     const boundaries = getDisableBoundaries(schedule);
-    expect(boundaries[0].toISOString()).toBe('2026-06-02T14:00:00.000Z');
+    expect(boundaries[0].toISOString()).toBe('2026-06-02T13:55:00.000Z');
   });
 
   it('returns true only once per reached boundary when last action is disabled', () => {
@@ -56,7 +56,7 @@ describe('transfer-toggle-automator API logic', () => {
       { matchNumber: 1, date: '2026-06-02T00:00:00.000Z', timeGMT: '' }
     ]);
 
-    const boundaryTime = new Date('2026-06-02T14:00:00.000Z');
+    const boundaryTime = new Date('2026-06-02T13:55:00.000Z');
     expect(shouldDisableNow(schedule, boundaryTime, null, null)).toBe(true);
     expect(shouldDisableNow(schedule, new Date('2026-06-02T14:10:00.000Z'), new Date('2026-06-02T14:05:00.000Z'), 'disabled')).toBe(false);
   });
