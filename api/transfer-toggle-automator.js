@@ -187,7 +187,8 @@ function logLeagueDecision({
   lastAutoToggleUpdate
 }) {
   const headline = `League ${league.id} (${league.name})`;
-  console.log(`\n[Automator] ${headline}`);
+  console.log('\n========================');
+  console.log(`[Automator] ${headline}`);
   console.log(`Decision: ${decision.reason} | shouldDisable=${decision.shouldDisable}`);
   console.log(`Boundaries reached: ${decision.reachedCount}/${decision.totalBoundaries}`);
   console.log(formatBoundaryLog(decision.latestReachedBoundary, 'Latest reached'));
@@ -201,6 +202,7 @@ function logLeagueDecision({
       lastAutoToggleUpdate instanceof Date ? lastAutoToggleUpdate.toISOString() : 'none'
     }`
   );
+  console.log('========================');
 }
 
 function convertTimestamps(data) {
