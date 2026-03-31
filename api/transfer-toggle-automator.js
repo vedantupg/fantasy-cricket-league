@@ -164,6 +164,45 @@ function shouldDisableNow(schedule, currentTime, lastAutoToggleUpdate, lastAutoT
   return evaluateDisableDecision(schedule, currentTime, lastAutoToggleUpdate, lastAutoToggleAction).shouldDisable;
 }
 
+function formatBoundaryLog(boundaryDetail, label) {
+  if (!boundaryDetail) {
+    return `${label}: none`;
+  }
+
+  const sourceLabel = boundaryDetail.source === 'parsed_timeGMT'
+    ? 'parsed timeGMT'
+    : `fallback ${boundaryDetail.fallbackBaseTime}`;
+
+  return `${label}: ${boundaryDetail.boundary.toISOString()} | day=${boundaryDetail.date} | source=${sourceLabel} | matches=${boundaryDetail.matchCount} | buffer=${boundaryDetail.bufferMinutes}m`;
+}
+
+function logLeagueDecision({
+  league,
+  decision,
+  currentFlexibleState,
+  currentBenchState,
+  currentPpActivationState,
+  managesPowerplayActivation,
+  lastAutoToggleAction,
+  lastAutoToggleUpdate
+}) {
+  const headline = `League ${league.id} (${league.name})`;
+  console.log(`\n[Automator] ${headline}`);
+  console.log(`Decision: ${decision.reason} | shouldDisable=${decision.shouldDisable}`);
+  console.log(`Boundaries reached: ${decision.reachedCount}/${decision.totalBoundaries}`);
+  console.log(formatBoundaryLog(decision.latestReachedBoundary, 'Latest reached'));
+  console.log(formatBoundaryLog(decision.nextBoundary, 'Next'));
+  console.log(
+    `Current state: transfers(flexible=${currentFlexibleState}, bench=${currentBenchState})` +
+    `${managesPowerplayActivation ? ` | ppActivation=${currentPpActivationState}` : ' | ppActivation=not_managed'}`
+  );
+  console.log(
+    `Last auto update: action=${lastAutoToggleAction || 'none'} | at=${
+      lastAutoToggleUpdate instanceof Date ? lastAutoToggleUpdate.toISOString() : 'none'
+    }`
+  );
+}
+
 function convertTimestamps(data) {
   if (data === null || typeof data !== 'object') return data;
 
@@ -321,48 +360,19 @@ export default async function handler(req, res) {
           managesPowerplayActivation &&
           currentPpActivationState;
 
+        logLeagueDecision({
+          league,
+          decision,
+          currentFlexibleState,
+          currentBenchState,
+          currentPpActivationState,
+          managesPowerplayActivation,
+          lastAutoToggleAction: league.lastAutoToggleAction,
+          lastAutoToggleUpdate: league.lastAutoToggleUpdate
+        });
+
         if (!needsTransferUpdate && !needsPpActivationUpdate) {
-          console.log(`League ${league.id} (${league.name}): No action`);
-          console.log(
-            JSON.stringify({
-              leagueId: league.id,
-              leagueName: league.name,
-              reason: decision.reason,
-              scheduleMatches: league.matchSchedule.length,
-              boundaries: {
-                reachedCount: decision.reachedCount,
-                total: decision.totalBoundaries,
-                latestReached: decision.latestReachedBoundary
-                  ? {
-                      date: decision.latestReachedBoundary.date,
-                      source: decision.latestReachedBoundary.source,
-                      parsedTime: decision.latestReachedBoundary.parsedTime,
-                      fallbackBaseTime: decision.latestReachedBoundary.fallbackBaseTime,
-                      boundary: decision.latestReachedBoundary.boundary.toISOString()
-                    }
-                  : null,
-                next: decision.nextBoundary
-                  ? {
-                      date: decision.nextBoundary.date,
-                      source: decision.nextBoundary.source,
-                      parsedTime: decision.nextBoundary.parsedTime,
-                      fallbackBaseTime: decision.nextBoundary.fallbackBaseTime,
-                      boundary: decision.nextBoundary.boundary.toISOString()
-                    }
-                  : null
-              },
-              state: {
-                transfers: {
-                  flexibleChangesEnabled: currentFlexibleState,
-                  benchChangesEnabled: currentBenchState
-                },
-                powerplayActivationManaged: managesPowerplayActivation,
-                ppActivationEnabled: currentPpActivationState
-              },
-              lastAutoToggleAction: league.lastAutoToggleAction || null,
-              lastAutoToggleUpdate: league.lastAutoToggleUpdate instanceof Date ? league.lastAutoToggleUpdate.toISOString() : null
-            })
-          );
+          console.log('Action: no_change (nothing to disable right now)');
           results.push({
             leagueId: league.id,
             name: league.name,
@@ -376,29 +386,7 @@ export default async function handler(req, res) {
           continue;
         }
 
-        console.log(`League ${league.id} (${league.name}): Boundary-triggered auto-disable`);
-        console.log(
-          JSON.stringify({
-            leagueId: league.id,
-            leagueName: league.name,
-            triggerReason: decision.reason,
-            triggeredBoundary: decision.latestReachedBoundary
-              ? {
-                  date: decision.latestReachedBoundary.date,
-                  source: decision.latestReachedBoundary.source,
-                  parsedTime: decision.latestReachedBoundary.parsedTime,
-                  fallbackBaseTime: decision.latestReachedBoundary.fallbackBaseTime,
-                  boundary: decision.latestReachedBoundary.boundary.toISOString(),
-                  bufferMinutes: decision.latestReachedBoundary.bufferMinutes
-                }
-              : null,
-            currentState: {
-              flexibleChangesEnabled: currentFlexibleState,
-              benchChangesEnabled: currentBenchState,
-              ppActivationEnabled: currentPpActivationState
-            }
-          })
-        );
+        console.log('Action: update (auto-disable toggles)');
 
         const updatePayload = {
           flexibleChangesEnabled: false,
@@ -412,13 +400,13 @@ export default async function handler(req, res) {
         }
 
         console.log(
-          `League ${league.id} (${league.name}): Auto-disabling transfers ${currentFlexibleState}/${currentBenchState} -> false` +
-          (managesPowerplayActivation ? `, ppActivation ${currentPpActivationState} -> false` : '')
+          `Update payload: transfers ${currentFlexibleState}/${currentBenchState} -> false` +
+          (managesPowerplayActivation ? ` | ppActivation ${currentPpActivationState} -> false` : '')
         );
 
         await db.collection('leagues').doc(league.id).update(updatePayload);
 
-        console.log(`League ${league.id} (${league.name}): Updated successfully`);
+        console.log('Result: updated successfully');
         results.push({
           leagueId: league.id,
           name: league.name,
