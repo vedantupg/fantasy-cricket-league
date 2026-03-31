@@ -92,31 +92,76 @@ function calculateDisableTime(matchDay) {
   return disableTime;
 }
 
-function getDisableBoundaries(schedule) {
+function getDisableBoundaryDetails(schedule) {
   const matchDays = getMatchDays(schedule);
-  return matchDays
-    .map((matchDay) => calculateDisableTime(matchDay))
-    .sort((a, b) => a.getTime() - b.getTime());
+  const boundaries = matchDays.map((matchDay) => {
+    const usedParsedTime = !!matchDay.firstParsedMatchTime;
+    const boundary = calculateDisableTime(matchDay);
+    const fallbackBaseTime = matchDay.matches.length >= 2 ? '10:00 GMT' : '14:00 GMT';
+
+    return {
+      date: matchDay.date,
+      matchCount: matchDay.matches.length,
+      source: usedParsedTime ? 'parsed_timeGMT' : 'fallback_match_count',
+      parsedTime: usedParsedTime ? matchDay.firstParsedMatchTime.toISOString() : null,
+      fallbackBaseTime: usedParsedTime ? null : fallbackBaseTime,
+      bufferMinutes: DISABLE_BUFFER_MINUTES,
+      boundary
+    };
+  });
+
+  boundaries.sort((a, b) => a.boundary.getTime() - b.boundary.getTime());
+  return boundaries;
 }
 
-function shouldDisableNow(schedule, currentTime, lastAutoToggleUpdate, lastAutoToggleAction) {
-  const boundaries = getDisableBoundaries(schedule);
-  const reachedBoundaries = boundaries.filter((boundary) => boundary.getTime() <= currentTime.getTime());
+function getDisableBoundaries(schedule) {
+  return getDisableBoundaryDetails(schedule).map((entry) => entry.boundary);
+}
 
-  if (reachedBoundaries.length === 0) {
-    return false;
+function evaluateDisableDecision(schedule, currentTime, lastAutoToggleUpdate, lastAutoToggleAction) {
+  const boundaryDetails = getDisableBoundaryDetails(schedule);
+  const reachedBoundaryDetails = boundaryDetails.filter((entry) => entry.boundary.getTime() <= currentTime.getTime());
+  const nextBoundaryDetail = boundaryDetails.find((entry) => entry.boundary.getTime() > currentTime.getTime()) || null;
+
+  if (reachedBoundaryDetails.length === 0) {
+    return {
+      shouldDisable: false,
+      reason: 'no_boundary_reached_yet',
+      latestReachedBoundary: null,
+      nextBoundary: nextBoundaryDetail,
+      reachedCount: 0,
+      totalBoundaries: boundaryDetails.length
+    };
   }
 
-  const latestReachedBoundary = reachedBoundaries[reachedBoundaries.length - 1];
+  const latestReachedBoundary = reachedBoundaryDetails[reachedBoundaryDetails.length - 1];
   if (
     lastAutoToggleAction === 'disabled' &&
     lastAutoToggleUpdate instanceof Date &&
-    lastAutoToggleUpdate.getTime() >= latestReachedBoundary.getTime()
+    lastAutoToggleUpdate.getTime() >= latestReachedBoundary.boundary.getTime()
   ) {
-    return false;
+    return {
+      shouldDisable: false,
+      reason: 'already_disabled_for_latest_boundary',
+      latestReachedBoundary,
+      nextBoundary: nextBoundaryDetail,
+      reachedCount: reachedBoundaryDetails.length,
+      totalBoundaries: boundaryDetails.length
+    };
   }
 
-  return true;
+  return {
+    shouldDisable: true,
+    reason: 'boundary_reached_and_not_yet_processed',
+    latestReachedBoundary,
+    nextBoundary: nextBoundaryDetail,
+    reachedCount: reachedBoundaryDetails.length,
+    totalBoundaries: boundaryDetails.length
+  };
+}
+
+function shouldDisableNow(schedule, currentTime, lastAutoToggleUpdate, lastAutoToggleAction) {
+  return evaluateDisableDecision(schedule, currentTime, lastAutoToggleUpdate, lastAutoToggleAction).shouldDisable;
 }
 
 function convertTimestamps(data) {
@@ -256,12 +301,13 @@ export default async function handler(req, res) {
           continue;
         }
 
-        const shouldDisable = shouldDisableNow(
+        const decision = evaluateDisableDecision(
           league.matchSchedule,
           currentTime,
           league.lastAutoToggleUpdate,
           league.lastAutoToggleAction
         );
+        const shouldDisable = decision.shouldDisable;
         const currentFlexibleState = league.flexibleChangesEnabled || false;
         const currentBenchState = league.benchChangesEnabled || false;
         const managesPowerplayActivation = league.powerplayEnabled && (league.ppMatchMode ?? 'fixed') === 'activation';
@@ -276,10 +322,46 @@ export default async function handler(req, res) {
           currentPpActivationState;
 
         if (!needsTransferUpdate && !needsPpActivationUpdate) {
+          console.log(`League ${league.id} (${league.name}): No action`);
           console.log(
-            `League ${league.id} (${league.name}): No action ` +
-            `(shouldDisable=${shouldDisable}, transfers=${currentFlexibleState}/${currentBenchState}` +
-            `${managesPowerplayActivation ? `, ppActivation=${currentPpActivationState}` : ''})`
+            JSON.stringify({
+              leagueId: league.id,
+              leagueName: league.name,
+              reason: decision.reason,
+              scheduleMatches: league.matchSchedule.length,
+              boundaries: {
+                reachedCount: decision.reachedCount,
+                total: decision.totalBoundaries,
+                latestReached: decision.latestReachedBoundary
+                  ? {
+                      date: decision.latestReachedBoundary.date,
+                      source: decision.latestReachedBoundary.source,
+                      parsedTime: decision.latestReachedBoundary.parsedTime,
+                      fallbackBaseTime: decision.latestReachedBoundary.fallbackBaseTime,
+                      boundary: decision.latestReachedBoundary.boundary.toISOString()
+                    }
+                  : null,
+                next: decision.nextBoundary
+                  ? {
+                      date: decision.nextBoundary.date,
+                      source: decision.nextBoundary.source,
+                      parsedTime: decision.nextBoundary.parsedTime,
+                      fallbackBaseTime: decision.nextBoundary.fallbackBaseTime,
+                      boundary: decision.nextBoundary.boundary.toISOString()
+                    }
+                  : null
+              },
+              state: {
+                transfers: {
+                  flexibleChangesEnabled: currentFlexibleState,
+                  benchChangesEnabled: currentBenchState
+                },
+                powerplayActivationManaged: managesPowerplayActivation,
+                ppActivationEnabled: currentPpActivationState
+              },
+              lastAutoToggleAction: league.lastAutoToggleAction || null,
+              lastAutoToggleUpdate: league.lastAutoToggleUpdate instanceof Date ? league.lastAutoToggleUpdate.toISOString() : null
+            })
           );
           results.push({
             leagueId: league.id,
@@ -293,6 +375,30 @@ export default async function handler(req, res) {
           });
           continue;
         }
+
+        console.log(`League ${league.id} (${league.name}): Boundary-triggered auto-disable`);
+        console.log(
+          JSON.stringify({
+            leagueId: league.id,
+            leagueName: league.name,
+            triggerReason: decision.reason,
+            triggeredBoundary: decision.latestReachedBoundary
+              ? {
+                  date: decision.latestReachedBoundary.date,
+                  source: decision.latestReachedBoundary.source,
+                  parsedTime: decision.latestReachedBoundary.parsedTime,
+                  fallbackBaseTime: decision.latestReachedBoundary.fallbackBaseTime,
+                  boundary: decision.latestReachedBoundary.boundary.toISOString(),
+                  bufferMinutes: decision.latestReachedBoundary.bufferMinutes
+                }
+              : null,
+            currentState: {
+              flexibleChangesEnabled: currentFlexibleState,
+              benchChangesEnabled: currentBenchState,
+              ppActivationEnabled: currentPpActivationState
+            }
+          })
+        );
 
         const updatePayload = {
           flexibleChangesEnabled: false,
@@ -370,4 +476,12 @@ export default async function handler(req, res) {
   }
 }
 
-export { parseMatchTime, getMatchDays, calculateDisableTime, getDisableBoundaries, shouldDisableNow };
+export {
+  parseMatchTime,
+  getMatchDays,
+  calculateDisableTime,
+  getDisableBoundaryDetails,
+  getDisableBoundaries,
+  evaluateDisableDecision,
+  shouldDisableNow
+};
