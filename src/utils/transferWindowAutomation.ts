@@ -10,7 +10,10 @@ import type { ScheduleMatch } from '../types/database';
  *   - Fallback fixed time by match count if no parsable timeGMT:
  *     - 10:00 AM GMT if next day has 2+ matches
  *     - 2:00 PM GMT if next day has 1 match
+ * - A -5 minute buffer is applied to the cutoff time
  */
+
+const DISABLE_BUFFER_MINUTES = -5;
 
 export interface MatchDay {
   date: string; // Date key (e.g., "Sat, Feb 7 2026")
@@ -136,12 +139,15 @@ export function getMatchDays(schedule: ScheduleMatch[]): MatchDay[] {
  */
 function calculateDisableTime(nextMatchDay: MatchDay): Date {
   if (nextMatchDay.firstParsedMatchTime) {
-    return new Date(nextMatchDay.firstParsedMatchTime);
+    const parsedBoundary = new Date(nextMatchDay.firstParsedMatchTime);
+    parsedBoundary.setMinutes(parsedBoundary.getMinutes() + DISABLE_BUFFER_MINUTES);
+    return parsedBoundary;
   }
 
   const disableTime = new Date(nextMatchDay.dateObject);
   const hasMultipleMatches = nextMatchDay.matches.length >= 2;
   disableTime.setUTCHours(hasMultipleMatches ? 10 : 14, 0, 0, 0);
+  disableTime.setMinutes(disableTime.getMinutes() + DISABLE_BUFFER_MINUTES);
   return disableTime;
 }
 

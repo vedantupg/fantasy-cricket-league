@@ -1,5 +1,6 @@
 let firebaseAdminApp = null;
 let firestoreDb = null;
+const DISABLE_BUFFER_MINUTES = -5;
 
 function parseMatchTime(timeGMT, matchDate) {
   if (!timeGMT || typeof timeGMT !== 'string') {
@@ -79,12 +80,15 @@ function getMatchDays(schedule) {
 
 function calculateDisableTime(matchDay) {
   if (matchDay.firstParsedMatchTime) {
-    return new Date(matchDay.firstParsedMatchTime);
+    const parsedBoundary = new Date(matchDay.firstParsedMatchTime);
+    parsedBoundary.setMinutes(parsedBoundary.getMinutes() + DISABLE_BUFFER_MINUTES);
+    return parsedBoundary;
   }
 
   const disableTime = new Date(matchDay.dateObject);
   const hasMultipleMatches = Array.isArray(matchDay.matches) && matchDay.matches.length >= 2;
   disableTime.setUTCHours(hasMultipleMatches ? 10 : 14, 0, 0, 0);
+  disableTime.setMinutes(disableTime.getMinutes() + DISABLE_BUFFER_MINUTES);
   return disableTime;
 }
 

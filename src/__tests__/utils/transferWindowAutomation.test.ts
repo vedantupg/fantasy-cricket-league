@@ -26,12 +26,12 @@ describe('transferWindowAutomation', () => {
       createMatch(2, '2026-06-02T00:00:00.000Z', '11:30 AM')
     ];
 
-    const statusBeforeDisable = calculateToggleStatus(schedule, new Date('2026-06-02T11:29:00.000Z'));
-    const statusAtDisable = calculateToggleStatus(schedule, new Date('2026-06-02T11:30:00.000Z'));
+    const statusBeforeDisable = calculateToggleStatus(schedule, new Date('2026-06-02T11:24:00.000Z'));
+    const statusAtDisable = calculateToggleStatus(schedule, new Date('2026-06-02T11:25:00.000Z'));
 
     expect(statusBeforeDisable.shouldBeEnabled).toBe(false);
     expect(statusBeforeDisable.nextChangeAction).toBe('disable');
-    expect(statusBeforeDisable.nextChangeTime?.toISOString()).toBe('2026-06-02T11:30:00.000Z');
+    expect(statusBeforeDisable.nextChangeTime?.toISOString()).toBe('2026-06-02T11:25:00.000Z');
     expect(statusAtDisable.nextChangeTime).toBeNull();
   });
 
@@ -42,12 +42,12 @@ describe('transferWindowAutomation', () => {
       createMatch(3, '2026-06-02T00:00:00.000Z', '')
     ];
 
-    const statusBeforeDisable = calculateToggleStatus(schedule, new Date('2026-06-02T09:59:00.000Z'));
-    const statusAtDisable = calculateToggleStatus(schedule, new Date('2026-06-02T10:00:00.000Z'));
+    const statusBeforeDisable = calculateToggleStatus(schedule, new Date('2026-06-02T09:54:00.000Z'));
+    const statusAtDisable = calculateToggleStatus(schedule, new Date('2026-06-02T09:55:00.000Z'));
 
     expect(statusBeforeDisable.shouldBeEnabled).toBe(false);
     expect(statusBeforeDisable.nextChangeAction).toBe('disable');
-    expect(statusBeforeDisable.nextChangeTime?.toISOString()).toBe('2026-06-02T10:00:00.000Z');
+    expect(statusBeforeDisable.nextChangeTime?.toISOString()).toBe('2026-06-02T09:55:00.000Z');
     expect(statusAtDisable.nextChangeTime).toBeNull();
   });
 
@@ -57,12 +57,12 @@ describe('transferWindowAutomation', () => {
       createMatch(2, '2026-06-02T00:00:00.000Z', 'bad-time'),
     ];
 
-    const statusBeforeDisable = calculateToggleStatus(schedule, new Date('2026-06-02T13:59:00.000Z'));
-    const statusAtDisable = calculateToggleStatus(schedule, new Date('2026-06-02T14:00:00.000Z'));
+    const statusBeforeDisable = calculateToggleStatus(schedule, new Date('2026-06-02T13:54:00.000Z'));
+    const statusAtDisable = calculateToggleStatus(schedule, new Date('2026-06-02T13:55:00.000Z'));
 
     expect(statusBeforeDisable.shouldBeEnabled).toBe(false);
     expect(statusBeforeDisable.nextChangeAction).toBe('disable');
-    expect(statusBeforeDisable.nextChangeTime?.toISOString()).toBe('2026-06-02T14:00:00.000Z');
+    expect(statusBeforeDisable.nextChangeTime?.toISOString()).toBe('2026-06-02T13:55:00.000Z');
     expect(statusAtDisable.nextChangeTime).toBeNull();
   });
 });
