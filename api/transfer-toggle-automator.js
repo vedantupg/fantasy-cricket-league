@@ -2,28 +2,42 @@ let firebaseAdminApp = null;
 let firestoreDb = null;
 
 function parseMatchTime(timeGMT, matchDate) {
-  const cleanTime = timeGMT.replace(/\s*\(GMT\)\s*/gi, '').trim();
-  const timeMatch = cleanTime.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-
-  if (!timeMatch) {
-    console.warn(`Could not parse time: ${timeGMT}`);
-    return new Date(matchDate);
+  if (!timeGMT || typeof timeGMT !== 'string') {
+    return null;
   }
 
-  let hours = parseInt(timeMatch[1]);
-  const minutes = parseInt(timeMatch[2]);
-  const meridiem = timeMatch[3].toUpperCase();
+  const cleanTime = timeGMT
+    .replace(/\(GMT\)/gi, '')
+    .replace(/\bGMT\b/gi, '')
+    .trim();
 
-  if (meridiem === 'PM' && hours !== 12) {
-    hours += 12;
-  } else if (meridiem === 'AM' && hours === 12) {
-    hours = 0;
+  const twelveHourMatch = cleanTime.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (twelveHourMatch) {
+    let hours = parseInt(twelveHourMatch[1], 10);
+    const minutes = parseInt(twelveHourMatch[2], 10);
+    const meridiem = twelveHourMatch[3].toUpperCase();
+
+    if (meridiem === 'PM' && hours !== 12) {
+      hours += 12;
+    } else if (meridiem === 'AM' && hours === 12) {
+      hours = 0;
+    }
+
+    const date = new Date(matchDate);
+    date.setUTCHours(hours, minutes, 0, 0);
+    return date;
   }
 
-  const date = new Date(matchDate);
-  date.setUTCHours(hours, minutes, 0, 0);
+  const twentyFourHourMatch = cleanTime.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+  if (twentyFourHourMatch) {
+    const hours = parseInt(twentyFourHourMatch[1], 10);
+    const minutes = parseInt(twentyFourHourMatch[2], 10);
+    const date = new Date(matchDate);
+    date.setUTCHours(hours, minutes, 0, 0);
+    return date;
+  }
 
-  return date;
+  return null;
 }
 
 function getMatchDays(schedule) {
@@ -44,20 +58,17 @@ function getMatchDays(schedule) {
   const matchDays = [];
 
   matchesByDate.forEach((matches, dateKey) => {
-    const sortedMatches = [...matches].sort((a, b) => {
-      const timeA = parseMatchTime(a.timeGMT, a.date);
-      const timeB = parseMatchTime(b.timeGMT, b.date);
-      return timeA.getTime() - timeB.getTime();
-    });
-
+    const sortedMatches = [...matches].sort((a, b) => (a.matchNumber || 0) - (b.matchNumber || 0));
     const firstMatch = sortedMatches[0];
-    const lastMatch = sortedMatches[sortedMatches.length - 1];
+    const parsedTimes = sortedMatches
+      .map((match) => parseMatchTime(match.timeGMT, match.date))
+      .filter((time) => time !== null)
+      .sort((a, b) => a.getTime() - b.getTime());
 
     matchDays.push({
       date: dateKey,
       dateObject: new Date(firstMatch.date),
-      firstMatchTime: parseMatchTime(firstMatch.timeGMT, firstMatch.date),
-      lastMatchTime: parseMatchTime(lastMatch.timeGMT, lastMatch.date),
+      firstParsedMatchTime: parsedTimes.length > 0 ? parsedTimes[0] : null,
       matches: sortedMatches
     });
   });
@@ -66,51 +77,42 @@ function getMatchDays(schedule) {
   return matchDays;
 }
 
-function calculateToggleStatus(schedule, currentTime) {
+function calculateDisableTime(matchDay) {
+  if (matchDay.firstParsedMatchTime) {
+    return new Date(matchDay.firstParsedMatchTime);
+  }
+
+  const disableTime = new Date(matchDay.dateObject);
+  const hasMultipleMatches = Array.isArray(matchDay.matches) && matchDay.matches.length >= 2;
+  disableTime.setUTCHours(hasMultipleMatches ? 10 : 14, 0, 0, 0);
+  return disableTime;
+}
+
+function getDisableBoundaries(schedule) {
   const matchDays = getMatchDays(schedule);
+  return matchDays
+    .map((matchDay) => calculateDisableTime(matchDay))
+    .sort((a, b) => a.getTime() - b.getTime());
+}
 
-  if (matchDays.length === 0) {
+function shouldDisableNow(schedule, currentTime, lastAutoToggleUpdate, lastAutoToggleAction) {
+  const boundaries = getDisableBoundaries(schedule);
+  const reachedBoundaries = boundaries.filter((boundary) => boundary.getTime() <= currentTime.getTime());
+
+  if (reachedBoundaries.length === 0) {
     return false;
   }
 
-  const firstMatchDay = matchDays[0];
-  const lastMatchDay = matchDays[matchDays.length - 1];
-
-  const calculateEnableTime = (matchDay) => {
-    const enableTime = new Date(matchDay.dateObject);
-    enableTime.setUTCHours(19, 30, 0, 0);
-    return enableTime;
-  };
-
-  const calculateDisableTime = (nextMatchDay) => {
-    const disableTime = new Date(nextMatchDay.firstMatchTime);
-    disableTime.setMinutes(disableTime.getMinutes() + 1);
-    return disableTime;
-  };
-
-  const firstDayEnableTime = calculateEnableTime(firstMatchDay);
-  if (currentTime < firstDayEnableTime) {
+  const latestReachedBoundary = reachedBoundaries[reachedBoundaries.length - 1];
+  if (
+    lastAutoToggleAction === 'disabled' &&
+    lastAutoToggleUpdate instanceof Date &&
+    lastAutoToggleUpdate.getTime() >= latestReachedBoundary.getTime()
+  ) {
     return false;
   }
 
-  const lastDayEnableTime = calculateEnableTime(lastMatchDay);
-  if (currentTime >= lastDayEnableTime) {
-    return false;
-  }
-
-  for (let i = 0; i < matchDays.length - 1; i++) {
-    const currentMatchDay = matchDays[i];
-    const nextMatchDay = matchDays[i + 1];
-
-    const windowStart = calculateEnableTime(currentMatchDay);
-    const windowEnd = calculateDisableTime(nextMatchDay);
-
-    if (currentTime >= windowStart && currentTime < windowEnd) {
-      return true;
-    }
-  }
-
-  return false;
+  return true;
 }
 
 function convertTimestamps(data) {
@@ -250,48 +252,58 @@ export default async function handler(req, res) {
           continue;
         }
 
-        const desiredState = calculateToggleStatus(league.matchSchedule, currentTime);
+        const shouldDisable = shouldDisableNow(
+          league.matchSchedule,
+          currentTime,
+          league.lastAutoToggleUpdate,
+          league.lastAutoToggleAction
+        );
         const currentFlexibleState = league.flexibleChangesEnabled || false;
         const currentBenchState = league.benchChangesEnabled || false;
         const managesPowerplayActivation = league.powerplayEnabled && (league.ppMatchMode ?? 'fixed') === 'activation';
         const currentPpActivationState = league.ppActivationEnabled || false;
 
         const needsTransferUpdate =
-          currentFlexibleState !== desiredState ||
-          currentBenchState !== desiredState;
+          shouldDisable &&
+          (currentFlexibleState || currentBenchState);
         const needsPpActivationUpdate =
+          shouldDisable &&
           managesPowerplayActivation &&
-          currentPpActivationState !== desiredState;
+          currentPpActivationState;
 
         if (!needsTransferUpdate && !needsPpActivationUpdate) {
-          console.log(`League ${league.id} (${league.name}): Already in correct state (${desiredState})`);
+          console.log(
+            `League ${league.id} (${league.name}): No action ` +
+            `(shouldDisable=${shouldDisable}, transfers=${currentFlexibleState}/${currentBenchState}` +
+            `${managesPowerplayActivation ? `, ppActivation=${currentPpActivationState}` : ''})`
+          );
           results.push({
             leagueId: league.id,
             name: league.name,
             status: 'no_change',
+            shouldDisable,
             currentFlexibleState,
             currentBenchState,
             currentPpActivationState,
-            desiredState,
             managesPowerplayActivation
           });
           continue;
         }
 
         const updatePayload = {
-          flexibleChangesEnabled: desiredState,
-          benchChangesEnabled: desiredState,
+          flexibleChangesEnabled: false,
+          benchChangesEnabled: false,
           lastAutoToggleUpdate: Timestamp.now(),
-          lastAutoToggleAction: desiredState ? 'enabled' : 'disabled'
+          lastAutoToggleAction: 'disabled'
         };
 
         if (managesPowerplayActivation) {
-          updatePayload.ppActivationEnabled = desiredState;
+          updatePayload.ppActivationEnabled = false;
         }
 
         console.log(
-          `League ${league.id} (${league.name}): Updating transfers ${currentFlexibleState}/${currentBenchState} -> ${desiredState}` +
-          (managesPowerplayActivation ? `, ppActivation ${currentPpActivationState} -> ${desiredState}` : '')
+          `League ${league.id} (${league.name}): Auto-disabling transfers ${currentFlexibleState}/${currentBenchState} -> false` +
+          (managesPowerplayActivation ? `, ppActivation ${currentPpActivationState} -> false` : '')
         );
 
         await db.collection('leagues').doc(league.id).update(updatePayload);
@@ -307,9 +319,9 @@ export default async function handler(req, res) {
             ...(managesPowerplayActivation ? { ppActivationEnabled: currentPpActivationState } : {})
           },
           to: {
-            flexibleChangesEnabled: desiredState,
-            benchChangesEnabled: desiredState,
-            ...(managesPowerplayActivation ? { ppActivationEnabled: desiredState } : {})
+            flexibleChangesEnabled: false,
+            benchChangesEnabled: false,
+            ...(managesPowerplayActivation ? { ppActivationEnabled: false } : {})
           },
           managesPowerplayActivation,
           timestamp: currentTime.toISOString()
@@ -353,3 +365,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
+export { parseMatchTime, getMatchDays, calculateDisableTime, getDisableBoundaries, shouldDisableNow };
