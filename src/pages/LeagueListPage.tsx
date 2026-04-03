@@ -526,12 +526,13 @@ const LeagueListPage: React.FC = () => {
                       </Box>
 
                       {/* Premium Features */}
-                      {(league.powerplayEnabled || league.transferTypes?.flexibleTransfers?.enabled || league.transferTypes?.benchTransfers?.enabled) && (() => {
+                      {(() => {
                         const features = [
-                          league.powerplayEnabled && { icon: <Bolt sx={{ fontSize: 13 }} />, label: 'Powerplay', color: '#F59E0B' },
-                          league.transferTypes?.flexibleTransfers?.enabled && { icon: <SwapHoriz sx={{ fontSize: 13 }} />, label: 'Flex', color: '#a855f7' },
-                          league.transferTypes?.benchTransfers?.enabled && { icon: <CompareArrows sx={{ fontSize: 13 }} />, label: 'Bench', color: '#22d3ee' },
-                        ].filter(Boolean) as { icon: React.ReactNode; label: string; color: string }[];
+                          league.powerplayEnabled && { icon: <Bolt sx={{ fontSize: 13 }} />, label: 'PP', enabled: !!league.ppActivationEnabled, color: '#F59E0B' },
+                          league.transferTypes?.flexibleTransfers?.enabled && { icon: <SwapHoriz sx={{ fontSize: 13 }} />, label: 'Flex', enabled: !!league.flexibleChangesEnabled, color: '#a855f7' },
+                          league.transferTypes?.benchTransfers?.enabled && { icon: <CompareArrows sx={{ fontSize: 13 }} />, label: 'Bench', enabled: !!league.benchChangesEnabled, color: '#22d3ee' },
+                        ].filter(Boolean) as { icon: React.ReactNode; label: string; enabled: boolean; color: string }[];
+                        if (features.length === 0) return null;
                         return (
                           <Box
                             display="flex"
@@ -552,9 +553,24 @@ const LeagueListPage: React.FC = () => {
                                 {i > 0 && (
                                   <Box sx={{ width: '1px', height: 12, bgcolor: alpha(colors.text.primary, 0.1), mx: 1.25 }} />
                                 )}
-                                <Box display="flex" alignItems="center" gap={0.5} sx={{ color: f.color }}>
+                                <Box
+                                  display="flex"
+                                  alignItems="center"
+                                  gap={0.5}
+                                  sx={{
+                                    color: f.enabled ? f.color : alpha(colors.text.primary, 0.22),
+                                    opacity: f.enabled ? 1 : 0.55,
+                                    filter: f.enabled ? 'none' : 'grayscale(1)',
+                                  }}
+                                >
                                   {f.icon}
-                                  <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: f.color, letterSpacing: '0.02em', lineHeight: 1 }}>
+                                  <Typography sx={{
+                                    fontSize: '0.6875rem',
+                                    fontWeight: f.enabled ? 600 : 400,
+                                    color: 'inherit',
+                                    letterSpacing: '0.02em',
+                                    lineHeight: 1,
+                                  }}>
                                     {f.label}
                                   </Typography>
                                 </Box>

@@ -23,6 +23,7 @@ import {
   InputAdornment,
   IconButton
 } from '@mui/material';
+import SvgIcon, { SvgIconProps } from '@mui/material/SvgIcon';
 import {
   ExpandMore,
   Groups,
@@ -33,7 +34,6 @@ import {
   SportsCricket,
   Bolt,
   EmojiEvents,
-  RadioButtonChecked,
   Person,
   Star,
   SportsBaseball,
@@ -49,6 +49,14 @@ import LeagueNav from '../components/common/LeagueNav';
 import LeagueAssistant from '../components/LeagueAssistant';
 import type { League, LeagueSquad, User } from '../types/database';
 import { TeamLogo } from '../utils/teamLogos';
+
+const CricketCapIcon = (props: SvgIconProps) => (
+  <SvgIcon viewBox="0 0 24 24" {...props}>
+    <path d="M4 14 C4 8.477 7.582 5 12 5 C16.418 5 20 8.477 20 14 Z" />
+    <rect x="2" y="14" width="20" height="2.5" rx="1.25" />
+    <path d="M2 14.5 Q0 15.5 1 17 L3 16.5 Z" />
+  </SvgIcon>
+);
 
 interface SquadWithUser extends LeagueSquad {
   user?: User;
@@ -584,13 +592,13 @@ const ViewTeamsPage: React.FC = () => {
                               </Box>
                               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                  <SportsCricket sx={{ fontSize: '0.875rem', color: 'primary.main', flexShrink: 0 }} />
+                                  <CricketCapIcon sx={{ fontSize: '1rem', color: '#FF9800', flexShrink: 0 }} />
                                   <Typography variant="body2" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 500, fontSize: { xs: '0.8125rem', sm: '0.875rem' } }}>
                                     {squad.predictions.topRunScorer}
                                   </Typography>
                                 </Box>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                  <RadioButtonChecked sx={{ fontSize: '0.875rem', color: 'error.main', flexShrink: 0 }} />
+                                  <CricketCapIcon sx={{ fontSize: '1rem', color: '#9C27B0', flexShrink: 0 }} />
                                   <Typography variant="body2" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 500, fontSize: { xs: '0.8125rem', sm: '0.875rem' } }}>
                                     {squad.predictions.topWicketTaker}
                                   </Typography>
