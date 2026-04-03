@@ -17,6 +17,24 @@ import LeagueAssistant from '../components/LeagueAssistant';
 import type { League, PlayerPool } from '../types/database';
 import { DEFAULT_BATTING_CONFIG, DEFAULT_BOWLING_CONFIG, DEFAULT_FIELDING_CONFIG } from '../utils/pointsCalculation';
 import { InfoOutlined } from '@mui/icons-material';
+import colors from '../theme/colors';
+import { alpha } from '@mui/material/styles';
+
+const cardSx = {
+  background: `linear-gradient(145deg, ${alpha(colors.blue.navy, 0.95)} 0%, ${alpha('#0A1929', 0.98)} 100%)`,
+  border: `1px solid ${colors.border.default}`,
+  borderRadius: 4,
+  boxShadow: `0 20px 60px rgba(0,0,0,0.4)`,
+  overflow: 'hidden',
+  position: 'relative' as const,
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: '1px',
+    background: `linear-gradient(90deg, transparent, ${alpha(colors.blue.electric, 0.6)}, transparent)`,
+  }
+};
 
 // Scoring Configuration Content - Display scoring rules
 const ScoringConfigContent: React.FC<{
@@ -41,10 +59,10 @@ const ScoringConfigContent: React.FC<{
                 label={`Format: ${pool.format}`}
                 sx={{
                   ml: 1,
-                  bgcolor: '#1E88E5',
+                  bgcolor: colors.blue.electric,
                   color: '#fff',
                   '&:hover': {
-                    bgcolor: '#016293'
+                    bgcolor: colors.blue.deep
                   }
                 }}
               />
@@ -54,8 +72,8 @@ const ScoringConfigContent: React.FC<{
           {scoringMode === 'automated' ? (
             <>
               {/* Batting Configuration */}
-              <Box sx={{ p: 2, bgcolor: 'rgba(30, 136, 229, 0.08)', borderRadius: 2, border: '1px solid', borderColor: 'rgba(30, 136, 229, 0.3)' }}>
-                <Typography variant="h6" gutterBottom sx={{ color: '#1E88E5', display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ p: 2, bgcolor: alpha(colors.blue.electric, 0.08), borderRadius: 2, border: '1px solid', borderColor: alpha(colors.blue.electric, 0.3) }}>
+                <Typography variant="h6" gutterBottom sx={{ color: colors.blue.electric, display: 'flex', alignItems: 'center', gap: 1 }}>
                   🏏 Batting Scoring Rules
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
@@ -103,15 +121,15 @@ const ScoringConfigContent: React.FC<{
                     <Box sx={{
                       mt: 3,
                       p: 2.5,
-                      background: 'linear-gradient(135deg, rgba(30, 136, 229, 0.08) 0%, rgba(30, 136, 229, 0.03) 100%)',
+                      background: `linear-gradient(135deg, ${alpha(colors.blue.electric, 0.08)} 0%, ${alpha(colors.blue.electric, 0.03)} 100%)`,
                       borderRadius: 2,
                       border: '2px solid',
-                      borderColor: 'rgba(30, 136, 229, 0.3)',
-                      boxShadow: '0 4px 12px rgba(30, 136, 229, 0.15)',
+                      borderColor: alpha(colors.blue.electric, 0.3),
+                      boxShadow: colors.shadows.blue.sm,
                       transition: 'all 0.3s ease',
                       '&:hover': {
-                        boxShadow: '0 6px 20px rgba(30, 136, 229, 0.25)',
-                        borderColor: 'rgba(30, 136, 229, 0.5)',
+                        boxShadow: colors.shadows.blue.md,
+                        borderColor: alpha(colors.blue.electric, 0.5),
                       }
                     }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
@@ -119,7 +137,7 @@ const ScoringConfigContent: React.FC<{
                           width: 32,
                           height: 32,
                           borderRadius: '50%',
-                          bgcolor: '#1E88E5',
+                          bgcolor: colors.blue.electric,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -127,56 +145,56 @@ const ScoringConfigContent: React.FC<{
                         }}>
                           <Typography sx={{ fontSize: '1.2rem' }}>💡</Typography>
                         </Box>
-                        <Typography variant="subtitle1" fontWeight="bold" sx={{ color: '#1E88E5' }}>
+                        <Typography variant="subtitle1" fontWeight="bold" sx={{ color: colors.blue.electric }}>
                           Example: Bonus Points
                         </Typography>
                       </Box>
                       <Box sx={{
                         p: 2,
                         mb: 2,
-                        bgcolor: 'rgba(30, 136, 229, 0.15)',
+                        bgcolor: alpha(colors.blue.electric, 0.15),
                         borderRadius: 1.5,
-                        border: '1px solid rgba(30, 136, 229, 0.4)'
+                        border: `1px solid ${alpha(colors.blue.electric, 0.4)}`
                       }}>
                         <Typography variant="body2" sx={{ color: '#fff', fontWeight: 600 }}>
-                          A player scores <strong style={{ color: '#90caf9', fontSize: '1.05em' }}>{exampleRuns} runs off {exampleBalls} balls</strong> (SR: <strong style={{ color: '#90caf9' }}>{exampleSR.toFixed(1)}</strong>)
+                          A player scores <strong style={{ color: '#42A5F5', fontSize: '1.05em' }}>{exampleRuns} runs off {exampleBalls} balls</strong> (SR: <strong style={{ color: '#42A5F5' }}>{exampleSR.toFixed(1)}</strong>)
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#1E88E5' }} />
+                          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: colors.blue.electric }} />
                           <Typography variant="body2" color="text.secondary">
                             Base points: <strong style={{ color: '#1E88E5' }}>{exampleRuns} pts</strong> (1 pt per run)
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#1E88E5' }} />
+                          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: colors.blue.electric }} />
                           <Typography variant="body2" color="text.secondary">
-                            Balls faced ≥ {battingConfig.minBallsThreshold}? <strong style={{ color: exampleBalls >= battingConfig.minBallsThreshold ? '#4caf50' : '#f44336' }}>{exampleBalls >= battingConfig.minBallsThreshold ? '✓ Yes' : '✗ No'}</strong>
+                            Balls faced ≥ {battingConfig.minBallsThreshold}? <strong style={{ color: exampleBalls >= battingConfig.minBallsThreshold ? '#4CAF50' : '#E53935' }}>{exampleBalls >= battingConfig.minBallsThreshold ? '✓ Yes' : '✗ No'}</strong>
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#1E88E5' }} />
+                          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: colors.blue.electric }} />
                           <Typography variant="body2" color="text.secondary">
-                            SR ({exampleSR.toFixed(1)}) ≥ Trigger ({battingConfig.bonusSRTrigger})? <strong style={{ color: exampleSR >= battingConfig.bonusSRTrigger ? '#4caf50' : '#f44336' }}>{exampleSR >= battingConfig.bonusSRTrigger ? '✓ Yes' : '✗ No'}</strong>
+                            SR ({exampleSR.toFixed(1)}) ≥ Trigger ({battingConfig.bonusSRTrigger})? <strong style={{ color: exampleSR >= battingConfig.bonusSRTrigger ? '#4CAF50' : '#E53935' }}>{exampleSR >= battingConfig.bonusSRTrigger ? '✓ Yes' : '✗ No'}</strong>
                           </Typography>
                         </Box>
                         {exampleSR >= battingConfig.bonusSRTrigger && exampleBalls >= battingConfig.minBallsThreshold && (
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'success.main' }} />
                             <Typography variant="body2" color="text.secondary">
-                              Bonus = ({exampleRuns} × ({exampleSR.toFixed(1)} - {battingConfig.bonusSRBaseline})) / {battingConfig.bonusDivisor} = <strong style={{ color: '#4caf50', fontSize: '1.05em' }}>+{bonusPoints.toFixed(2)} pts</strong>
+                              Bonus = ({exampleRuns} × ({exampleSR.toFixed(1)} - {battingConfig.bonusSRBaseline})) / {battingConfig.bonusDivisor} = <strong style={{ color: '#4CAF50', fontSize: '1.05em' }}>+{bonusPoints.toFixed(2)} pts</strong>
                             </Typography>
                           </Box>
                         )}
                         <Box sx={{
                           mt: 1,
                           p: 1.5,
-                          bgcolor: 'rgba(30, 136, 229, 0.12)',
+                          bgcolor: alpha(colors.blue.electric, 0.12),
                           borderRadius: 1,
-                          border: '1px solid rgba(30, 136, 229, 0.3)'
+                          border: `1px solid ${alpha(colors.blue.electric, 0.3)}`
                         }}>
-                          <Typography variant="body1" fontWeight="bold" sx={{ color: '#1E88E5', textAlign: 'center' }}>
+                          <Typography variant="body1" fontWeight="bold" sx={{ color: colors.blue.electric, textAlign: 'center' }}>
                             Total Points: {totalPoints.toFixed(2)} pts
                           </Typography>
                         </Box>
@@ -198,15 +216,15 @@ const ScoringConfigContent: React.FC<{
                     <Box sx={{
                       mt: 2,
                       p: 2.5,
-                      background: 'linear-gradient(135deg, rgba(244, 67, 54, 0.08) 0%, rgba(244, 67, 54, 0.03) 100%)',
+                      background: `linear-gradient(135deg, ${alpha(colors.error.primary, 0.08)} 0%, ${alpha(colors.error.primary, 0.03)} 100%)`,
                       borderRadius: 2,
                       border: '2px solid',
-                      borderColor: 'rgba(244, 67, 54, 0.3)',
+                      borderColor: alpha(colors.error.primary, 0.3),
                       boxShadow: '0 4px 12px rgba(244, 67, 54, 0.15)',
                       transition: 'all 0.3s ease',
                       '&:hover': {
                         boxShadow: '0 6px 20px rgba(244, 67, 54, 0.25)',
-                        borderColor: 'rgba(244, 67, 54, 0.5)',
+                        borderColor: alpha(colors.error.primary, 0.5),
                       }
                     }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
@@ -229,47 +247,47 @@ const ScoringConfigContent: React.FC<{
                       <Box sx={{
                         p: 2,
                         mb: 2,
-                        bgcolor: 'rgba(244, 67, 54, 0.15)',
+                        bgcolor: alpha(colors.error.primary, 0.15),
                         borderRadius: 1.5,
-                        border: '1px solid rgba(244, 67, 54, 0.4)'
+                        border: `1px solid ${alpha(colors.error.primary, 0.4)}`
                       }}>
                         <Typography variant="body2" sx={{ color: '#fff', fontWeight: 600 }}>
-                          A player scores <strong style={{ color: '#ef5350', fontSize: '1.05em' }}>{exampleRuns} runs off {exampleBalls} balls</strong> (SR: <strong style={{ color: '#ef5350' }}>{exampleSR.toFixed(1)}</strong>)
+                          A player scores <strong style={{ color: '#EF5350', fontSize: '1.05em' }}>{exampleRuns} runs off {exampleBalls} balls</strong> (SR: <strong style={{ color: '#EF5350' }}>{exampleSR.toFixed(1)}</strong>)
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'error.main' }} />
                           <Typography variant="body2" color="text.secondary">
-                            Base points: <strong style={{ color: '#f44336' }}>{exampleRuns} pts</strong> (1 pt per run)
+                            Base points: <strong style={{ color: '#E53935' }}>{exampleRuns} pts</strong> (1 pt per run)
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'error.main' }} />
                           <Typography variant="body2" color="text.secondary">
-                            Balls faced ≥ {battingConfig.minBallsThreshold}? <strong style={{ color: exampleBalls >= battingConfig.minBallsThreshold ? '#4caf50' : '#f44336' }}>{exampleBalls >= battingConfig.minBallsThreshold ? '✓ Yes' : '✗ No'}</strong>
+                            Balls faced ≥ {battingConfig.minBallsThreshold}? <strong style={{ color: exampleBalls >= battingConfig.minBallsThreshold ? '#4CAF50' : '#E53935' }}>{exampleBalls >= battingConfig.minBallsThreshold ? '✓ Yes' : '✗ No'}</strong>
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'error.main' }} />
                           <Typography variant="body2" color="text.secondary">
-                            SR ({exampleSR.toFixed(1)}) {'<'} Penalty Threshold ({battingConfig.penaltySRThreshold})? <strong style={{ color: exampleSR < battingConfig.penaltySRThreshold ? '#f44336' : '#4caf50' }}>{exampleSR < battingConfig.penaltySRThreshold ? '✓ Yes' : '✗ No'}</strong>
+                            SR ({exampleSR.toFixed(1)}) {'<'} Penalty Threshold ({battingConfig.penaltySRThreshold})? <strong style={{ color: exampleSR < battingConfig.penaltySRThreshold ? '#E53935' : '#4CAF50' }}>{exampleSR < battingConfig.penaltySRThreshold ? '✓ Yes' : '✗ No'}</strong>
                           </Typography>
                         </Box>
                         {exampleSR < battingConfig.penaltySRThreshold && exampleBalls >= battingConfig.minBallsThreshold && (
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'warning.main' }} />
                             <Typography variant="body2" color="text.secondary">
-                              Penalty = ({exampleRuns} × ({exampleSR.toFixed(1)} - {battingConfig.bonusSRBaseline})) / {battingConfig.bonusDivisor} = <strong style={{ color: '#ff9800', fontSize: '1.05em' }}>{penaltyPoints.toFixed(2)} pts</strong>
+                              Penalty = ({exampleRuns} × ({exampleSR.toFixed(1)} - {battingConfig.bonusSRBaseline})) / {battingConfig.bonusDivisor} = <strong style={{ color: '#FF9800', fontSize: '1.05em' }}>{penaltyPoints.toFixed(2)} pts</strong>
                             </Typography>
                           </Box>
                         )}
                         <Box sx={{
                           mt: 1,
                           p: 1.5,
-                          bgcolor: 'rgba(244, 67, 54, 0.12)',
+                          bgcolor: alpha(colors.error.primary, 0.12),
                           borderRadius: 1,
-                          border: '1px solid rgba(244, 67, 54, 0.3)'
+                          border: `1px solid ${alpha(colors.error.primary, 0.3)}`
                         }}>
                           <Typography variant="body1" fontWeight="bold" color="error.main" sx={{ textAlign: 'center' }}>
                             Total Points: {totalPoints.toFixed(2)} pts
@@ -282,8 +300,8 @@ const ScoringConfigContent: React.FC<{
               </Box>
 
               {/* Bowling Configuration */}
-              <Box sx={{ p: 2, bgcolor: 'rgba(255, 255, 255, 0.05)', borderRadius: 2, border: '1px solid', borderColor: 'rgba(255, 255, 255, 0.1)' }}>
-                <Typography variant="h6" gutterBottom sx={{ color: '#90caf9', display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ p: 2, bgcolor: alpha(colors.text.primary, 0.05), borderRadius: 2, border: '1px solid', borderColor: colors.border.subtle }}>
+                <Typography variant="h6" gutterBottom sx={{ color: colors.blue.light, display: 'flex', alignItems: 'center', gap: 1 }}>
                   🎾 Bowling Scoring Rules
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
@@ -334,15 +352,15 @@ const ScoringConfigContent: React.FC<{
                     <Box sx={{
                       mt: 3,
                       p: 2.5,
-                      background: 'linear-gradient(135deg, rgba(30, 136, 229, 0.08) 0%, rgba(30, 136, 229, 0.03) 100%)',
+                      background: `linear-gradient(135deg, ${alpha(colors.blue.electric, 0.08)} 0%, ${alpha(colors.blue.electric, 0.03)} 100%)`,
                       borderRadius: 2,
                       border: '2px solid',
-                      borderColor: 'rgba(30, 136, 229, 0.3)',
-                      boxShadow: '0 4px 12px rgba(30, 136, 229, 0.15)',
+                      borderColor: alpha(colors.blue.electric, 0.3),
+                      boxShadow: colors.shadows.blue.sm,
                       transition: 'all 0.3s ease',
                       '&:hover': {
-                        boxShadow: '0 6px 20px rgba(30, 136, 229, 0.25)',
-                        borderColor: 'rgba(30, 136, 229, 0.5)',
+                        boxShadow: colors.shadows.blue.md,
+                        borderColor: alpha(colors.blue.electric, 0.5),
                       }
                     }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
@@ -350,7 +368,7 @@ const ScoringConfigContent: React.FC<{
                           width: 32,
                           height: 32,
                           borderRadius: '50%',
-                          bgcolor: '#1E88E5',
+                          bgcolor: colors.blue.electric,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -358,56 +376,56 @@ const ScoringConfigContent: React.FC<{
                         }}>
                           <Typography sx={{ fontSize: '1.2rem' }}>💡</Typography>
                         </Box>
-                        <Typography variant="subtitle1" fontWeight="bold" sx={{ color: '#1E88E5' }}>
+                        <Typography variant="subtitle1" fontWeight="bold" sx={{ color: colors.blue.electric }}>
                           Example: Bonus Points
                         </Typography>
                       </Box>
                       <Box sx={{
                         p: 2,
                         mb: 2,
-                        bgcolor: 'rgba(30, 136, 229, 0.15)',
+                        bgcolor: alpha(colors.blue.electric, 0.15),
                         borderRadius: 1.5,
-                        border: '1px solid rgba(30, 136, 229, 0.4)'
+                        border: `1px solid ${alpha(colors.blue.electric, 0.4)}`
                       }}>
                         <Typography variant="body2" sx={{ color: '#fff', fontWeight: 600 }}>
-                          A bowler takes <strong style={{ color: '#90caf9', fontSize: '1.05em' }}>{exampleWickets} wickets</strong>, concedes <strong style={{ color: '#90caf9', fontSize: '1.05em' }}>{exampleRuns} runs in {exampleOvers} overs</strong> (Economy: <strong style={{ color: '#90caf9' }}>{exampleEconomy.toFixed(2)}</strong>)
+                          A bowler takes <strong style={{ color: '#42A5F5', fontSize: '1.05em' }}>{exampleWickets} wickets</strong>, concedes <strong style={{ color: '#42A5F5', fontSize: '1.05em' }}>{exampleRuns} runs in {exampleOvers} overs</strong> (Economy: <strong style={{ color: '#42A5F5' }}>{exampleEconomy.toFixed(2)}</strong>)
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#1E88E5' }} />
+                          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: colors.blue.electric }} />
                           <Typography variant="body2" color="text.secondary">
                             Wicket points: <strong style={{ color: '#1E88E5' }}>{exampleWickets} × {bowlingConfig.wicketPoints} = {wicketPoints} pts</strong>
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#1E88E5' }} />
+                          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: colors.blue.electric }} />
                           <Typography variant="body2" color="text.secondary">
-                            Overs bowled ≥ {bowlingConfig.minOversForEconomy}? <strong style={{ color: exampleOvers >= bowlingConfig.minOversForEconomy ? '#4caf50' : '#f44336' }}>{exampleOvers >= bowlingConfig.minOversForEconomy ? '✓ Yes' : '✗ No'}</strong>
+                            Overs bowled ≥ {bowlingConfig.minOversForEconomy}? <strong style={{ color: exampleOvers >= bowlingConfig.minOversForEconomy ? '#4CAF50' : '#E53935' }}>{exampleOvers >= bowlingConfig.minOversForEconomy ? '✓ Yes' : '✗ No'}</strong>
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#1E88E5' }} />
+                          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: colors.blue.electric }} />
                           <Typography variant="body2" color="text.secondary">
-                            Economy ({exampleEconomy.toFixed(2)}) {'<'} Bonus Threshold ({bowlingConfig.economyBonusThreshold})? <strong style={{ color: exampleEconomy < bowlingConfig.economyBonusThreshold ? '#4caf50' : '#f44336' }}>{exampleEconomy < bowlingConfig.economyBonusThreshold ? '✓ Yes' : '✗ No'}</strong>
+                            Economy ({exampleEconomy.toFixed(2)}) {'<'} Bonus Threshold ({bowlingConfig.economyBonusThreshold})? <strong style={{ color: exampleEconomy < bowlingConfig.economyBonusThreshold ? '#4CAF50' : '#E53935' }}>{exampleEconomy < bowlingConfig.economyBonusThreshold ? '✓ Yes' : '✗ No'}</strong>
                           </Typography>
                         </Box>
                         {exampleEconomy < bowlingConfig.economyBonusThreshold && exampleOvers >= bowlingConfig.minOversForEconomy && (
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'success.main' }} />
                             <Typography variant="body2" color="text.secondary">
-                              Economy bonus: <strong style={{ color: '#4caf50' }}>({bowlingConfig.economyBonusThreshold} - {exampleEconomy.toFixed(2)}) × {bowlingConfig.economyMultiplier} = +{bonusPoints.toFixed(2)} pts</strong>
+                              Economy bonus: <strong style={{ color: '#4CAF50' }}>({bowlingConfig.economyBonusThreshold} - {exampleEconomy.toFixed(2)}) × {bowlingConfig.economyMultiplier} = +{bonusPoints.toFixed(2)} pts</strong>
                             </Typography>
                           </Box>
                         )}
                         <Box sx={{
                           mt: 1,
                           p: 1.5,
-                          bgcolor: 'rgba(30, 136, 229, 0.12)',
+                          bgcolor: alpha(colors.blue.electric, 0.12),
                           borderRadius: 1,
-                          border: '1px solid rgba(30, 136, 229, 0.3)'
+                          border: `1px solid ${alpha(colors.blue.electric, 0.3)}`
                         }}>
-                          <Typography variant="body1" fontWeight="bold" sx={{ color: '#1E88E5', textAlign: 'center' }}>
+                          <Typography variant="body1" fontWeight="bold" sx={{ color: colors.blue.electric, textAlign: 'center' }}>
                             Total Points: {totalPoints.toFixed(2)} pts
                           </Typography>
                         </Box>
@@ -431,15 +449,15 @@ const ScoringConfigContent: React.FC<{
                     <Box sx={{
                       mt: 3,
                       p: 2.5,
-                      background: 'linear-gradient(135deg, rgba(244, 67, 54, 0.08) 0%, rgba(244, 67, 54, 0.03) 100%)',
+                      background: `linear-gradient(135deg, ${alpha(colors.error.primary, 0.08)} 0%, ${alpha(colors.error.primary, 0.03)} 100%)`,
                       borderRadius: 2,
                       border: '2px solid',
-                      borderColor: 'rgba(244, 67, 54, 0.3)',
+                      borderColor: alpha(colors.error.primary, 0.3),
                       boxShadow: '0 4px 12px rgba(244, 67, 54, 0.15)',
                       transition: 'all 0.3s ease',
                       '&:hover': {
                         boxShadow: '0 6px 20px rgba(244, 67, 54, 0.25)',
-                        borderColor: 'rgba(244, 67, 54, 0.5)',
+                        borderColor: alpha(colors.error.primary, 0.5),
                       }
                     }}>
                       <Box sx={{
@@ -463,33 +481,33 @@ const ScoringConfigContent: React.FC<{
                       <Box sx={{
                         p: 2,
                         mb: 2,
-                        bgcolor: 'rgba(244, 67, 54, 0.15)',
+                        bgcolor: alpha(colors.error.primary, 0.15),
                         borderRadius: 1.5,
-                        border: '1px solid rgba(244, 67, 54, 0.4)'
+                        border: `1px solid ${alpha(colors.error.primary, 0.4)}`
                       }}>
                         <Typography variant="body2" sx={{ color: '#fff', fontWeight: 600 }}>
-                          A bowler takes <strong style={{ color: '#ef5350', fontSize: '1.05em' }}>{exampleWickets} wicket</strong>, concedes <strong style={{ color: '#ef5350', fontSize: '1.05em' }}>{exampleRuns} runs in {exampleOvers} overs</strong> (Economy: <strong style={{ color: '#ef5350' }}>{exampleEconomy.toFixed(2)}</strong>)
+                          A bowler takes <strong style={{ color: '#EF5350', fontSize: '1.05em' }}>{exampleWickets} wicket</strong>, concedes <strong style={{ color: '#EF5350', fontSize: '1.05em' }}>{exampleRuns} runs in {exampleOvers} overs</strong> (Economy: <strong style={{ color: '#EF5350' }}>{exampleEconomy.toFixed(2)}</strong>)
                         </Typography>
                       </Box>
 
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
                         <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'error.main' }} />
                         <Typography variant="body2" color="text.secondary">
-                          Wicket points: <strong style={{ color: '#f44336' }}>{exampleWickets} × {bowlingConfig.wicketPoints} = {wicketPoints} pts</strong>
+                          Wicket points: <strong style={{ color: '#E53935' }}>{exampleWickets} × {bowlingConfig.wicketPoints} = {wicketPoints} pts</strong>
                         </Typography>
                       </Box>
 
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
                         <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'error.main' }} />
                         <Typography variant="body2" color="text.secondary">
-                          Overs bowled ≥ {bowlingConfig.minOversForEconomy}? <strong style={{ color: exampleOvers >= bowlingConfig.minOversForEconomy ? '#4caf50' : '#f44336' }}>{exampleOvers >= bowlingConfig.minOversForEconomy ? '✓ Yes' : '✗ No'}</strong>
+                          Overs bowled ≥ {bowlingConfig.minOversForEconomy}? <strong style={{ color: exampleOvers >= bowlingConfig.minOversForEconomy ? '#4CAF50' : '#E53935' }}>{exampleOvers >= bowlingConfig.minOversForEconomy ? '✓ Yes' : '✗ No'}</strong>
                         </Typography>
                       </Box>
 
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
                         <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'error.main' }} />
                         <Typography variant="body2" color="text.secondary">
-                          Economy ({exampleEconomy.toFixed(2)}) {'>'} Penalty Threshold ({bowlingConfig.economyPenaltyThreshold})? <strong style={{ color: exampleEconomy > bowlingConfig.economyPenaltyThreshold ? '#4caf50' : '#f44336' }}>{exampleEconomy > bowlingConfig.economyPenaltyThreshold ? '✓ Yes' : '✗ No'}</strong>
+                          Economy ({exampleEconomy.toFixed(2)}) {'>'} Penalty Threshold ({bowlingConfig.economyPenaltyThreshold})? <strong style={{ color: exampleEconomy > bowlingConfig.economyPenaltyThreshold ? '#4CAF50' : '#E53935' }}>{exampleEconomy > bowlingConfig.economyPenaltyThreshold ? '✓ Yes' : '✗ No'}</strong>
                         </Typography>
                       </Box>
 
@@ -497,7 +515,7 @@ const ScoringConfigContent: React.FC<{
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                           <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'error.main' }} />
                           <Typography variant="body2" color="text.secondary">
-                            Economy penalty: <strong style={{ color: '#f44336' }}>({bowlingConfig.economyPenaltyThreshold} - {exampleEconomy.toFixed(2)}) × {bowlingConfig.economyMultiplier} = {economyPenalty.toFixed(2)} pts</strong>
+                            Economy penalty: <strong style={{ color: '#E53935' }}>({bowlingConfig.economyPenaltyThreshold} - {exampleEconomy.toFixed(2)}) × {bowlingConfig.economyMultiplier} = {economyPenalty.toFixed(2)} pts</strong>
                           </Typography>
                         </Box>
                       )}
@@ -505,9 +523,9 @@ const ScoringConfigContent: React.FC<{
                       <Box sx={{
                         mt: 1,
                         p: 1.5,
-                        bgcolor: 'rgba(244, 67, 54, 0.12)',
+                        bgcolor: alpha(colors.error.primary, 0.12),
                         borderRadius: 1,
-                        border: '1px solid rgba(244, 67, 54, 0.3)'
+                        border: `1px solid ${alpha(colors.error.primary, 0.3)}`
                       }}>
                         <Typography variant="body1" fontWeight="bold" color="error.main" sx={{ textAlign: 'center' }}>
                           Total Points: {totalPoints.toFixed(2)} pts
@@ -519,8 +537,8 @@ const ScoringConfigContent: React.FC<{
               </Box>
 
               {/* Fielding Configuration */}
-              <Box sx={{ p: 2, bgcolor: 'success.lighter', borderRadius: 2, border: '1px solid', borderColor: 'success.main' }}>
-                <Typography variant="h6" color="success.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ p: 2, bgcolor: alpha(colors.green.primary, 0.08), borderRadius: 2, border: '1px solid', borderColor: alpha(colors.green.primary, 0.3) }}>
+                <Typography variant="h6" gutterBottom sx={{ color: colors.green.light, display: 'flex', alignItems: 'center', gap: 1 }}>
                   🧤 Fielding Scoring Rules
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
@@ -540,8 +558,8 @@ const ScoringConfigContent: React.FC<{
               </Box>
 
               {/* Prediction Points */}
-              <Box sx={{ p: 2, bgcolor: 'warning.lighter', borderRadius: 2, border: '1px solid', borderColor: 'warning.main' }}>
-                <Typography variant="h6" color="warning.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ p: 2, bgcolor: alpha(colors.warning.primary, 0.08), borderRadius: 2, border: '1px solid', borderColor: alpha(colors.warning.primary, 0.3) }}>
+                <Typography variant="h6" gutterBottom sx={{ color: colors.warning.light, display: 'flex', alignItems: 'center', gap: 1 }}>
                   🎯 Prediction Bonus Points
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
@@ -662,13 +680,25 @@ const ScoringSystemPage: React.FC = () => {
       )}
 
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3, md: 4 } }}>
-        <Card>
+        <Card sx={cardSx}>
           <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-              <InfoOutlined color="info" />
-              <Typography variant="h5" fontWeight="bold">
-                Scoring Configuration - {playerPool.name}
-              </Typography>
+            <Box sx={{
+              position: 'relative', pl: 3, py: 2, mb: 3,
+              '&::before': {
+                content: '""', position: 'absolute',
+                left: 0, top: 0, bottom: 0, width: '4px', borderRadius: '4px',
+                background: `linear-gradient(180deg, ${colors.blue.electric}, ${alpha(colors.blue.electric, 0.2)})`,
+              }
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <InfoOutlined sx={{ color: colors.blue.electric }} />
+                <Typography variant="h5" fontWeight="bold" sx={{
+                  background: `linear-gradient(90deg, ${colors.text.primary} 60%, ${colors.blue.light})`,
+                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                }}>
+                  Scoring Configuration - {playerPool.name}
+                </Typography>
+              </Box>
             </Box>
             <ScoringConfigContent pool={playerPool} />
           </CardContent>

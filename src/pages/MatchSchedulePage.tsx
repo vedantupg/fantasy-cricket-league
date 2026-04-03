@@ -17,6 +17,7 @@ import MatchScheduleViewer from '../components/schedule/MatchScheduleViewer';
 import LeagueAssistant from '../components/LeagueAssistant';
 import type { League } from '../types/database';
 import colors from '../theme/colors';
+import { alpha } from '@mui/material/styles';
 
 const MatchSchedulePage: React.FC = () => {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -89,11 +90,22 @@ const MatchSchedulePage: React.FC = () => {
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
         {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
+        <Box sx={{
+          position: 'relative', pl: 3, py: 2, mb: 4,
+          '&::before': {
+            content: '""', position: 'absolute',
+            left: 0, top: 0, bottom: 0, width: '4px', borderRadius: '4px',
+            background: `linear-gradient(180deg, ${colors.blue.electric}, ${alpha(colors.blue.electric, 0.2)})`,
+          }
+        }}>
+          <Typography variant="h4" fontWeight={800} sx={{
+            letterSpacing: '-0.02em',
+            background: `linear-gradient(90deg, ${colors.text.primary} 60%, ${colors.blue.light})`,
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          }}>
             Match Schedule
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="body2" sx={{ color: alpha(colors.text.secondary, 0.6), mt: 0.4 }}>
             {league.tournamentName} • {league.format} Format
           </Typography>
         </Box>
@@ -101,11 +113,17 @@ const MatchSchedulePage: React.FC = () => {
         {/* Admin Upload Button */}
         {isAdmin && (
           <Box sx={{ mb: 3 }}>
-            <Alert severity="info" sx={{ mb: 2 }}>
+            <Box sx={{
+              mb: 2,
+              p: 2,
+              bgcolor: alpha(colors.blue.electric, 0.06),
+              border: `1px solid ${colors.border.default}`,
+              borderRadius: 2,
+            }}>
               <Typography variant="body2" gutterBottom>
                 As an admin, you can upload the match schedule for this league.
               </Typography>
-            </Alert>
+            </Box>
             <Button
               variant="contained"
               startIcon={<Upload />}
@@ -116,9 +134,12 @@ const MatchSchedulePage: React.FC = () => {
                 fontWeight: 600,
                 px: 3,
                 py: 1.25,
+                boxShadow: colors.shadows.blue.sm,
+                transition: 'all 0.2s ease',
                 '&:hover': {
                   bgcolor: colors.blue.deep,
-                  boxShadow: colors.shadows.blue.md
+                  boxShadow: colors.shadows.blue.md,
+                  transform: 'translateY(-1px)',
                 }
               }}
             >
