@@ -17,6 +17,24 @@ import LeagueAnalytics from '../components/leaderboard/LeagueAnalytics';
 import LeagueAssistant from '../components/LeagueAssistant';
 import { leaderboardSnapshotService, leagueService, squadService, playerPoolService } from '../services/firestore';
 import type { LeaderboardSnapshot, League, LeagueSquad, PlayerPool } from '../types/database';
+import colors from '../theme/colors';
+import { alpha } from '@mui/material/styles';
+
+const cardSx = {
+  background: `linear-gradient(145deg, ${alpha(colors.blue.navy, 0.95)} 0%, ${alpha('#0A1929', 0.98)} 100%)`,
+  border: `1px solid ${colors.border.default}`,
+  borderRadius: 4,
+  boxShadow: `0 20px 60px rgba(0,0,0,0.4)`,
+  overflow: 'hidden',
+  position: 'relative' as const,
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: '1px',
+    background: `linear-gradient(90deg, transparent, ${alpha(colors.blue.electric, 0.6)}, transparent)`,
+  }
+};
 
 const AnalyticsPage: React.FC = () => {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -108,6 +126,18 @@ const AnalyticsPage: React.FC = () => {
       startIcon={<RefreshIcon />}
       onClick={handleRefresh}
       disabled={loading}
+      sx={{
+        bgcolor: colors.blue.electric,
+        color: 'white',
+        fontWeight: 600,
+        boxShadow: colors.shadows.blue.sm,
+        transition: 'all 0.2s ease',
+        '&:hover': {
+          bgcolor: colors.blue.deep,
+          boxShadow: colors.shadows.blue.md,
+          transform: 'translateY(-1px)',
+        }
+      }}
     >
       Refresh
     </Button>
@@ -173,13 +203,37 @@ const AnalyticsPage: React.FC = () => {
       )}
 
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3, md: 4 } }}>
+        <Box sx={{
+          position: 'relative', pl: 3, py: 2, mb: 4,
+          '&::before': {
+            content: '""', position: 'absolute',
+            left: 0, top: 0, bottom: 0, width: '4px', borderRadius: '4px',
+            background: `linear-gradient(180deg, ${colors.blue.electric}, ${alpha(colors.blue.electric, 0.2)})`,
+          }
+        }}>
+          <Typography variant="h4" fontWeight={800} sx={{
+            letterSpacing: '-0.02em',
+            background: `linear-gradient(90deg, ${colors.text.primary} 60%, ${colors.blue.light})`,
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          }}>
+            League Analytics
+          </Typography>
+          <Typography variant="body2" sx={{ color: alpha(colors.text.secondary, 0.6), mt: 0.4 }}>
+            {league?.tournamentName || 'Tournament'}
+          </Typography>
+        </Box>
+
         {/* League Info */}
-        <Card sx={{ mb: { xs: 2, sm: 3, md: 4 } }}>
+        <Card sx={{ mb: { xs: 2, sm: 3, md: 4 }, ...cardSx }}>
           <CardContent sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: { xs: 1.5, sm: 2, md: 2.5 } }}>
-            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+            <Typography variant="h6" fontWeight="bold" sx={{
+              fontSize: { xs: '1rem', sm: '1.25rem' },
+              background: `linear-gradient(90deg, ${colors.text.primary} 60%, ${colors.blue.light})`,
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            }}>
               League Analytics
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+            <Typography variant="body2" sx={{ color: alpha(colors.text.secondary, 0.6), fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
               {league?.tournamentName || 'Tournament'}
               {snapshot ? ` • Last updated: ${snapshot.snapshotDate.toLocaleString()}` : ''}
             </Typography>
@@ -188,9 +242,17 @@ const AnalyticsPage: React.FC = () => {
 
         {/* Analytics Content */}
         {!hasLeagueStarted && (
-          <Card sx={{ bgcolor: 'primary.50', borderLeft: '4px solid', borderColor: 'primary.main' }}>
+          <Card sx={{
+            ...cardSx,
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              left: 0, top: 0, bottom: 0, width: '4px',
+              background: `linear-gradient(180deg, ${colors.warning.primary}, ${alpha(colors.warning.primary, 0.2)})`,
+            }
+          }}>
             <CardContent sx={{ py: { xs: 2, sm: 3 }, px: { xs: 2, sm: 3 } }}>
-              <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+              <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' }, color: colors.warning.light }}>
                 Analytics Not Yet Available
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
@@ -203,12 +265,12 @@ const AnalyticsPage: React.FC = () => {
         {hasLeagueStarted && snapshot && snapshot.standings.length > 0 ? (
           <LeagueAnalytics snapshot={snapshot} league={league} squads={squads} playerPool={playerPool} />
         ) : hasLeagueStarted ? (
-          <Card>
+          <Card sx={cardSx}>
             <CardContent sx={{ textAlign: 'center', py: { xs: 4, sm: 6 }, px: { xs: 2, sm: 3 } }}>
-              <Typography variant="h6" color="text.secondary" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+              <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' }, color: alpha(colors.text.secondary, 0.5) }}>
                 No analytics data available yet
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+              <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, color: alpha(colors.text.secondary, 0.5) }}>
                 Analytics will appear once squads are submitted and points are earned.
               </Typography>
             </CardContent>

@@ -40,7 +40,9 @@ import {
   GolfCourse,
 } from '@mui/icons-material';
 import { useParams } from 'react-router-dom';
+import { alpha } from '@mui/material/styles';
 import { useAuth } from '../contexts/AuthContext';
+import colors from '../theme/colors';
 import { leagueService, squadService, userService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
@@ -51,6 +53,22 @@ import { TeamLogo } from '../utils/teamLogos';
 interface SquadWithUser extends LeagueSquad {
   user?: User;
 }
+
+const cardSx = {
+  background: `linear-gradient(145deg, ${alpha(colors.blue.navy, 0.95)} 0%, ${alpha('#0A1929', 0.98)} 100%)`,
+  border: `1px solid ${colors.border.default}`,
+  borderRadius: 4,
+  boxShadow: `0 20px 60px rgba(0,0,0,0.4)`,
+  overflow: 'hidden',
+  position: 'relative' as const,
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: '1px',
+    background: `linear-gradient(90deg, transparent, ${alpha(colors.blue.electric, 0.6)}, transparent)`,
+  }
+};
 
 const ViewTeamsPage: React.FC = () => {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -211,20 +229,46 @@ const ViewTeamsPage: React.FC = () => {
       )}
 
       <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3, md: 4 }, px: { xs: 2, sm: 3 } }}>
+        {/* Page Header */}
+        <Box sx={{
+          position: 'relative', pl: 3, py: 2, mb: 4,
+          '&::before': {
+            content: '""', position: 'absolute',
+            left: 0, top: 0, bottom: 0, width: '4px', borderRadius: '4px',
+            background: `linear-gradient(180deg, ${colors.blue.electric}, ${alpha(colors.blue.electric, 0.2)})`,
+          }
+        }}>
+          <Typography variant="h4" fontWeight={800} sx={{
+            letterSpacing: '-0.02em',
+            background: `linear-gradient(90deg, ${colors.text.primary} 60%, ${colors.blue.light})`,
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          }}>
+            Teams
+          </Typography>
+          <Typography variant="body2" sx={{ color: alpha(colors.text.secondary, 0.6), mt: 0.4 }}>
+            {league?.tournamentName} • {league?.format} Format
+          </Typography>
+        </Box>
+
         {/* League Info */}
-        <Card sx={{ mb: { xs: 2, sm: 3, md: 4 } }}>
+        <Card sx={{ mb: { xs: 2, sm: 3, md: 4 }, ...cardSx }}>
           <CardContent>
             <Box display="flex" alignItems="center" gap={{ xs: 1, sm: 2 }} mb={2} flexWrap="wrap">
-              <Groups color="primary" sx={{ fontSize: { xs: 20, sm: 24 } }} />
+              <Groups sx={{ fontSize: { xs: 20, sm: 24 }, color: colors.blue.light }} />
               <Typography variant="h6" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 700, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 {league?.name}
               </Typography>
-              <Chip label={league?.format} size="small" />
+              <Box sx={{ display: 'inline-flex', alignItems: 'center', px: 1.5, py: 0.25, borderRadius: 2, border: `1px solid ${alpha(colors.orange.primary, 0.5)}`, bgcolor: alpha(colors.orange.primary, 0.08) }}>
+                <Typography variant="caption" sx={{ color: colors.orange.primary, fontWeight: 600, fontSize: '0.75rem' }}>
+                  {league?.format}
+                </Typography>
+              </Box>
               <Chip
                 label={`${squads.length} Teams`}
                 color="primary"
                 variant="outlined"
                 size="small"
+                sx={{ borderColor: colors.blue.electric, color: colors.blue.electric }}
               />
             </Box>
             <Typography variant="body2" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 400, fontSize: { xs: '0.75rem', sm: '0.875rem' }, color: 'text.secondary', opacity: 0.8 }}>
@@ -240,7 +284,7 @@ const ViewTeamsPage: React.FC = () => {
 
         {/* Search Bar */}
         {squads.length > 0 && (
-          <Card sx={{ mb: { xs: 2, sm: 3 } }}>
+          <Card sx={{ mb: { xs: 2, sm: 3 }, ...cardSx }}>
             <CardContent>
               <TextField
                 fullWidth
@@ -263,7 +307,7 @@ const ViewTeamsPage: React.FC = () => {
                 }}
               />
               {searchQuery && (
-                <Typography variant="caption" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 400, mt: 1, display: 'block', color: 'text.secondary' }}>
+                <Typography variant="caption" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 400, mt: 1, display: 'block', color: alpha(colors.text.secondary, 0.6) }}>
                   Showing {filteredSquads.length} of {squads.length} teams
                 </Typography>
               )}
@@ -273,10 +317,14 @@ const ViewTeamsPage: React.FC = () => {
 
         {/* Teams List */}
         {squads.length === 0 ? (
-          <Card sx={{ textAlign: 'center', py: { xs: 4, sm: 8 } }}>
+          <Card sx={{ textAlign: 'center', py: { xs: 4, sm: 8 }, ...cardSx }}>
             <CardContent>
-              <Groups sx={{ fontSize: { xs: 60, sm: 80 }, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h5" gutterBottom sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 600, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
+              <Groups sx={{ fontSize: { xs: 60, sm: 80 }, color: alpha(colors.text.secondary, 0.3), mb: 2 }} />
+              <Typography variant="h5" gutterBottom sx={{
+                fontFamily: "'Satoshi', sans-serif", fontWeight: 600, fontSize: { xs: '1.25rem', sm: '1.5rem' },
+                background: `linear-gradient(90deg, ${colors.text.primary} 60%, ${colors.blue.light})`,
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              }}>
                 No Teams Submitted Yet
               </Typography>
               <Typography variant="body1" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 400, fontSize: { xs: '0.875rem', sm: '1rem' }, color: 'text.secondary' }}>
@@ -285,9 +333,13 @@ const ViewTeamsPage: React.FC = () => {
             </CardContent>
           </Card>
         ) : filteredSquads.length === 0 ? (
-          <Card sx={{ textAlign: 'center', py: { xs: 4, sm: 8 } }}>
+          <Card sx={{ textAlign: 'center', py: { xs: 4, sm: 8 }, ...cardSx }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 600 }}>
+              <Typography variant="h6" gutterBottom sx={{
+                fontFamily: "'Satoshi', sans-serif", fontWeight: 600,
+                background: `linear-gradient(90deg, ${colors.text.primary} 60%, ${colors.blue.light})`,
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              }}>
                 No teams found
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -300,13 +352,14 @@ const ViewTeamsPage: React.FC = () => {
           <Grid container spacing={{ xs: 2, sm: 3 }}>
             {filteredSquads.map((squad, index) => (
               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={squad.id}>
-                <Card>
+                <Card sx={{ ...cardSx, transition: 'transform 0.2s ease, box-shadow 0.2s ease', '&:hover': { transform: 'translateY(-2px)', boxShadow: `0 24px 64px rgba(0,0,0,0.5)` } }}>
                   <CardContent sx={{ p: { xs: 2, sm: 2, md: 3 } }}>
                     <Box display="flex" alignItems="center" gap={{ xs: 1.5, sm: 2 }}>
                       <Avatar
                         src={squad.user?.profilePicUrl}
                         sx={{
-                          bgcolor: 'primary.main',
+                          background: `linear-gradient(135deg, ${colors.blue.deep}, ${colors.blue.electric})`,
+                          boxShadow: `0 0 0 2px ${alpha(colors.blue.electric, 0.2)}`,
                           width: { xs: 48, sm: 56 },
                           height: { xs: 48, sm: 56 }
                         }}
@@ -341,7 +394,7 @@ const ViewTeamsPage: React.FC = () => {
                           label="Submitted"
                           color="success"
                           size="small"
-                          sx={{ flexShrink: 0 }}
+                          sx={{ flexShrink: 0, bgcolor: alpha(colors.green.primary, 0.15), color: colors.green.light, borderColor: alpha(colors.green.primary, 0.4), border: '1px solid' }}
                         />
                       )}
                     </Box>
@@ -376,13 +429,14 @@ const ViewTeamsPage: React.FC = () => {
 
               return (
                 <Grid size={{ xs: 12, lg: 6 }} key={squad.id}>
-                  <Card>
+                  <Card sx={{ ...cardSx, transition: 'transform 0.2s ease, box-shadow 0.2s ease', '&:hover': { transform: 'translateY(-2px)', boxShadow: `0 24px 64px rgba(0,0,0,0.5)` } }}>
                     <CardContent sx={{ p: { xs: 2, sm: 2, md: 3 } }}>
                       <Box display="flex" alignItems="center" gap={{ xs: 1.5, sm: 2 }} mb={2}>
                         <Avatar
                           src={squad.user?.profilePicUrl}
                           sx={{
-                            bgcolor: 'primary.main',
+                            background: `linear-gradient(135deg, ${colors.blue.deep}, ${colors.blue.electric})`,
+                            boxShadow: `0 0 0 2px ${alpha(colors.blue.electric, 0.2)}`,
                             width: { xs: 40, sm: 48 },
                             height: { xs: 40, sm: 48 }
                           }}
@@ -404,11 +458,10 @@ const ViewTeamsPage: React.FC = () => {
                             fontFamily: "'Satoshi', sans-serif",
                             fontWeight: 400,
                             fontSize: { xs: '0.6875rem', sm: '0.8125rem' },
-                            color: 'text.secondary',
+                            color: alpha(colors.text.secondary, 0.55),
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            opacity: 0.75,
                           }}>
                             {squad.user?.displayName} • Rank #{squad.rank || index + 1} • {((squad.totalPoints || 0) + (squad.predictionBonusPoints || 0)).toFixed(2)} points
                           </Typography>
@@ -428,9 +481,9 @@ const ViewTeamsPage: React.FC = () => {
                         <Box sx={{
                           mb: 2,
                           p: { xs: 1.5, sm: 1.75 },
-                          bgcolor: 'rgba(255,215,0,0.04)',
+                          bgcolor: alpha(colors.gold, 0.04),
                           border: '1px solid',
-                          borderColor: 'rgba(255,215,0,0.25)',
+                          borderColor: alpha(colors.gold, 0.25),
                           borderRadius: 1.5,
                         }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
@@ -489,7 +542,7 @@ const ViewTeamsPage: React.FC = () => {
                               <Typography variant="caption" sx={{
                                 fontFamily: "'Satoshi', sans-serif",
                                 fontSize: { xs: '0.6875rem', sm: '0.75rem' },
-                                color: 'rgba(255,255,255,0.6)',
+                                color: alpha(colors.text.primary, 0.6),
                               }}>
                                 {squad.userId === user?.uid
                                   ? `${squad.hiddenPlayerTeam}`
@@ -510,21 +563,21 @@ const ViewTeamsPage: React.FC = () => {
                             <Box sx={{
                               flex: 1,
                               minWidth: { xs: '100%', sm: '300px' },
-                              bgcolor: 'rgba(255,255,255,0.04)',
+                              bgcolor: alpha(colors.text.primary, 0.04),
                               border: '1px solid',
-                              borderColor: 'rgba(255,255,255,0.12)',
+                              borderColor: colors.border.subtle,
                               borderRadius: 1.5,
                               p: { xs: 1.5, sm: 1.75 }
                             }}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
-                                <TrackChanges sx={{ fontSize: '0.875rem', color: 'primary.main' }} />
+                                <TrackChanges sx={{ fontSize: '0.875rem', color: colors.blue.electric }} />
                                 <Typography variant="caption" sx={{
                                   fontFamily: "'Satoshi', sans-serif",
                                   fontWeight: 600,
                                   fontSize: { xs: '0.6875rem', sm: '0.75rem' },
                                   textTransform: 'uppercase',
                                   letterSpacing: '0.08em',
-                                  color: 'primary.main',
+                                  color: colors.blue.electric,
                                 }}>
                                   Predictions
                                 </Typography>
@@ -555,9 +608,9 @@ const ViewTeamsPage: React.FC = () => {
                             <Box sx={{
                               flex: squad.predictions ? '0 0 auto' : 1,
                               minWidth: { xs: '100%', sm: '160px' },
-                              bgcolor: 'rgba(255,193,7,0.04)',
+                              bgcolor: alpha(colors.warning.primary, 0.04),
                               border: '1px solid',
-                              borderColor: 'rgba(255,193,7,0.25)',
+                              borderColor: alpha(colors.warning.primary, 0.25),
                               borderRadius: 1.5,
                               p: { xs: 1.5, sm: 1.75 },
                               display: 'flex',
@@ -603,7 +656,7 @@ const ViewTeamsPage: React.FC = () => {
                         <AccordionDetails sx={{ p: 0 }}>
                           {/* Main Squad */}
                           <Box sx={{ mb: 2 }}>
-                            <Box sx={{ bgcolor: 'primary.main', px: { xs: 1.5, sm: 2 }, py: 1 }}>
+                            <Box sx={{ bgcolor: colors.blue.electric, px: { xs: 1.5, sm: 2 }, py: 1 }}>
                               <Typography variant="subtitle2" color="white" sx={{
                                 fontFamily: "'Satoshi', sans-serif",
                                 fontWeight: 600,
@@ -688,11 +741,12 @@ const ViewTeamsPage: React.FC = () => {
                           {/* Bench */}
                           {bench.length > 0 && (
                             <Box>
-                              <Box sx={{ bgcolor: 'action.hover', px: { xs: 1.5, sm: 2 }, py: 1 }}>
+                              <Box sx={{ bgcolor: alpha(colors.text.primary, 0.06), px: { xs: 1.5, sm: 2 }, py: 1 }}>
                                 <Typography variant="subtitle2" sx={{
                                   fontFamily: "'Satoshi', sans-serif",
                                   fontWeight: 600,
                                   fontSize: { xs: '0.8125rem', sm: '0.875rem' },
+                                  color: colors.text.secondary,
                                 }}>
                                   Bench ({bench.length})
                                 </Typography>

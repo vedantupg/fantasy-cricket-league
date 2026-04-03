@@ -6,7 +6,6 @@ import {
   Menu,
   MenuItem,
   Typography,
-  Divider,
   alpha
 } from '@mui/material';
 import {

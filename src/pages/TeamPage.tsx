@@ -6,14 +6,9 @@ import {
   Card,
   CardContent,
   Button,
-  Grid,
   Avatar,
   Chip,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { ArrowBack, Add, Remove } from '@mui/icons-material';
@@ -24,8 +19,6 @@ const TeamPage: React.FC = () => {
   const [selectedPlayers, setSelectedPlayers] = useState<any[]>([]);
   const [budget] = useState(100);
   const [usedBudget, setUsedBudget] = useState(0);
-
-  const playerPositions = ['Wicket Keeper', 'Batter', 'All Rounder', 'Bowler'];
 
   const samplePlayers = [
     { id: 1, name: 'Virat Kohli', position: 'Batter', points: 8.5, price: 11.0 },

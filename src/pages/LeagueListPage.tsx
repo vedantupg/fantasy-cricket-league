@@ -8,11 +8,9 @@ import {
   CardContent,
   CardActions,
   Button,
-  Chip,
   Fab,
   Alert,
   LinearProgress,
-  Avatar,
 } from '@mui/material';
 import Skeleton from '@mui/material/Skeleton';
 import {
@@ -27,8 +25,6 @@ import {
   Bolt,
   SwapHoriz,
   CompareArrows,
-  Apps,
-  ManageAccounts,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useRef } from 'react';
