@@ -140,17 +140,18 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
       }}>
         {/* Back Button */}
         <Button
-          startIcon={!isSmallMobile ? <ArrowBack /> : undefined}
+          startIcon={<ArrowBack />}
           onClick={handleBack}
           variant="outlined"
           sx={{
             px: { xs: 1.5, sm: 2 },
-            py: { xs: 0.5, sm: 0.75 },
-            minWidth: { xs: 'auto', sm: 'auto' },
-            fontSize: { xs: '0.7rem', sm: '0.8rem' }
+            py: { xs: 0.75, sm: 1 },
+            minWidth: 'auto',
+            fontSize: { xs: '0.75rem', sm: '0.85rem' },
+            fontWeight: 600,
           }}
         >
-          {isSmallMobile ? <ArrowBack /> : 'Back'}
+          {isSmallMobile ? null : 'Back'}
         </Button>
 
         {/* League Name and Current Page */}

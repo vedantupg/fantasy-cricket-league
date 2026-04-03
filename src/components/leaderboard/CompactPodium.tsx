@@ -50,9 +50,23 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league }) => {
     // Priority 1: Check if rank changed (moved up or down)
     if (standing.rankChange !== undefined && standing.rankChange !== 0) {
       if (standing.rankChange > 0) {
-        return <ArrowUpIcon sx={{ fontSize: { xs: 12, sm: 14 }, color: 'success.main' }} />;
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+            <ArrowUpIcon sx={{ fontSize: { xs: 12, sm: 14 }, color: 'success.main' }} />
+            <Typography variant="caption" sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' }, fontWeight: 'bold', color: 'success.main', lineHeight: 1 }}>
+              {Math.abs(standing.rankChange)}
+            </Typography>
+          </Box>
+        );
       }
-      return <ArrowDownIcon sx={{ fontSize: { xs: 12, sm: 14 }, color: '#F44336' }} />;
+      return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+          <ArrowDownIcon sx={{ fontSize: { xs: 12, sm: 14 }, color: '#F44336' }} />
+          <Typography variant="caption" sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' }, fontWeight: 'bold', color: '#F44336', lineHeight: 1 }}>
+            {Math.abs(standing.rankChange)}
+          </Typography>
+        </Box>
+      );
     }
 
     // Priority 2: Check if rank stayed the same (rankChange === 0) AND has a streak

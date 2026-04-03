@@ -23,7 +23,10 @@ import {
   PersonAdd,
   ContentCopy,
   Groups,
-  Share
+  Share,
+  Bolt,
+  SwapHoriz,
+  CompareArrows
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useRef } from 'react';
@@ -411,12 +414,51 @@ const LeagueListPage: React.FC = () => {
                     variant="outlined"
                     size="small"
                     sx={{
-                      mb: 2,
                       borderColor: colors.orange.primary,
                       color: colors.orange.primary,
                       fontWeight: 600
                     }}
                   />
+
+                  {/* Premium Features */}
+                  {(league.powerplayEnabled || league.transferTypes?.flexibleTransfers?.enabled || league.transferTypes?.benchTransfers?.enabled) && (() => {
+                    const features = [
+                      league.powerplayEnabled && { icon: <Bolt sx={{ fontSize: 13 }} />, label: 'Powerplay', color: '#F59E0B' },
+                      league.transferTypes?.flexibleTransfers?.enabled && { icon: <SwapHoriz sx={{ fontSize: 13 }} />, label: 'Flex', color: '#a855f7' },
+                      league.transferTypes?.benchTransfers?.enabled && { icon: <CompareArrows sx={{ fontSize: 13 }} />, label: 'Bench', color: '#22d3ee' },
+                    ].filter(Boolean) as { icon: React.ReactNode; label: string; color: string }[];
+                    return (
+                      <Box
+                        display="flex"
+                        alignItems="center"
+                        gap={0}
+                        mt={1.25}
+                        mb={2}
+                        sx={{
+                          bgcolor: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.07)',
+                          borderRadius: 1.5,
+                          px: 1.25,
+                          py: 0.6,
+                          width: 'fit-content',
+                        }}
+                      >
+                        {features.map((f, i) => (
+                          <React.Fragment key={f.label}>
+                            {i > 0 && (
+                              <Box sx={{ width: '1px', height: 12, bgcolor: 'rgba(255,255,255,0.1)', mx: 1.25 }} />
+                            )}
+                            <Box display="flex" alignItems="center" gap={0.5} sx={{ color: f.color }}>
+                              {f.icon}
+                              <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: f.color, letterSpacing: '0.02em', lineHeight: 1 }}>
+                                {f.label}
+                              </Typography>
+                            </Box>
+                          </React.Fragment>
+                        ))}
+                      </Box>
+                    );
+                  })()}
 
                   {/* League Stats */}
                   <Box display="flex" alignItems="center" gap={1} mb={1}>
