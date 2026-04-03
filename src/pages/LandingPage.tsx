@@ -9,12 +9,10 @@ import {
   Avatar,
   useTheme,
   alpha,
-  Divider,
-  Chip,
   CircularProgress,
   Fade,
   Slide,
-  Zoom
+  Zoom,
 } from '@mui/material';
 import {
   EmojiEvents,
@@ -314,179 +312,307 @@ const LandingPage: React.FC = () => {
             zIndex: 1
           }}
         >
-          <Fade in timeout={1000}>
+          <Fade in timeout={800}>
             <Card
               sx={{
-                background: colors.background.paper, // Navy background
-                backdropFilter: 'blur(20px)',
+                background: `linear-gradient(145deg, ${alpha(colors.blue.navy, 0.95)} 0%, ${alpha('#0A1929', 0.98)} 100%)`,
+                backdropFilter: 'blur(24px)',
                 border: `1px solid ${colors.border.default}`,
-                borderRadius: 3,
-                boxShadow: colors.shadows.navy.lg
+                borderRadius: 4,
+                boxShadow: `0 20px 60px rgba(0,0,0,0.4), 0 1px 0 ${alpha(colors.blue.electric, 0.15)} inset`,
+                overflow: 'hidden',
+                position: 'relative',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '1px',
+                  background: `linear-gradient(90deg, transparent, ${alpha(colors.blue.electric, 0.6)}, transparent)`,
+                }
               }}
             >
-            <CardContent sx={{ p: 5 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 3 }}>
-                <Avatar
-                  src={userData?.profilePicUrl}
-                  sx={{
-                    width: 80,
-                    height: 80,
-                    background: `linear-gradient(135deg, ${colors.blue.deep}, ${colors.blue.electric})`,
-                    border: `2px solid ${colors.blue.electric}`,
-                    boxShadow: colors.shadows.blue.md
-                  }}
-                >
-                  {userData?.displayName?.charAt(0) || user.email?.charAt(0)}
-                </Avatar>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="h4" fontWeight="bold" gutterBottom>
-                    Welcome back, {userData?.displayName || user.email?.split('@')[0]}!
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    Ready to manage your fantasy cricket teams?
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-                <Button
-                  variant="outlined"
-                  startIcon={<Dashboard />}
-                  onClick={() => navigate('/dashboard')}
-                  sx={{
-                    borderRadius: 2,
-                    borderColor: colors.blue.electric,
-                    color: colors.blue.electric,
-                    '&:hover': {
-                      borderColor: colors.blue.light,
-                      bgcolor: alpha(colors.blue.electric, 0.08)
-                    }
-                  }}
-                >
-                  Go to My Leagues
-                </Button>
-                <Button
-                  variant="contained"
-                  startIcon={<GroupAdd />}
-                  onClick={() => navigate('/leagues/join')}
-                  sx={{
-                    borderRadius: 2,
-                    bgcolor: colors.orange.primary,
-                    '&:hover': {
-                      bgcolor: colors.orange.dark
-                    }
-                  }}
-                >
-                  Join League
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<Settings />}
-                  onClick={() => navigate('/profile')}
-                  sx={{
-                    borderRadius: 2,
-                    borderColor: colors.grey[600],
-                    color: colors.grey[400],
-                    '&:hover': {
-                      borderColor: colors.grey[500],
-                      bgcolor: alpha(colors.grey[600], 0.08)
-                    }
-                  }}
-                >
-                  Edit Profile
-                </Button>
-              </Box>
-
-              <Divider sx={{ mb: 3 }} />
-              <Typography variant="h6" fontWeight="bold" mb={2}>
-                Your Leagues ({userLeagues.length})
-              </Typography>
-
-              {leaguesLoading ? (
-                <Box display="flex" justifyContent="center" py={2}>
-                  <CircularProgress size={40} />
-                </Box>
-              ) : userLeagues.length > 0 ? (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                  {userLeagues.slice(0, 3).map((league) => (
-                    <Card
-                      key={league.id}
+              {/* Top section: avatar + greeting + actions */}
+              <Box
+                sx={{
+                  px: { xs: 3, md: 5 },
+                  pt: { xs: 3, md: 4 },
+                  pb: 3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 3,
+                }}
+              >
+                {/* Left: Avatar + text */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                  <Box sx={{ position: 'relative' }}>
+                    <Avatar
+                      src={userData?.profilePicUrl}
                       sx={{
-                        minWidth: 240,
-                        cursor: 'pointer',
-                        background: `linear-gradient(135deg, ${colors.blue.deep}, ${alpha(colors.blue.navy, 0.8)})`,
-                        backdropFilter: 'blur(10px)',
-                        border: `1px solid ${colors.border.subtle}`,
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          border: `1px solid ${colors.border.strong}`,
-                          boxShadow: colors.shadows.blue.md
-                        }
+                        width: 72,
+                        height: 72,
+                        background: `linear-gradient(135deg, ${colors.blue.deep} 0%, ${colors.blue.electric} 100%)`,
+                        fontSize: '1.75rem',
+                        fontWeight: 700,
+                        boxShadow: `0 0 0 3px ${alpha(colors.blue.electric, 0.25)}, ${colors.shadows.blue.md}`,
                       }}
-                      onClick={() => navigate(`/leagues/${league.id}`)}
                     >
-                      <CardContent>
-                        <Typography variant="subtitle1" fontWeight="bold" noWrap>
-                          {league.name}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {league.tournamentName}
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                          <Chip
-                            label={league.format}
-                            size="small"
-                            variant="outlined"
-                            sx={{
-                              borderColor: colors.orange.primary,
-                              color: colors.orange.primary,
-                              fontWeight: 600
-                            }}
-                          />
-                          <Chip
-                            label={(() => {
-                              const now = new Date();
-                              const leagueEnded = league.endDate ? now > new Date(league.endDate) : league.status === 'completed';
-                              const leagueStarted = now > new Date(league.startDate);
-
-                              if (leagueEnded) return '🏁 Completed';
-                              if (leagueStarted && !leagueEnded) return '📊 In Progress';
-                              return 'Upcoming';
-                            })()}
-                            size="small"
-                            variant="outlined"
-                            sx={{
-                              borderColor: (() => {
-                                const now = new Date();
-                                const leagueEnded = league.endDate ? now > new Date(league.endDate) : league.status === 'completed';
-                                const leagueStarted = now > new Date(league.startDate);
-                                if (leagueEnded) return colors.grey[500];
-                                if (leagueStarted && !leagueEnded) return colors.success.primary;
-                                return colors.orange.primary;
-                              })(),
-                              color: (() => {
-                                const now = new Date();
-                                const leagueEnded = league.endDate ? now > new Date(league.endDate) : league.status === 'completed';
-                                const leagueStarted = now > new Date(league.startDate);
-                                if (leagueEnded) return colors.grey[500];
-                                if (leagueStarted && !leagueEnded) return colors.success.primary;
-                                return colors.orange.primary;
-                              })()
-                            }}
-                          />
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  ))}
+                      {userData?.displayName?.charAt(0) || user.email?.charAt(0)}
+                    </Avatar>
+                    {/* Online indicator */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        bottom: 3,
+                        right: 3,
+                        width: 13,
+                        height: 13,
+                        borderRadius: '50%',
+                        bgcolor: colors.success.primary,
+                        border: `2px solid ${colors.background.default}`,
+                        boxShadow: `0 0 6px ${colors.success.primary}`,
+                      }}
+                    />
+                  </Box>
+                  <Box>
+                    <Typography
+                      variant="h5"
+                      fontWeight={700}
+                      sx={{
+                        letterSpacing: '-0.02em',
+                        lineHeight: 1.2,
+                        background: `linear-gradient(90deg, ${colors.text.primary} 60%, ${colors.blue.light})`,
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                      }}
+                    >
+                      Welcome back, {userData?.displayName || user.email?.split('@')[0]}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: alpha(colors.text.secondary, 0.7), mt: 0.4, letterSpacing: '0.01em' }}
+                    >
+                      Ready to dominate your leagues?
+                    </Typography>
+                  </Box>
                 </Box>
-              ) : (
-                <Typography variant="body1" color="text.secondary">
-                  You haven't joined any leagues yet. Create or join one to get started!
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
+
+                {/* Right: Action buttons */}
+                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <Button
+                    variant="contained"
+                    startIcon={<GroupAdd sx={{ fontSize: '1rem' }} />}
+                    onClick={() => navigate('/leagues/join')}
+                    size="small"
+                    sx={{
+                      borderRadius: 2.5,
+                      px: 2.5,
+                      py: 1,
+                      fontWeight: 600,
+                      fontSize: '0.8rem',
+                      letterSpacing: '0.02em',
+                      background: `linear-gradient(135deg, ${colors.orange.primary}, ${colors.orange.dark})`,
+                      boxShadow: `0 4px 14px ${alpha(colors.orange.primary, 0.4)}`,
+                      border: 'none',
+                      '&:hover': {
+                        background: `linear-gradient(135deg, ${colors.orange.light}, ${colors.orange.primary})`,
+                        boxShadow: `0 6px 18px ${alpha(colors.orange.primary, 0.55)}`,
+                        transform: 'translateY(-1px)',
+                      },
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    Join League
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<Dashboard sx={{ fontSize: '1rem' }} />}
+                    onClick={() => navigate('/dashboard')}
+                    size="small"
+                    sx={{
+                      borderRadius: 2.5,
+                      px: 2.5,
+                      py: 1,
+                      fontWeight: 600,
+                      fontSize: '0.8rem',
+                      letterSpacing: '0.02em',
+                      borderColor: alpha(colors.blue.electric, 0.5),
+                      color: colors.blue.light,
+                      backdropFilter: 'blur(8px)',
+                      '&:hover': {
+                        borderColor: colors.blue.electric,
+                        bgcolor: alpha(colors.blue.electric, 0.1),
+                        transform: 'translateY(-1px)',
+                      },
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    My Leagues
+                  </Button>
+                  <Button
+                    variant="text"
+                    startIcon={<Settings sx={{ fontSize: '1rem' }} />}
+                    onClick={() => navigate('/profile')}
+                    size="small"
+                    sx={{
+                      borderRadius: 2.5,
+                      px: 2,
+                      py: 1,
+                      fontWeight: 500,
+                      fontSize: '0.8rem',
+                      color: alpha(colors.text.secondary, 0.6),
+                      '&:hover': {
+                        color: colors.text.secondary,
+                        bgcolor: alpha(colors.grey[600], 0.12),
+                      },
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    Profile
+                  </Button>
+                </Box>
+              </Box>
+
+              {/* Divider with label */}
+              <Box sx={{ px: { xs: 3, md: 5 }, mb: 2.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Box sx={{ flex: 1, height: '1px', background: `linear-gradient(90deg, ${alpha(colors.blue.electric, 0.2)}, transparent)` }} />
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: alpha(colors.text.secondary, 0.5),
+                      letterSpacing: '0.12em',
+                      textTransform: 'uppercase',
+                      fontWeight: 600,
+                      fontSize: '0.68rem',
+                    }}
+                  >
+                    Your Leagues · {userLeagues.length}
+                  </Typography>
+                  <Box sx={{ flex: 1, height: '1px', background: `linear-gradient(90deg, transparent, ${alpha(colors.blue.electric, 0.2)})` }} />
+                </Box>
+              </Box>
+
+              {/* Leagues grid */}
+              <Box sx={{ px: { xs: 3, md: 5 }, pb: { xs: 3, md: 4 } }}>
+                {leaguesLoading ? (
+                  <Box display="flex" justifyContent="center" py={3}>
+                    <CircularProgress size={28} sx={{ color: colors.blue.electric }} />
+                  </Box>
+                ) : userLeagues.length > 0 ? (
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 2 }}>
+                    {userLeagues.slice(0, 3).map((league) => {
+                      const now = new Date();
+                      const leagueEnded = league.endDate ? now > new Date(league.endDate) : league.status === 'completed';
+                      const leagueStarted = now > new Date(league.startDate);
+                      const statusLabel = leagueEnded ? 'Completed' : leagueStarted ? 'In Progress' : 'Upcoming';
+                      const statusColor = leagueEnded ? colors.grey[500] : leagueStarted ? colors.success.primary : colors.orange.primary;
+
+                      return (
+                        <Card
+                          key={league.id}
+                          onClick={() => navigate(`/leagues/${league.id}`)}
+                          sx={{
+                            cursor: 'pointer',
+                            background: `linear-gradient(135deg, ${alpha(colors.blue.deep, 0.5)} 0%, ${alpha(colors.blue.navy, 0.3)} 100%)`,
+                            backdropFilter: 'blur(12px)',
+                            border: `1px solid ${alpha(colors.blue.electric, 0.12)}`,
+                            borderRadius: 3,
+                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                            '&:hover': {
+                              transform: 'translateY(-3px)',
+                              border: `1px solid ${alpha(colors.blue.electric, 0.4)}`,
+                              boxShadow: `0 12px 28px rgba(0,0,0,0.3), 0 0 0 1px ${alpha(colors.blue.electric, 0.15)}`,
+                              background: `linear-gradient(135deg, ${alpha(colors.blue.deep, 0.7)} 0%, ${alpha(colors.blue.navy, 0.5)} 100%)`,
+                            }
+                          }}
+                        >
+                          <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+                            <Typography
+                              variant="body2"
+                              fontWeight={700}
+                              noWrap
+                              sx={{ letterSpacing: '0.02em', color: colors.text.primary, mb: 0.5 }}
+                            >
+                              {league.name}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{ color: alpha(colors.text.secondary, 0.6), display: 'block', mb: 1.5 }}
+                            >
+                              {league.tournamentName}
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                              <Box
+                                sx={{
+                                  px: 1,
+                                  py: 0.25,
+                                  borderRadius: 1,
+                                  border: `1px solid ${alpha(colors.orange.primary, 0.5)}`,
+                                  bgcolor: alpha(colors.orange.primary, 0.08),
+                                }}
+                              >
+                                <Typography variant="caption" sx={{ color: colors.orange.light, fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.06em' }}>
+                                  {league.format}
+                                </Typography>
+                              </Box>
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 0.5,
+                                  px: 1,
+                                  py: 0.25,
+                                  borderRadius: 1,
+                                  border: `1px solid ${alpha(statusColor, 0.4)}`,
+                                  bgcolor: alpha(statusColor, 0.08),
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    width: 5,
+                                    height: 5,
+                                    borderRadius: '50%',
+                                    bgcolor: statusColor,
+                                    ...(leagueStarted && !leagueEnded && {
+                                      boxShadow: `0 0 5px ${statusColor}`,
+                                      animation: 'pulse 2s infinite',
+                                      '@keyframes pulse': {
+                                        '0%, 100%': { opacity: 1 },
+                                        '50%': { opacity: 0.4 },
+                                      }
+                                    })
+                                  }}
+                                />
+                                <Typography variant="caption" sx={{ color: statusColor, fontWeight: 600, fontSize: '0.65rem', letterSpacing: '0.04em' }}>
+                                  {statusLabel}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </Box>
+                ) : (
+                  <Box
+                    sx={{
+                      py: 3,
+                      textAlign: 'center',
+                      border: `1px dashed ${alpha(colors.blue.electric, 0.2)}`,
+                      borderRadius: 3,
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ color: alpha(colors.text.secondary, 0.5) }}>
+                      No leagues yet — create or join one to get started.
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </Card>
           </Fade>
         </Container>
       )}

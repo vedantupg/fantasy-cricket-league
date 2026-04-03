@@ -37,6 +37,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { leagueService, playerPoolService } from '../services/firestore';
 import { generateLeagueCode } from '../utils/leagueCode';
 import AppHeader from '../components/common/AppHeader';
+import colors from '../theme/colors';
 import type { League, SquadRules, TransferTypeConfig, PlayerPool } from '../types/database';
 
 // Helper function to format Date for datetime-local input (preserves local timezone)
@@ -1013,14 +1014,14 @@ const CreateLeaguePage: React.FC = () => {
         PaperProps={{
           sx: {
             background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
-            border: '2px solid #ff005d',
+            border: `2px solid ${colors.blue.electric}`,
             borderRadius: 2
           }
         }}
       >
         <DialogTitle sx={{ textAlign: 'center', pt: 4 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <SportsCricket sx={{ fontSize: 48, color: '#ff005d' }} />
+            <SportsCricket sx={{ fontSize: 48, color: colors.blue.electric }} />
             <Typography variant="h5" fontWeight="bold">
               League Created Successfully!
             </Typography>
@@ -1061,10 +1062,10 @@ const CreateLeaguePage: React.FC = () => {
             <IconButton
               onClick={handleCopyCode}
               sx={{
-                bgcolor: copied ? 'success.main' : '#ff005d',
+                bgcolor: copied ? 'success.main' : colors.blue.electric,
                 color: 'white',
                 '&:hover': {
-                  bgcolor: copied ? 'success.dark' : '#cc0049'
+                  bgcolor: copied ? 'success.dark' : colors.blue.deep
                 }
               }}
               size="small"
@@ -1081,7 +1082,7 @@ const CreateLeaguePage: React.FC = () => {
 
           <Box sx={{ textAlign: 'center', py: 2 }}>
             <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.7 }}>
-              Powered by <strong style={{ color: '#ff005d' }}>Fantasy Cricket League</strong>
+              Powered by <strong style={{ color: colors.blue.electric }}>Fantasy Cricket League</strong>
             </Typography>
           </Box>
         </DialogContent>
@@ -1093,7 +1094,7 @@ const CreateLeaguePage: React.FC = () => {
             onClick={handleCloseDialog}
             size="large"
             sx={{
-              background: 'linear-gradient(45deg, #ff005d 30%, #ff4081 90%)',
+              background: `linear-gradient(45deg, ${colors.blue.electric}, ${colors.blue.deep})`,
               fontWeight: 'bold'
             }}
           >

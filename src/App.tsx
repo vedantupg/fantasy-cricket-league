@@ -39,14 +39,14 @@ const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#ff005d',
+      main: '#1E88E5',
     },
     secondary: {
       main: '#00e5ff',
     },
     background: {
-      default: '#000000',
-      paper: '#1a1a1a',
+      default: '#0A1929',
+      paper: '#003E5C',
     },
   },
   typography: {
