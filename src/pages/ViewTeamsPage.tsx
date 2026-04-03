@@ -410,7 +410,7 @@ const ViewTeamsPage: React.FC = () => {
                             whiteSpace: 'nowrap',
                             opacity: 0.75,
                           }}>
-                            {squad.user?.displayName} • Rank #{squad.rank || index + 1} • {(squad.totalPoints || 0) + (squad.predictionBonusPoints || 0)} points
+                            {squad.user?.displayName} • Rank #{squad.rank || index + 1} • {((squad.totalPoints || 0) + (squad.predictionBonusPoints || 0)).toFixed(2)} points
                           </Typography>
                         </Box>
                         {squad.isSubmitted && (
@@ -674,7 +674,7 @@ const ViewTeamsPage: React.FC = () => {
                                         </TableCell>
                                         <TableCell align="right" sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 } }}>
                                           <Typography variant="body2" sx={{ fontFamily: "'Bebas Neue', cursive", fontSize: { xs: '0.875rem', sm: '1rem' }, letterSpacing: '0.04em' }}>
-                                            {player.points}
+                                            {(player.points ?? 0).toFixed(2)}
                                           </Typography>
                                         </TableCell>
                                       </TableRow>
@@ -747,7 +747,7 @@ const ViewTeamsPage: React.FC = () => {
                                           </TableCell>
                                           <TableCell align="right" sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 } }}>
                                             <Typography variant="body2" sx={{ fontFamily: "'Bebas Neue', cursive", fontSize: { xs: '0.875rem', sm: '1rem' }, letterSpacing: '0.04em' }}>
-                                              {player.points}
+                                              {(player.points ?? 0).toFixed(2)}
                                             </Typography>
                                           </TableCell>
                                         </TableRow>
