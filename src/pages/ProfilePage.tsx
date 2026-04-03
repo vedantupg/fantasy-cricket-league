@@ -14,9 +14,7 @@ import {
   CircularProgress,
   Grid,
   LinearProgress,
-  alpha,
-  useTheme,
-  Divider
+  alpha
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -29,12 +27,14 @@ import {
   TrendingUp,
   Stars,
   SportsCricket,
-  Check
+  Check,
+  LockOutlined
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { imageService } from '../services/storage';
 import { squadService, leagueService } from '../services/firestore';
 import type { LeagueSquad, League } from '../types/database';
+import { colors } from '../theme/colors';
 
 interface UserStats {
   totalCareerPoints: number;
@@ -57,7 +57,6 @@ interface Achievement {
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const theme = useTheme();
   const { userData, updateUserProfile, user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
@@ -318,83 +317,250 @@ const ProfilePage: React.FC = () => {
   };
 
   const getRankBadgeColor = (rank: number | null) => {
-    if (!rank) return theme.palette.grey[500];
-    if (rank === 1) return '#FFD700'; // Gold
-    if (rank <= 3) return '#C0C0C0'; // Silver
-    if (rank <= 10) return '#CD7F32'; // Bronze
-    return theme.palette.primary.main;
+    if (!rank) return colors.blue.electric;
+    if (rank === 1) return colors.gold;
+    if (rank <= 3) return colors.silver;
+    if (rank <= 10) return colors.bronze;
+    return colors.blue.electric;
   };
 
   const earnedAchievements = achievements.filter(a => a.earned);
   const unlockedAchievements = achievements.filter(a => !a.earned);
 
+  const hasFavorites =
+    editData.favoriteBatter ||
+    editData.favoriteBowler ||
+    editData.favoriteFielder ||
+    editData.favoriteIPLTeam;
+
+  const memberSince = userData?.createdAt
+    ? ((userData.createdAt as any).toDate?.() ?? new Date(userData.createdAt)).toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric'
+      })
+    : 'N/A';
+
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: colors.background.default,
+      }}
+    >
       {/* Header */}
       <Box
         sx={{
-          p: 2,
+          px: 3,
+          py: 1.5,
           display: 'flex',
           alignItems: 'center',
-          borderBottom: '1px solid',
-          borderColor: 'divider'
+          gap: 2,
+          boxShadow: '0 1px 0 rgba(30,136,229,0.15)',
         }}
       >
         <Button
-          startIcon={<ArrowBack />}
+          startIcon={<ArrowBack sx={{ fontSize: '1rem' }} />}
           onClick={() => navigate('/dashboard')}
-          sx={{ mr: 2 }}
+          sx={{
+            color: alpha(colors.text.primary, 0.6),
+            fontWeight: 500,
+            fontSize: '0.875rem',
+            textTransform: 'none',
+            border: 'none',
+            p: '6px 12px',
+            minWidth: 0,
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              color: colors.text.primary,
+              background: alpha(colors.blue.electric, 0.08),
+            },
+          }}
         >
-          Back to My Leagues
+          Back
         </Button>
-        <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-          Profile
+        <Typography
+          sx={{
+            fontWeight: 700,
+            fontSize: '1.05rem',
+            background: colors.gradients.title,
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase',
+          }}
+        >
+          Player Profile
         </Typography>
       </Box>
 
-      <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4, mt: 1 }}>
         {loading ? (
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-            <CircularProgress size={60} />
+            <CircularProgress
+              size={52}
+              sx={{ color: colors.blue.electric }}
+            />
           </Box>
         ) : (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {/* Left Panel - Profile Info & Favorites */}
-            <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 calc(33.33% - 21px)' } }}>
-              {/* Profile Card */}
-              <Card sx={{ mb: 3 }}>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Box sx={{ position: 'relative', display: 'inline-block' }}>
-                    <Avatar
-                      src={profileImageUrl || userData?.profilePicUrl}
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 3,
+              flexWrap: { xs: 'wrap', md: 'nowrap' },
+              alignItems: 'flex-start',
+            }}
+          >
+            {/* ── LEFT COLUMN ─────────────────────────────────────── */}
+            <Box
+              sx={{
+                flex: { xs: '1 1 100%', md: '0 0 320px' },
+                width: { xs: '100%', md: 320 },
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2,
+              }}
+            >
+              {/* ── IDENTITY HERO CARD ─────────────────────────────── */}
+              <Card
+                sx={{
+                  borderRadius: 3,
+                  border: `1px solid ${colors.border.subtle}`,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
+                  overflow: 'hidden',
+                  background: colors.background.paper,
+                  position: 'relative',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {/* Gradient hero band behind avatar */}
+                <Box
+                  sx={{
+                    background: colors.gradients.hero,
+                    pt: 4,
+                    pb: 3,
+                    px: 3,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    position: 'relative',
+                  }}
+                >
+                  {/* Edit / Save / Cancel controls — top-right */}
+                  <Box sx={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 0.5 }}>
+                    {isEditing ? (
+                      <>
+                        <IconButton
+                          size="small"
+                          onClick={handleSave}
+                          disabled={uploading}
+                          aria-label="Save profile"
+                          sx={{
+                            color: colors.success.primary,
+                            border: `1px solid ${alpha(colors.success.primary, 0.4)}`,
+                            width: 32,
+                            height: 32,
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              background: alpha(colors.success.primary, 0.15),
+                              borderColor: colors.success.primary,
+                            },
+                          }}
+                        >
+                          {uploading
+                            ? <CircularProgress size={14} sx={{ color: colors.success.primary }} />
+                            : <Save sx={{ fontSize: '1rem' }} />
+                          }
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={handleCancel}
+                          aria-label="Cancel editing"
+                          sx={{
+                            color: alpha(colors.text.primary, 0.5),
+                            border: `1px solid ${alpha(colors.text.primary, 0.2)}`,
+                            width: 32,
+                            height: 32,
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              background: alpha(colors.error.primary, 0.12),
+                              color: colors.error.light,
+                              borderColor: alpha(colors.error.primary, 0.4),
+                            },
+                          }}
+                        >
+                          <Cancel sx={{ fontSize: '1rem' }} />
+                        </IconButton>
+                      </>
+                    ) : (
+                      <IconButton
+                        size="small"
+                        onClick={() => setIsEditing(true)}
+                        aria-label="Edit profile"
+                        sx={{
+                          color: alpha(colors.text.primary, 0.5),
+                          border: `1px solid ${alpha(colors.blue.electric, 0.3)}`,
+                          width: 32,
+                          height: 32,
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            color: colors.blue.electric,
+                            background: alpha(colors.blue.electric, 0.1),
+                            borderColor: colors.blue.electric,
+                          },
+                        }}
+                      >
+                        <Edit sx={{ fontSize: '1rem' }} />
+                      </IconButton>
+                    )}
+                  </Box>
+
+                  {/* Avatar with glow ring */}
+                  <Box sx={{ position: 'relative', mb: 0 }}>
+                    <Box
                       sx={{
-                        width: 100,
-                        height: 100,
-                        mx: 'auto',
-                        mb: 2,
-                        bgcolor: 'primary.main',
-                        fontSize: '2rem',
-                        boxShadow: `0 0 20px ${alpha(theme.palette.primary.main, 0.4)}`
+                        width: 132,
+                        height: 132,
+                        borderRadius: '50%',
+                        background: `linear-gradient(135deg, ${colors.blue.electric}, #00BCD4)`,
+                        p: '3px',
+                        boxShadow: colors.shadows.blue.glow,
                       }}
                     >
-                      {userData?.displayName?.charAt(0) || 'U'}
-                    </Avatar>
+                      <Avatar
+                        src={profileImageUrl || userData?.profilePicUrl}
+                        sx={{
+                          width: 126,
+                          height: 126,
+                          bgcolor: colors.background.elevated,
+                          fontSize: '2.8rem',
+                          fontWeight: 800,
+                          border: `2px solid ${colors.background.default}`,
+                        }}
+                      >
+                        {userData?.displayName?.charAt(0)?.toUpperCase() || 'U'}
+                      </Avatar>
+                    </Box>
+
+                    {/* Camera overlay button — edit mode only */}
                     {isEditing && (
                       <IconButton
-                        color="primary"
-                        aria-label="upload picture"
                         component="label"
+                        aria-label="Upload profile picture"
                         sx={{
                           position: 'absolute',
-                          bottom: 8,
-                          right: -8,
-                          bgcolor: 'background.paper',
-                          border: '2px solid',
-                          borderColor: 'primary.main',
+                          bottom: 2,
+                          right: 2,
+                          width: 34,
+                          height: 34,
+                          bgcolor: colors.background.default,
+                          border: `2px solid ${colors.blue.electric}`,
+                          color: colors.blue.electric,
+                          transition: 'all 0.2s ease',
                           '&:hover': {
-                            bgcolor: 'primary.main',
-                            color: 'white',
-                          }
+                            bgcolor: colors.blue.electric,
+                            color: '#fff',
+                          },
                         }}
                       >
                         <input
@@ -403,417 +569,942 @@ const ProfilePage: React.FC = () => {
                           type="file"
                           onChange={handleImageChange}
                         />
-                        <PhotoCamera />
+                        <PhotoCamera sx={{ fontSize: '1rem' }} />
                       </IconButton>
                     )}
                   </Box>
+                </Box>
+
+                {/* Identity details below the gradient band */}
+                <CardContent
+                  sx={{
+                    pt: 1.5,
+                    pb: 3,
+                    px: 3,
+                    textAlign: 'center',
+                    background: colors.background.paper,
+                  }}
+                >
+                  {error && (
+                    <Alert
+                      severity="error"
+                      sx={{
+                        mb: 2,
+                        bgcolor: alpha(colors.error.primary, 0.1),
+                        color: colors.error.light,
+                        border: `1px solid ${alpha(colors.error.primary, 0.3)}`,
+                        borderRadius: 2,
+                        fontSize: '0.8rem',
+                        '& .MuiAlert-icon': { color: colors.error.light },
+                      }}
+                    >
+                      {error}
+                    </Alert>
+                  )}
 
                   {isEditing ? (
-                    <Box>
-                      {error && (
-                        <Alert severity="error" sx={{ mb: 2 }}>
-                          {error}
-                        </Alert>
-                      )}
+                    <Box sx={{ mt: 1 }}>
                       <TextField
                         fullWidth
-                        label="Display Name"
+                        placeholder="Display Name"
                         value={editData.displayName}
                         onChange={(e) => setEditData({ ...editData, displayName: e.target.value })}
-                        margin="normal"
                         required
+                        size="small"
+                        sx={{
+                          mb: 1.5,
+                          '& .MuiOutlinedInput-root': {
+                            color: colors.text.primary,
+                            borderRadius: 2,
+                            fontSize: '1rem',
+                            fontWeight: 700,
+                            '& fieldset': { borderColor: colors.border.default },
+                            '&:hover fieldset': { borderColor: colors.blue.electric },
+                            '&.Mui-focused fieldset': { borderColor: colors.blue.electric },
+                          },
+                          '& input': { textAlign: 'center' },
+                        }}
                       />
                       <TextField
                         fullWidth
-                        label="Email"
+                        placeholder="Email"
                         value={editData.email}
                         disabled
-                        margin="normal"
+                        size="small"
                         helperText="Email cannot be changed"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            color: alpha(colors.text.primary, 0.35),
+                            borderRadius: 2,
+                            fontSize: '0.8rem',
+                            '& fieldset': { borderColor: colors.border.subtle },
+                          },
+                          '& .MuiFormHelperText-root': {
+                            color: alpha(colors.text.primary, 0.3),
+                            fontSize: '0.7rem',
+                            textAlign: 'center',
+                          },
+                          '& input': { textAlign: 'center' },
+                        }}
                       />
                       {profileImage && (
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                          New profile picture selected (max 5MB)
+                        <Typography
+                          sx={{
+                            mt: 1,
+                            fontSize: '0.72rem',
+                            color: colors.success.primary,
+                            opacity: 0.8,
+                          }}
+                        >
+                          New photo selected (max 5MB)
                         </Typography>
                       )}
-                      <Box sx={{ mt: 2 }}>
-                        <Button
-                          variant="contained"
-                          startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : <Save />}
-                          onClick={handleSave}
-                          sx={{ mr: 1 }}
-                          disabled={uploading}
-                        >
-                          {uploading ? 'Saving...' : 'Save'}
-                        </Button>
-                        <Button
-                          variant="outlined"
-                          startIcon={<Cancel />}
-                          onClick={handleCancel}
-                        >
-                          Cancel
-                        </Button>
-                      </Box>
                     </Box>
                   ) : (
-                    <Box>
-                      <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
-                        {userData?.displayName || 'User'}
+                    <Box sx={{ mt: 1 }}>
+                      {/* Display name */}
+                      <Typography
+                        sx={{
+                          fontWeight: 800,
+                          fontSize: '1.5rem',
+                          color: colors.text.primary,
+                          lineHeight: 1.2,
+                          mb: 1,
+                        }}
+                      >
+                        {userData?.displayName || 'Player'}
                       </Typography>
-                      <Typography color="text.secondary" sx={{ mb: 2 }}>
+
+                      {/* Role chip */}
+                      <Box sx={{ mb: 1 }}>
+                        {userData?.isAdmin ? (
+                          <Chip
+                            label="Admin"
+                            size="small"
+                            sx={{
+                              borderRadius: '20px',
+                              border: `1px solid ${colors.gold}`,
+                              color: colors.gold,
+                              bgcolor: alpha(colors.gold, 0.08),
+                              fontWeight: 700,
+                              fontSize: '0.72rem',
+                              letterSpacing: '0.06em',
+                              textTransform: 'uppercase',
+                              height: 24,
+                            }}
+                          />
+                        ) : (
+                          <Chip
+                            label="Player"
+                            size="small"
+                            sx={{
+                              borderRadius: '20px',
+                              border: `1px solid ${colors.blue.electric}`,
+                              color: colors.blue.electric,
+                              bgcolor: alpha(colors.blue.electric, 0.08),
+                              fontWeight: 700,
+                              fontSize: '0.72rem',
+                              letterSpacing: '0.06em',
+                              textTransform: 'uppercase',
+                              height: 24,
+                            }}
+                          />
+                        )}
+                      </Box>
+
+                      {/* Email */}
+                      <Typography
+                        sx={{
+                          fontSize: '0.75rem',
+                          color: colors.text.primary,
+                          opacity: 0.45,
+                          mb: 0.5,
+                        }}
+                      >
                         {userData?.email}
                       </Typography>
-                      <Chip
-                        label={userData?.isAdmin ? 'Admin' : 'Player'}
-                        color={userData?.isAdmin ? 'secondary' : 'primary'}
-                        sx={{ mb: 2 }}
-                      />
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        Member since {userData?.createdAt ? ((userData.createdAt as any).toDate?.() ?? new Date(userData.createdAt)).toLocaleDateString() : 'N/A'}
-                      </Typography>
-                      <Button
-                        variant="outlined"
-                        startIcon={<Edit />}
-                        onClick={() => setIsEditing(true)}
-                        fullWidth
+
+                      {/* Member since */}
+                      <Typography
+                        sx={{
+                          fontSize: '0.7rem',
+                          color: colors.text.primary,
+                          opacity: 0.35,
+                          letterSpacing: '0.03em',
+                        }}
                       >
-                        Edit Profile
-                      </Button>
+                        Member since {memberSince}
+                      </Typography>
                     </Box>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Player Favorites */}
-              <Card>
-                <CardContent>
-                  <Box display="flex" alignItems="center" gap={1} mb={2}>
-                    <SportsCricket color="primary" />
-                    <Typography variant="h6" fontWeight="bold">
-                      Player Favorites
+              {/* ── CRICKET DNA CARD ───────────────────────────────── */}
+              <Card
+                sx={{
+                  borderRadius: 3,
+                  border: `1px solid ${colors.border.subtle}`,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
+                  background: colors.background.paper,
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <CardContent sx={{ p: 3 }}>
+                  {/* Card header */}
+                  <Box display="flex" alignItems="center" gap={1} mb={2.5}>
+                    <SportsCricket
+                      sx={{
+                        color: colors.blue.electric,
+                        fontSize: '1.25rem',
+                      }}
+                    />
+                    <Typography
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                        background: colors.gradients.title,
+                        backgroundClip: 'text',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                      }}
+                    >
+                      Cricket DNA
                     </Typography>
                   </Box>
 
                   {isEditing ? (
-                    <Box>
-                      <TextField
-                        fullWidth
-                        label="Favorite Batter 🏏"
-                        value={editData.favoriteBatter}
-                        onChange={(e) => setEditData({ ...editData, favoriteBatter: e.target.value })}
-                        margin="normal"
-                        placeholder="e.g., Virat Kohli"
-                      />
-                      <TextField
-                        fullWidth
-                        label="Favorite Bowler ⚡"
-                        value={editData.favoriteBowler}
-                        onChange={(e) => setEditData({ ...editData, favoriteBowler: e.target.value })}
-                        margin="normal"
-                        placeholder="e.g., Jasprit Bumrah"
-                      />
-                      <TextField
-                        fullWidth
-                        label="Favorite Fielder 🤲"
-                        value={editData.favoriteFielder}
-                        onChange={(e) => setEditData({ ...editData, favoriteFielder: e.target.value })}
-                        margin="normal"
-                        placeholder="e.g., Ravindra Jadeja"
-                      />
-                      <TextField
-                        fullWidth
-                        label="Favorite IPL Team 🏆"
-                        value={editData.favoriteIPLTeam}
-                        onChange={(e) => setEditData({ ...editData, favoriteIPLTeam: e.target.value })}
-                        margin="normal"
-                        placeholder="e.g., Mumbai Indians"
-                      />
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                      {[
+                        { key: 'favoriteBatter', placeholder: '🏏  Favorite Batter' },
+                        { key: 'favoriteBowler', placeholder: '⚡  Favorite Bowler' },
+                        { key: 'favoriteFielder', placeholder: '🤲  Favorite Fielder' },
+                        { key: 'favoriteIPLTeam', placeholder: '🏆  Favorite IPL Team' },
+                      ].map(({ key, placeholder }) => (
+                        <TextField
+                          key={key}
+                          fullWidth
+                          placeholder={placeholder}
+                          value={editData[key as keyof typeof editData]}
+                          onChange={(e) => setEditData({ ...editData, [key]: e.target.value })}
+                          size="small"
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              color: colors.text.primary,
+                              borderRadius: 2,
+                              fontSize: '0.875rem',
+                              '& fieldset': { borderColor: colors.border.default },
+                              '&:hover fieldset': { borderColor: colors.blue.electric },
+                              '&.Mui-focused fieldset': { borderColor: colors.blue.electric },
+                              '& input::placeholder': { color: alpha(colors.text.primary, 0.4), opacity: 1 },
+                            },
+                          }}
+                        />
+                      ))}
+                    </Box>
+                  ) : hasFavorites ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                      {editData.favoriteBatter && (
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.5,
+                            p: '10px 14px',
+                            borderRadius: 2,
+                            background: alpha(colors.blue.electric, 0.05),
+                            border: `1px solid ${colors.border.subtle}`,
+                          }}
+                        >
+                          <Typography sx={{ fontSize: '1.1rem', lineHeight: 1 }}>🏏</Typography>
+                          <Box>
+                            <Typography
+                              sx={{
+                                fontSize: '0.62rem',
+                                color: colors.text.primary,
+                                opacity: 0.4,
+                                letterSpacing: '0.1em',
+                                textTransform: 'uppercase',
+                                lineHeight: 1,
+                                mb: 0.3,
+                              }}
+                            >
+                              Batter
+                            </Typography>
+                            <Typography
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: '0.9rem',
+                                color: colors.text.primary,
+                                lineHeight: 1.2,
+                              }}
+                            >
+                              {editData.favoriteBatter}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      )}
+                      {editData.favoriteBowler && (
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.5,
+                            p: '10px 14px',
+                            borderRadius: 2,
+                            background: alpha(colors.blue.electric, 0.05),
+                            border: `1px solid ${colors.border.subtle}`,
+                          }}
+                        >
+                          <Typography sx={{ fontSize: '1.1rem', lineHeight: 1 }}>⚡</Typography>
+                          <Box>
+                            <Typography
+                              sx={{
+                                fontSize: '0.62rem',
+                                color: colors.text.primary,
+                                opacity: 0.4,
+                                letterSpacing: '0.1em',
+                                textTransform: 'uppercase',
+                                lineHeight: 1,
+                                mb: 0.3,
+                              }}
+                            >
+                              Bowler
+                            </Typography>
+                            <Typography
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: '0.9rem',
+                                color: colors.text.primary,
+                                lineHeight: 1.2,
+                              }}
+                            >
+                              {editData.favoriteBowler}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      )}
+                      {editData.favoriteFielder && (
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.5,
+                            p: '10px 14px',
+                            borderRadius: 2,
+                            background: alpha(colors.blue.electric, 0.05),
+                            border: `1px solid ${colors.border.subtle}`,
+                          }}
+                        >
+                          <Typography sx={{ fontSize: '1.1rem', lineHeight: 1 }}>🤲</Typography>
+                          <Box>
+                            <Typography
+                              sx={{
+                                fontSize: '0.62rem',
+                                color: colors.text.primary,
+                                opacity: 0.4,
+                                letterSpacing: '0.1em',
+                                textTransform: 'uppercase',
+                                lineHeight: 1,
+                                mb: 0.3,
+                              }}
+                            >
+                              Fielder
+                            </Typography>
+                            <Typography
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: '0.9rem',
+                                color: colors.text.primary,
+                                lineHeight: 1.2,
+                              }}
+                            >
+                              {editData.favoriteFielder}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      )}
+                      {editData.favoriteIPLTeam && (
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.5,
+                            p: '10px 14px',
+                            borderRadius: 2,
+                            background: alpha(colors.orange.primary, 0.05),
+                            border: `1px solid ${alpha(colors.orange.primary, 0.15)}`,
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: '50%',
+                              bgcolor: colors.orange.primary,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Typography
+                              sx={{
+                                fontSize: '0.7rem',
+                                fontWeight: 800,
+                                color: '#fff',
+                                lineHeight: 1,
+                              }}
+                            >
+                              {editData.favoriteIPLTeam.charAt(0).toUpperCase()}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography
+                              sx={{
+                                fontSize: '0.62rem',
+                                color: colors.text.primary,
+                                opacity: 0.4,
+                                letterSpacing: '0.1em',
+                                textTransform: 'uppercase',
+                                lineHeight: 1,
+                                mb: 0.3,
+                              }}
+                            >
+                              IPL Team
+                            </Typography>
+                            <Typography
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: '0.9rem',
+                                color: colors.text.primary,
+                                lineHeight: 1.2,
+                              }}
+                            >
+                              {editData.favoriteIPLTeam}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      )}
                     </Box>
                   ) : (
-                    <Box>
-                      {editData.favoriteBatter || editData.favoriteBowler || editData.favoriteFielder || editData.favoriteIPLTeam ? (
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          {editData.favoriteBatter && (
-                            <Box>
-                              <Typography variant="body2" color="text.secondary">Favorite Batter 🏏</Typography>
-                              <Typography variant="body1" fontWeight="medium">{editData.favoriteBatter}</Typography>
-                            </Box>
-                          )}
-                          {editData.favoriteBowler && (
-                            <Box>
-                              <Typography variant="body2" color="text.secondary">Favorite Bowler ⚡</Typography>
-                              <Typography variant="body1" fontWeight="medium">{editData.favoriteBowler}</Typography>
-                            </Box>
-                          )}
-                          {editData.favoriteFielder && (
-                            <Box>
-                              <Typography variant="body2" color="text.secondary">Favorite Fielder 🤲</Typography>
-                              <Typography variant="body1" fontWeight="medium">{editData.favoriteFielder}</Typography>
-                            </Box>
-                          )}
-                          {editData.favoriteIPLTeam && (
-                            <Box>
-                              <Typography variant="body2" color="text.secondary">Favorite IPL Team 🏆</Typography>
-                              <Typography variant="body1" fontWeight="medium">{editData.favoriteIPLTeam}</Typography>
-                            </Box>
-                          )}
-                        </Box>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary" textAlign="center" py={2}>
-                          Click "Edit Profile" to add your favorite players!
-                        </Typography>
-                      )}
+                    <Box
+                      sx={{
+                        py: 3,
+                        px: 2,
+                        textAlign: 'center',
+                        border: `1px dashed ${alpha(colors.blue.electric, 0.25)}`,
+                        borderRadius: 2,
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: '0.82rem',
+                          color: alpha(colors.text.primary, 0.35),
+                          fontStyle: 'italic',
+                        }}
+                      >
+                        Add your cricket identity →
+                      </Typography>
                     </Box>
                   )}
                 </CardContent>
               </Card>
             </Box>
 
-            {/* Right Panel - Stats & Achievements */}
-            <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 calc(66.67% - 11px)' } }}>
-              {/* Hero Stats */}
-              <Card sx={{ mb: 4,
-                background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)}, ${alpha(theme.palette.secondary.main, 0.05)})`,
-                border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`
-              }}>
-                <CardContent>
+            {/* ── RIGHT COLUMN ─────────────────────────────────────── */}
+            <Box
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 3,
+              }}
+            >
+              {/* ── STATS BANNER ───────────────────────────────────── */}
+              <Card
+                sx={{
+                  borderRadius: 3,
+                  border: `1px solid ${colors.border.default}`,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
+                  background: 'linear-gradient(135deg, rgba(30,136,229,0.08) 0%, rgba(0,62,92,0.6) 100%)',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <CardContent sx={{ p: 3 }}>
                   <Box display="flex" alignItems="center" gap={1} mb={3}>
-                    <TrendingUp color="primary" />
-                    <Typography variant="h6" fontWeight="bold">
+                    <TrendingUp sx={{ color: colors.blue.electric, fontSize: '1.2rem' }} />
+                    <Typography
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: '0.78rem',
+                        letterSpacing: '0.1em',
+                        textTransform: 'uppercase',
+                        color: alpha(colors.text.primary, 0.55),
+                      }}
+                    >
                       Career Statistics
                     </Typography>
                   </Box>
-                  <Grid container spacing={3}>
+
+                  {/* Primary 4-stat row */}
+                  <Grid container spacing={2} sx={{ mb: 0 }}>
+                    {/* Total Points */}
                     <Grid size={{ xs: 6, sm: 3 }}>
-                      <Box textAlign="center">
+                      <Box sx={{ textAlign: 'center', py: 1 }}>
                         <Typography
-                          variant="h3"
                           sx={{
-                            fontWeight: 'bold',
-                            background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                            fontSize: 'clamp(1.5rem, 3.5vw, 2.25rem)',
+                            fontWeight: 700,
+                            lineHeight: 1,
+                            background: colors.gradients.title,
                             backgroundClip: 'text',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
-                            mb: 1
+                            mb: 0.75,
                           }}
                         >
                           {userStats.totalCareerPoints.toLocaleString()}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Total Points
+                        <Typography
+                          sx={{
+                            fontSize: '0.62rem',
+                            color: alpha(colors.text.primary, 0.45),
+                            letterSpacing: '0.12em',
+                            textTransform: 'uppercase',
+                            fontWeight: 600,
+                          }}
+                        >
+                          Career Pts
                         </Typography>
                       </Box>
                     </Grid>
+
+                    {/* Active Leagues */}
                     <Grid size={{ xs: 6, sm: 3 }}>
-                      <Box textAlign="center">
+                      <Box sx={{ textAlign: 'center', py: 1 }}>
                         <Typography
-                          variant="h3"
                           sx={{
-                            fontWeight: 'bold',
-                            color: theme.palette.success.main,
-                            mb: 1
+                            fontSize: 'clamp(1.5rem, 4vw, 2.5rem)',
+                            fontWeight: 900,
+                            lineHeight: 1,
+                            color: colors.success.primary,
+                            mb: 0.75,
                           }}
                         >
                           {userStats.activeLeaguesCount}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Active Leagues
+                        <Typography
+                          sx={{
+                            fontSize: '0.62rem',
+                            color: alpha(colors.text.primary, 0.45),
+                            letterSpacing: '0.12em',
+                            textTransform: 'uppercase',
+                            fontWeight: 600,
+                          }}
+                        >
+                          Active Now
                         </Typography>
                       </Box>
                     </Grid>
+
+                    {/* Best Rank */}
                     <Grid size={{ xs: 6, sm: 3 }}>
-                      <Box textAlign="center">
+                      <Box sx={{ textAlign: 'center', py: 1 }}>
                         <Box
                           sx={{
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            width: 64,
-                            height: 64,
+                            width: 72,
+                            height: 72,
                             borderRadius: '50%',
-                            bgcolor: alpha(getRankBadgeColor(userStats.bestRank), 0.2),
                             border: `3px solid ${getRankBadgeColor(userStats.bestRank)}`,
-                            mb: 1
+                            boxShadow: `0 0 16px ${alpha(getRankBadgeColor(userStats.bestRank), 0.4)}`,
+                            background: alpha(getRankBadgeColor(userStats.bestRank), 0.08),
+                            mb: 0.75,
                           }}
                         >
                           <Typography
-                            variant="h4"
                             sx={{
-                              fontWeight: 'bold',
-                              color: getRankBadgeColor(userStats.bestRank)
+                              fontWeight: 900,
+                              fontSize: userStats.bestRank ? '1.35rem' : '1.6rem',
+                              color: getRankBadgeColor(userStats.bestRank),
+                              lineHeight: 1,
                             }}
                           >
-                            {userStats.bestRank ? `#${userStats.bestRank}` : '-'}
+                            {userStats.bestRank ? `#${userStats.bestRank}` : '—'}
                           </Typography>
                         </Box>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography
+                          sx={{
+                            fontSize: '0.62rem',
+                            color: alpha(colors.text.primary, 0.45),
+                            letterSpacing: '0.12em',
+                            textTransform: 'uppercase',
+                            fontWeight: 600,
+                            display: 'block',
+                          }}
+                        >
                           Best Rank
                         </Typography>
                         {userStats.bestRankLeague && (
-                          <Typography variant="caption" color="text.secondary" display="block">
-                            in {userStats.bestRankLeague}
+                          <Typography
+                            sx={{
+                              fontSize: '0.65rem',
+                              color: alpha(colors.text.primary, 0.3),
+                              mt: 0.25,
+                              maxWidth: 90,
+                              mx: 'auto',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {userStats.bestRankLeague}
                           </Typography>
                         )}
                       </Box>
                     </Grid>
+
+                    {/* Leagues Won */}
                     <Grid size={{ xs: 6, sm: 3 }}>
-                      <Box textAlign="center">
-                        <Box sx={{ position: 'relative', display: 'inline-block', mb: 1 }}>
+                      <Box sx={{ textAlign: 'center', py: 1 }}>
+                        <Box
+                          sx={{
+                            position: 'relative',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            mb: 0.75,
+                          }}
+                        >
                           <EmojiEvents
                             sx={{
-                              fontSize: 64,
-                              color: '#FFD700',
-                              filter: `drop-shadow(0 0 8px ${alpha('#FFD700', 0.5)})`
+                              fontSize: 72,
+                              color: colors.gold,
+                              filter: 'drop-shadow(0 0 10px rgba(255,215,0,0.6))',
                             }}
                           />
                           <Typography
-                            variant="h5"
                             sx={{
                               position: 'absolute',
-                              top: '50%',
-                              left: '50%',
-                              transform: 'translate(-50%, -50%)',
-                              fontWeight: 'bold',
-                              color: '#000'
+                              fontWeight: 900,
+                              fontSize: '1.35rem',
+                              color: '#0A1929',
+                              lineHeight: 1,
+                              mt: '4px',
                             }}
                           >
                             {userStats.leaguesWon}
                           </Typography>
                         </Box>
-                        <Typography variant="body2" color="text.secondary">
-                          Leagues Won
+                        <Typography
+                          sx={{
+                            fontSize: '0.62rem',
+                            color: alpha(colors.text.primary, 0.45),
+                            letterSpacing: '0.12em',
+                            textTransform: 'uppercase',
+                            fontWeight: 600,
+                          }}
+                        >
+                          Wins
                         </Typography>
                       </Box>
                     </Grid>
                   </Grid>
 
-                  <Divider sx={{ my: 3 }} />
+                  {/* Divider line */}
+                  <Box
+                    sx={{
+                      my: 2.5,
+                      height: '1px',
+                      background: `linear-gradient(90deg, transparent, ${colors.border.default}, transparent)`,
+                    }}
+                  />
 
+                  {/* Secondary stats row */}
                   <Grid container spacing={2}>
-                    <Grid size={{ xs: 6, sm: 4 }}>
-                      <Typography variant="body2" color="text.secondary">Total Leagues</Typography>
-                      <Typography variant="h6" fontWeight="medium">{userStats.totalLeagues}</Typography>
+                    <Grid size={{ xs: 4 }}>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Typography
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: '1.35rem',
+                            color: colors.text.primary,
+                            lineHeight: 1,
+                            mb: 0.5,
+                          }}
+                        >
+                          {userStats.totalLeagues}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: '0.65rem',
+                            color: alpha(colors.text.primary, 0.4),
+                            letterSpacing: '0.08em',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          Total Leagues
+                        </Typography>
+                      </Box>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 4 }}>
-                      <Typography variant="body2" color="text.secondary">Squads Created</Typography>
-                      <Typography variant="h6" fontWeight="medium">{userStats.totalSquads}</Typography>
+                    <Grid size={{ xs: 4 }}>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Typography
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: '1.35rem',
+                            color: colors.text.primary,
+                            lineHeight: 1,
+                            mb: 0.5,
+                          }}
+                        >
+                          {userStats.totalSquads}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: '0.65rem',
+                            color: alpha(colors.text.primary, 0.4),
+                            letterSpacing: '0.08em',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          Squads Created
+                        </Typography>
+                      </Box>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 4 }}>
-                      <Typography variant="body2" color="text.secondary">Average Rank</Typography>
-                      <Typography variant="h6" fontWeight="medium">
-                        {userStats.averageRank ? `#${userStats.averageRank}` : '-'}
-                      </Typography>
+                    <Grid size={{ xs: 4 }}>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Typography
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: '1.35rem',
+                            color: colors.text.primary,
+                            lineHeight: 1,
+                            mb: 0.5,
+                          }}
+                        >
+                          {userStats.averageRank ? `#${userStats.averageRank}` : '—'}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: '0.65rem',
+                            color: alpha(colors.text.primary, 0.4),
+                            letterSpacing: '0.08em',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          Avg Rank
+                        </Typography>
+                      </Box>
                     </Grid>
                   </Grid>
                 </CardContent>
               </Card>
 
-              {/* Achievements */}
-              <Card>
-                <CardContent>
-                  <Box display="flex" alignItems="center" gap={1} mb={3}>
-                    <Stars color="primary" />
-                    <Typography variant="h6" fontWeight="bold">
-                      Achievements ({earnedAchievements.length}/{achievements.length})
-                    </Typography>
-                  </Box>
-
-                  {/* Progress Bar */}
-                  <Box sx={{ mb: 3 }}>
-                    <LinearProgress
-                      variant="determinate"
-                      value={(earnedAchievements.length / achievements.length) * 100}
-                      sx={{
-                        height: 8,
-                        borderRadius: 1,
-                        bgcolor: alpha(theme.palette.primary.main, 0.1),
-                        '& .MuiLinearProgress-bar': {
-                          background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`
-                        }
-                      }}
-                    />
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                      {Math.round((earnedAchievements.length / achievements.length) * 100)}% Complete
-                    </Typography>
-                  </Box>
-
-                  {/* Earned Achievements */}
-                  {earnedAchievements.length > 0 && (
-                    <>
-                      <Typography variant="subtitle2" fontWeight="bold" mb={2} color="success.main">
-                        🎉 Unlocked ({earnedAchievements.length})
+              {/* ── ACHIEVEMENTS ───────────────────────────────────── */}
+              <Card
+                sx={{
+                  borderRadius: 3,
+                  border: `1px solid ${colors.border.subtle}`,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
+                  background: colors.background.paper,
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <CardContent sx={{ p: 3 }}>
+                  {/* Section title */}
+                  <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Stars sx={{ color: colors.blue.electric, fontSize: '1.2rem' }} />
+                      <Typography
+                        sx={{
+                          fontWeight: 700,
+                          fontSize: '0.78rem',
+                          letterSpacing: '0.1em',
+                          textTransform: 'uppercase',
+                          background: colors.gradients.title,
+                          backgroundClip: 'text',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                        }}
+                      >
+                        Achievements
                       </Typography>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+                    </Box>
+                    <Typography
+                      sx={{
+                        fontSize: '0.75rem',
+                        color: alpha(colors.text.primary, 0.4),
+                        fontWeight: 600,
+                        fontVariantNumeric: 'tabular-nums',
+                      }}
+                    >
+                      {earnedAchievements.length} / {achievements.length}
+                    </Typography>
+                  </Box>
+
+                  {/* Progress bar */}
+                  <Box sx={{ mb: 3 }}>
+                    <Box
+                      sx={{
+                        height: 6,
+                        borderRadius: 3,
+                        background: alpha(colors.blue.electric, 0.12),
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          height: '100%',
+                          width: achievements.length > 0
+                            ? `${(earnedAchievements.length / achievements.length) * 100}%`
+                            : '0%',
+                          background: `linear-gradient(90deg, ${colors.blue.electric}, #00BCD4)`,
+                          borderRadius: 3,
+                          transition: 'width 0.6s ease',
+                        }}
+                      />
+                    </Box>
+                    <Typography
+                      sx={{
+                        mt: 0.75,
+                        fontSize: '0.68rem',
+                        color: alpha(colors.text.primary, 0.35),
+                        letterSpacing: '0.06em',
+                      }}
+                    >
+                      {achievements.length > 0
+                        ? `${Math.round((earnedAchievements.length / achievements.length) * 100)}% complete`
+                        : '0% complete'}
+                    </Typography>
+                  </Box>
+
+                  {/* Earned achievements */}
+                  {earnedAchievements.length > 0 && (
+                    <Box sx={{ mb: 2.5 }}>
+                      <Typography
+                        sx={{
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          letterSpacing: '0.1em',
+                          textTransform: 'uppercase',
+                          color: colors.success.primary,
+                          mb: 1.5,
+                        }}
+                      >
+                        Unlocked ({earnedAchievements.length})
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                         {earnedAchievements.map((achievement) => (
-                          <Card
+                          <Box
                             key={achievement.id}
                             sx={{
-                              flex: { xs: '1 1 100%', sm: '1 1 calc(50% - 8px)' },
-                              border: '2px solid',
-                              borderColor: 'success.main',
-                              background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.1)}, transparent)`,
-                              position: 'relative',
-                              overflow: 'visible'
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 0.75,
+                              bgcolor: alpha(colors.success.primary, 0.1),
+                              border: `1px solid ${alpha(colors.success.primary, 0.3)}`,
+                              borderRadius: '20px',
+                              px: 2,
+                              py: 1,
+                              transition: 'all 0.2s ease',
+                              '&:hover': {
+                                bgcolor: alpha(colors.success.primary, 0.16),
+                                borderColor: alpha(colors.success.primary, 0.5),
+                              },
                             }}
                           >
-                            <CardContent sx={{ p: 2 }}>
-                              <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
-                                <Typography sx={{ fontSize: '2rem' }}>{achievement.icon}</Typography>
-                                <Box sx={{ flex: 1 }}>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                                    <Typography variant="subtitle1" fontWeight="bold">
-                                      {achievement.name}
-                                    </Typography>
-                                    <Check sx={{ color: 'success.main', fontSize: 20 }} />
-                                  </Box>
-                                  <Typography variant="body2" color="text.secondary">
-                                    {achievement.description}
-                                  </Typography>
-                                </Box>
-                              </Box>
-                            </CardContent>
-                          </Card>
+                            <Typography sx={{ fontSize: '0.9rem', lineHeight: 1 }}>
+                              {achievement.icon}
+                            </Typography>
+                            <Typography
+                              sx={{
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                color: colors.text.primary,
+                                lineHeight: 1,
+                              }}
+                            >
+                              {achievement.name}
+                            </Typography>
+                            <Check
+                              sx={{
+                                fontSize: '0.85rem',
+                                color: colors.success.primary,
+                              }}
+                            />
+                          </Box>
                         ))}
                       </Box>
-                    </>
+                    </Box>
                   )}
 
-                  {/* Locked Achievements */}
+                  {/* Locked achievements */}
                   {unlockedAchievements.length > 0 && (
-                    <>
-                      <Typography variant="subtitle2" fontWeight="bold" mb={2} color="text.secondary">
-                        🔒 Locked ({unlockedAchievements.length})
+                    <Box>
+                      <Typography
+                        sx={{
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          letterSpacing: '0.1em',
+                          textTransform: 'uppercase',
+                          color: alpha(colors.text.primary, 0.35),
+                          mb: 1.5,
+                        }}
+                      >
+                        Locked ({unlockedAchievements.length})
                       </Typography>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                         {unlockedAchievements.map((achievement) => (
-                          <Card
+                          <Box
                             key={achievement.id}
                             sx={{
-                              flex: { xs: '1 1 100%', sm: '1 1 calc(50% - 8px)' },
-                              opacity: 0.6,
-                              border: '1px solid',
-                              borderColor: 'divider'
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 0.75,
+                              bgcolor: alpha(colors.text.primary, 0.04),
+                              border: `1px solid ${alpha(colors.text.primary, 0.1)}`,
+                              borderRadius: '20px',
+                              px: 2,
+                              py: 1,
+                              opacity: 0.35,
                             }}
                           >
-                            <CardContent sx={{ p: 2 }}>
-                              <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
-                                <Typography sx={{ fontSize: '2rem', filter: 'grayscale(100%)' }}>
-                                  {achievement.icon}
-                                </Typography>
-                                <Box sx={{ flex: 1 }}>
-                                  <Typography variant="subtitle1" fontWeight="bold" color="text.secondary">
-                                    {achievement.name}
-                                  </Typography>
-                                  <Typography variant="body2" color="text.secondary">
-                                    {achievement.description}
-                                  </Typography>
-                                </Box>
-                              </Box>
-                            </CardContent>
-                          </Card>
+                            <Typography
+                              sx={{
+                                fontSize: '0.9rem',
+                                lineHeight: 1,
+                                filter: 'grayscale(100%)',
+                              }}
+                            >
+                              {achievement.icon}
+                            </Typography>
+                            <Typography
+                              sx={{
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                color: colors.text.primary,
+                                lineHeight: 1,
+                              }}
+                            >
+                              {achievement.name}
+                            </Typography>
+                            <LockOutlined
+                              sx={{
+                                fontSize: '0.8rem',
+                                color: colors.text.primary,
+                              }}
+                            />
+                          </Box>
                         ))}
                       </Box>
-                    </>
+                    </Box>
                   )}
                 </CardContent>
               </Card>

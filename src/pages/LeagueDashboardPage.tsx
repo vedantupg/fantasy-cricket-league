@@ -21,13 +21,16 @@ import {
   ListItemAvatar,
   ListItemText
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import {
   People,
   Schedule,
   EmojiEvents,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  CalendarMonth
+  CalendarMonth,
+  ArrowBack,
+  AdminPanelSettings
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -180,16 +183,105 @@ const LeagueDashboardPage: React.FC = () => {
     );
   }
 
+  // Derive league status
+  const now = new Date();
+  const leagueEnded = league.endDate ? now > new Date(league.endDate) : league.status === 'completed';
+  const leagueStarted = now > new Date(league.startDate);
+  const statusLabel = leagueEnded ? 'Completed' : leagueStarted ? 'In Progress' : 'Upcoming';
+  const statusColor = leagueEnded ? colors.grey[500] : leagueStarted ? colors.success.primary : colors.orange.primary;
+
+  // Shared card style
+  const cardSx = {
+    background: `linear-gradient(145deg, ${alpha(colors.blue.navy, 0.95)} 0%, ${alpha('#0A1929', 0.98)} 100%)`,
+    border: `1px solid ${colors.border.default}`,
+    borderRadius: 4,
+    boxShadow: `0 20px 60px rgba(0,0,0,0.4)`,
+    overflow: 'hidden',
+    position: 'relative' as const,
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: '1px',
+      background: `linear-gradient(90deg, transparent, ${alpha(colors.blue.electric, 0.6)}, transparent)`,
+    }
+  };
+
   return (
     <Box>
       <AppHeader />
       <Container maxWidth="lg" sx={{ py: 4 }}>
+
       {/* Header */}
-      <Box mb={4}>
-        <Typography variant="h4" fontWeight="bold" gutterBottom>
-          {league.name}
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
+      <Box
+        mb={4}
+        sx={{
+          position: 'relative',
+          pl: 3,
+          py: 2,
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: '4px',
+            borderRadius: '4px',
+            background: `linear-gradient(180deg, ${colors.blue.electric}, ${alpha(colors.blue.electric, 0.2)})`,
+          }
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 0.5, flexWrap: 'wrap' }}>
+          <Typography
+            variant="h4"
+            fontWeight={800}
+            sx={{
+              letterSpacing: '-0.02em',
+              lineHeight: 1.2,
+              background: `linear-gradient(90deg, ${colors.text.primary} 60%, ${colors.blue.light})`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            {league.name}
+          </Typography>
+          {/* Status badge */}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              px: 1.25,
+              py: 0.4,
+              borderRadius: 1.5,
+              border: `1px solid ${alpha(statusColor, 0.4)}`,
+              bgcolor: alpha(statusColor, 0.08),
+            }}
+          >
+            <Box
+              sx={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                bgcolor: statusColor,
+                ...(leagueStarted && !leagueEnded && {
+                  boxShadow: `0 0 5px ${statusColor}`,
+                  animation: 'pulse 2s infinite',
+                  '@keyframes pulse': {
+                    '0%, 100%': { opacity: 1 },
+                    '50%': { opacity: 0.4 },
+                  }
+                })
+              }}
+            />
+            <Typography variant="caption" sx={{ color: statusColor, fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.05em' }}>
+              {statusLabel}
+            </Typography>
+          </Box>
+        </Box>
+        <Typography variant="body2" sx={{ color: alpha(colors.text.secondary, 0.6), letterSpacing: '0.01em' }}>
           {league.tournamentName} • {league.format}
         </Typography>
       </Box>
@@ -197,91 +289,127 @@ const LeagueDashboardPage: React.FC = () => {
       <Grid container spacing={3}>
         {/* League Info */}
         <Grid size={{ xs: 12, md: 8 }}>
-          <Card sx={{ bgcolor: '#1a2332', border: `1px solid ${colors.border.subtle}` }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom fontWeight={600}>
+          <Card sx={cardSx}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom fontWeight={600} sx={{ mb: 3 }}>
                 League Information
               </Typography>
 
-              <Box display="flex" alignItems="center" gap={1} mb={2}>
-                <People fontSize="small" sx={{ color: colors.grey[400] }} />
-                <Typography variant="body2">
-                  {league.participants.length}/{league.maxParticipants} participants
+              <Box display="flex" alignItems="center" gap={1.5} mb={2.5}>
+                <People fontSize="small" sx={{ color: colors.blue.light }} />
+                <Typography variant="body2" sx={{ color: colors.text.secondary }}>
+                  <Box component="span" sx={{ color: colors.text.primary, fontWeight: 600 }}>
+                    {league.participants.length}/{league.maxParticipants}
+                  </Box>{' '}participants
                 </Typography>
               </Box>
 
-              <Box display="flex" alignItems="center" gap={1} mb={2}>
-                <Schedule fontSize="small" sx={{ color: colors.grey[400] }} />
-                <Typography variant="body2">
-                  Tournament: {new Date(league.startDate).toLocaleDateString()} - {new Date(league.endDate).toLocaleDateString()}
+              <Box display="flex" alignItems="center" gap={1.5} mb={2.5}>
+                <Schedule fontSize="small" sx={{ color: colors.blue.light }} />
+                <Typography variant="body2" sx={{ color: colors.text.secondary }}>
+                  Tournament:{' '}
+                  <Box component="span" sx={{ color: colors.text.primary, fontWeight: 500 }}>
+                    {new Date(league.startDate).toLocaleDateString()} – {new Date(league.endDate).toLocaleDateString()}
+                  </Box>
                 </Typography>
               </Box>
 
-              <Box display="flex" alignItems="center" gap={1} mb={2}>
-                <EmojiEvents fontSize="small" sx={{ color: colors.grey[400] }} />
-                <Typography variant="body2">
-                  {league.maxTransfers} transfers allowed
+              <Box display="flex" alignItems="center" gap={1.5} mb={2.5}>
+                <EmojiEvents fontSize="small" sx={{ color: colors.blue.light }} />
+                <Typography variant="body2" sx={{ color: colors.text.secondary }}>
+                  <Box component="span" sx={{ color: colors.text.primary, fontWeight: 600 }}>
+                    {league.maxTransfers}
+                  </Box>{' '}transfers allowed
                 </Typography>
               </Box>
 
-              <Typography variant="body2" color="text.secondary">
-                Squad deadline: {new Date(league.squadDeadline).toLocaleString()}
-              </Typography>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  pt: 2,
+                  borderTop: `1px solid ${colors.border.subtle}`,
+                }}
+              >
+                <CalendarMonth fontSize="small" sx={{ color: alpha(colors.warning.primary, 0.8) }} />
+                <Typography variant="body2" sx={{ color: alpha(colors.text.secondary, 0.8) }}>
+                  Squad deadline:{' '}
+                  <Box component="span" sx={{ color: colors.warning.light, fontWeight: 500 }}>
+                    {new Date(league.squadDeadline).toLocaleString()}
+                  </Box>
+                </Typography>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
 
         {/* Quick Actions */}
         <Grid size={{ xs: 12, md: 4 }}>
-          <Card sx={{ bgcolor: '#1a2332', border: `1px solid ${colors.border.subtle}` }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom fontWeight={600}>
+          <Card sx={cardSx}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom fontWeight={600} sx={{ mb: 2.5 }}>
                 Quick Actions
               </Typography>
 
+              {/* Manage Squad — primary CTA */}
               <Button
                 fullWidth
                 variant="contained"
                 sx={{
-                  mb: 2,
+                  mb: 1.5,
+                  fontWeight: 600,
+                  fontSize: '0.8rem',
                   bgcolor: colors.blue.electric,
+                  boxShadow: `0 4px 14px ${alpha(colors.blue.electric, 0.35)}`,
                   '&:hover': {
                     bgcolor: colors.blue.deep,
-                  }
+                    boxShadow: `0 6px 18px ${alpha(colors.blue.electric, 0.5)}`,
+                    transform: 'translateY(-1px)',
+                  },
+                  transition: 'all 0.2s ease',
                 }}
                 onClick={() => navigate(`/leagues/${leagueId}/squad`)}
               >
                 Manage Squad
               </Button>
 
+              {/* View Leaderboard — high-value branded destination */}
               <Button
                 fullWidth
                 variant="outlined"
                 sx={{
-                  mb: 2,
+                  mb: 1.5,
+                  fontWeight: 600,
                   borderColor: colors.orange.primary,
                   color: colors.orange.primary,
                   '&:hover': {
                     borderColor: colors.orange.light,
-                    bgcolor: 'rgba(255, 152, 0, 0.08)',
-                  }
+                    bgcolor: alpha(colors.orange.primary, 0.08),
+                    transform: 'translateY(-1px)',
+                  },
+                  transition: 'all 0.2s ease',
                 }}
                 onClick={() => navigate(`/leagues/${leagueId}/leaderboard`)}
               >
                 View Leaderboard
               </Button>
 
+              {/* Match Schedule — informational utility, blue */}
               <Button
                 fullWidth
                 variant="outlined"
                 sx={{
-                  mb: 2,
-                  borderColor: colors.orange.primary,
-                  color: colors.orange.primary,
+                  mb: 1.5,
+                  fontWeight: 600,
+                  borderColor: alpha(colors.blue.electric, 0.5),
+                  color: colors.blue.light,
                   '&:hover': {
-                    borderColor: colors.orange.light,
-                    bgcolor: 'rgba(255, 152, 0, 0.08)',
-                  }
+                    borderColor: colors.blue.electric,
+                    bgcolor: alpha(colors.blue.electric, 0.08),
+                    transform: 'translateY(-1px)',
+                  },
+                  transition: 'all 0.2s ease',
                 }}
                 startIcon={<CalendarMonth />}
                 onClick={() => navigate(`/leagues/${leagueId}/schedule`)}
@@ -289,16 +417,20 @@ const LeagueDashboardPage: React.FC = () => {
                 Match Schedule
               </Button>
 
+              {/* Back to Leagues — escape nav, minimal */}
               <Button
                 fullWidth
-                variant="outlined"
+                variant="text"
+                startIcon={<ArrowBack fontSize="small" />}
                 sx={{
-                  borderColor: colors.orange.primary,
-                  color: colors.orange.primary,
+                  color: alpha(colors.text.secondary, 0.6),
+                  fontWeight: 500,
+                  fontSize: '0.85rem',
                   '&:hover': {
-                    borderColor: colors.orange.light,
-                    bgcolor: 'rgba(255, 152, 0, 0.08)',
-                  }
+                    color: colors.text.secondary,
+                    bgcolor: alpha(colors.text.secondary, 0.06),
+                  },
+                  transition: 'all 0.2s ease',
                 }}
                 onClick={() => navigate('/dashboard')}
               >
@@ -309,12 +441,25 @@ const LeagueDashboardPage: React.FC = () => {
 
           {/* Admin Actions - Only visible to league admins */}
           {isAdmin && (
-            <Card sx={{ mt: 3, bgcolor: '#1a2332', border: `1px solid ${colors.border.subtle}` }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom fontWeight={600}>
-                  Admin Actions
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <Card
+              sx={{
+                ...cardSx,
+                mt: 3,
+                borderTop: `2px solid ${alpha(colors.warning.primary, 0.4)}`,
+                '&::before': {
+                  ...cardSx['&::before'],
+                  background: `linear-gradient(90deg, transparent, ${alpha(colors.warning.primary, 0.5)}, transparent)`,
+                }
+              }}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                  <AdminPanelSettings fontSize="small" sx={{ color: alpha(colors.warning.primary, 0.8) }} />
+                  <Typography variant="h6" fontWeight={600}>
+                    Admin Actions
+                  </Typography>
+                </Box>
+                <Typography variant="body2" sx={{ color: alpha(colors.text.secondary, 0.5), mb: 2.5, fontSize: '0.8rem' }}>
                   Manage this league
                 </Typography>
 
@@ -323,13 +468,16 @@ const LeagueDashboardPage: React.FC = () => {
                   variant="outlined"
                   startIcon={<EditIcon />}
                   sx={{
-                    mb: 2,
+                    mb: 1.5,
+                    fontWeight: 600,
                     borderColor: colors.orange.primary,
                     color: colors.orange.primary,
                     '&:hover': {
                       borderColor: colors.orange.light,
-                      bgcolor: 'rgba(255, 152, 0, 0.08)',
-                    }
+                      bgcolor: alpha(colors.orange.primary, 0.08),
+                      transform: 'translateY(-1px)',
+                    },
+                    transition: 'all 0.2s ease',
                   }}
                   onClick={handleEditLeague}
                 >
@@ -341,6 +489,11 @@ const LeagueDashboardPage: React.FC = () => {
                   variant="outlined"
                   color="error"
                   startIcon={<DeleteIcon />}
+                  sx={{
+                    fontWeight: 600,
+                    '&:hover': { transform: 'translateY(-1px)' },
+                    transition: 'all 0.2s ease',
+                  }}
                   onClick={handleDeleteClick}
                 >
                   Delete League
@@ -353,17 +506,20 @@ const LeagueDashboardPage: React.FC = () => {
 
       {/* Participants List - Admin Only */}
       {isAdmin && (
-        <Card sx={{ mt: 3, bgcolor: '#1a2332', border: `1px solid ${colors.border.subtle}` }}>
-          <CardContent>
-            <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+        <Card sx={{ ...cardSx, mt: 3 }}>
+          <CardContent sx={{ p: 3 }}>
+            <Box display="flex" alignItems="center" justifyContent="space-between" mb={2.5}>
               <Typography variant="h6" fontWeight={600}>
-                Participants ({league.participants.length}/{league.maxParticipants})
+                Participants{' '}
+                <Box component="span" sx={{ color: alpha(colors.text.secondary, 0.5), fontWeight: 400, fontSize: '0.9rem' }}>
+                  ({league.participants.length}/{league.maxParticipants})
+                </Box>
               </Typography>
-              {loadingParticipants && <CircularProgress size={20} color="primary" />}
+              {loadingParticipants && <CircularProgress size={20} sx={{ color: colors.blue.light }} />}
             </Box>
 
             {participants.length === 0 && !loadingParticipants ? (
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ color: alpha(colors.text.secondary, 0.5) }}>
                 No participants have joined yet.
               </Typography>
             ) : (
@@ -372,8 +528,7 @@ const LeagueDashboardPage: React.FC = () => {
                   <ListItem
                     key={participant.userId}
                     sx={{
-                      borderBottom: index < participants.length - 1 ? '1px solid' : 'none',
-                      borderColor: colors.border.subtle,
+                      borderBottom: index < participants.length - 1 ? `1px solid ${colors.border.subtle}` : 'none',
                       px: 0,
                       py: 1.5
                     }}
@@ -381,7 +536,11 @@ const LeagueDashboardPage: React.FC = () => {
                     <ListItemAvatar>
                       <Avatar
                         src={participant.userData?.profilePicUrl}
-                        sx={{ bgcolor: 'primary.main' }}
+                        sx={{
+                          background: `linear-gradient(135deg, ${colors.blue.deep} 0%, ${colors.blue.electric} 100%)`,
+                          fontWeight: 700,
+                          boxShadow: `0 0 0 2px ${alpha(colors.blue.electric, 0.2)}`,
+                        }}
                       >
                         {participant.userData?.displayName?.charAt(0) || '?'}
                       </Avatar>
@@ -390,17 +549,34 @@ const LeagueDashboardPage: React.FC = () => {
                       primary={participant.userData?.displayName || 'Unknown User'}
                       secondary={participant.userData?.email || participant.userId}
                       primaryTypographyProps={{ fontWeight: 500 }}
+                      secondaryTypographyProps={{ sx: { color: alpha(colors.text.secondary, 0.5), fontSize: '0.75rem' } }}
                     />
-                    <Chip
-                      label={participant.hasSubmittedSquad ? 'Squad Submitted' : 'Not Submitted'}
-                      color={participant.hasSubmittedSquad ? 'success' : 'default'}
-                      size="small"
-                      sx={{
-                        bgcolor: participant.hasSubmittedSquad ? colors.green.primary : 'rgba(255, 255, 255, 0.08)',
-                        color: participant.hasSubmittedSquad ? 'white' : colors.text.secondary,
-                        fontWeight: 600,
-                      }}
-                    />
+                    {participant.hasSubmittedSquad ? (
+                      <Chip
+                        label="Squad Submitted"
+                        size="small"
+                        sx={{
+                          bgcolor: alpha(colors.green.primary, 0.12),
+                          color: colors.green.light,
+                          border: `1px solid ${alpha(colors.green.primary, 0.3)}`,
+                          fontWeight: 600,
+                          fontSize: '0.7rem',
+                          boxShadow: `0 0 8px ${alpha(colors.green.primary, 0.15)}`,
+                        }}
+                      />
+                    ) : (
+                      <Chip
+                        label="Not Submitted"
+                        size="small"
+                        sx={{
+                          bgcolor: alpha(colors.text.secondary, 0.06),
+                          color: alpha(colors.text.secondary, 0.45),
+                          border: `1px solid ${alpha(colors.text.secondary, 0.12)}`,
+                          fontWeight: 500,
+                          fontSize: '0.7rem',
+                        }}
+                      />
+                    )}
                   </ListItem>
                 ))}
               </List>
