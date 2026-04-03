@@ -32,16 +32,23 @@ import {
   ListItem,
   ListItemText,
   ListItemButton,
+  Divider,
 } from '@mui/material';
 import {
   PersonAdd,
   Close,
   SwapHoriz,
+  SwapVert,
   Star,
   Search,
   CheckCircle,
   Lock as LockIcon,
   Bolt as BoltIcon,
+  WarningAmberRounded,
+  InfoOutlined,
+  CheckCircleOutline,
+  ErrorOutline,
+  AutoAwesome,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -1900,50 +1907,102 @@ const SquadSelectionPage: React.FC = () => {
     return 'Submit Squad';
   };
 
+  const StatusBanner = ({ severity, children }: { severity: 'warning' | 'info' | 'success' | 'error'; children: React.ReactNode }) => {
+    const cfg = {
+      warning: { color: '#FF9800', icon: <WarningAmberRounded /> },
+      info:    { color: '#2196F3', icon: <InfoOutlined /> },
+      success: { color: '#4CAF50', icon: <CheckCircleOutline /> },
+      error:   { color: '#F44336', icon: <ErrorOutline /> },
+    }[severity];
+    return (
+      <Box sx={{
+        display: 'flex', alignItems: 'flex-start', gap: 1.5,
+        px: 2, py: 1.25,
+        borderRadius: 2,
+        bgcolor: alpha(cfg.color, 0.06),
+        border: `1px solid ${alpha(cfg.color, 0.2)}`,
+        boxShadow: `0 0 12px ${alpha(cfg.color, 0.08)}`,
+        mb: { xs: 1.5, sm: 2 },
+      }}>
+        {React.cloneElement(cfg.icon, { sx: { color: cfg.color, fontSize: 18, mt: 0.2, flexShrink: 0 } })}
+        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: { xs: '0.75rem', sm: '0.8125rem' }, lineHeight: 1.5 }}>
+          {children}
+        </Typography>
+      </Box>
+    );
+  };
+
   const quickActions = (
     <Box display="flex" gap={{ xs: 1, sm: 2 }} alignItems="center" flexWrap="wrap">
       {/* Transfer Info if deadline passed */}
       {isDeadlinePassed && league && league.transferTypes && (
         <Box display="flex" gap={{ xs: 0.5, sm: 1 }} flexWrap="wrap">
-          {league.transferTypes.benchTransfers.enabled && (
-            <Chip
-              label={`${league.transferTypes.benchTransfers.maxAllowed - (existingSquad?.benchTransfersUsed || 0)} Bench Available`}
-              size="small"
-              variant="outlined"
-              sx={{
-                fontSize: { xs: '0.65rem', sm: '0.75rem' },
-                height: { xs: 20, sm: 24 },
-                borderColor: '#9C27B0', // Purple - premium/informational
-                color: '#9C27B0'
-              }}
-            />
-          )}
-          {league.transferTypes.flexibleTransfers.enabled && (
-            <Chip
-              label={`${league.transferTypes.flexibleTransfers.maxAllowed - (existingSquad?.flexibleTransfersUsed || 0)} Flexible Available`}
-              size="small"
-              variant="outlined"
-              sx={{
-                fontSize: { xs: '0.65rem', sm: '0.75rem' },
-                height: { xs: 20, sm: 24 },
-                borderColor: '#2196F3', // Blue - flexible/dynamic
-                color: '#2196F3'
-              }}
-            />
-          )}
-          {league.transferTypes.midSeasonTransfers.enabled && (
-            <Chip
-              label={`Mid-Season Available`}
-              size="small"
-              variant="outlined"
-              sx={{
-                fontSize: { xs: '0.65rem', sm: '0.75rem' },
-                height: { xs: 20, sm: 24 },
-                borderColor: '#7B1FA2', // Purple - premium/informational
-                color: '#7B1FA2'
-              }}
-            />
-          )}
+          {league.transferTypes.benchTransfers.enabled && (() => {
+            const n = league.transferTypes.benchTransfers.maxAllowed - (existingSquad?.benchTransfersUsed || 0);
+            const color = '#9C27B0';
+            return (
+              <Chip
+                icon={<SwapVert fontSize="small" />}
+                label={` ${n} Bench`}
+                size="small"
+                variant="outlined"
+                sx={{
+                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                  height: { xs: 24, sm: 26 },
+                  borderRadius: '12px',
+                  borderColor: color,
+                  color: color,
+                  bgcolor: alpha(color, 0.08),
+                  '& .MuiChip-icon': { color: color, fontSize: 14 },
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                }}
+              />
+            );
+          })()}
+          {league.transferTypes.flexibleTransfers.enabled && (() => {
+            const n = league.transferTypes.flexibleTransfers.maxAllowed - (existingSquad?.flexibleTransfersUsed || 0);
+            const color = '#2196F3';
+            return (
+              <Chip
+                icon={<SwapHoriz fontSize="small" />}
+                label={` ${n} Flex`}
+                size="small"
+                variant="outlined"
+                sx={{
+                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                  height: { xs: 24, sm: 26 },
+                  borderRadius: '12px',
+                  borderColor: color,
+                  color: color,
+                  bgcolor: alpha(color, 0.08),
+                  '& .MuiChip-icon': { color: color, fontSize: 14 },
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                }}
+              />
+            );
+          })()}
+          {league.transferTypes.midSeasonTransfers.enabled && (() => {
+            const color = '#7B1FA2';
+            return (
+              <Chip
+                label="Mid-Season"
+                size="small"
+                variant="outlined"
+                sx={{
+                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                  height: { xs: 24, sm: 26 },
+                  borderRadius: '12px',
+                  borderColor: color,
+                  color: color,
+                  bgcolor: alpha(color, 0.08),
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                }}
+              />
+            );
+          })()}
         </Box>
       )}
       {isDeadlinePassed && existingSquad ? (
@@ -2041,36 +2100,30 @@ const SquadSelectionPage: React.FC = () => {
       <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 1.5, sm: 2 } }}>
         {/* Status Alerts */}
         {existingSquad?.isSubmitted && !isDeadlinePassed && (
-          <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
-            <Alert severity="success" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 0.5, sm: 1 } }}>
-              Squad Submitted! You can modify your squad freely until the deadline: {new Date(league.squadDeadline).toLocaleString()}
-            </Alert>
-          </Box>
+          <StatusBanner severity="success">
+            Squad Submitted! You can modify your squad freely until the deadline: {new Date(league.squadDeadline).toLocaleString()}
+          </StatusBanner>
         )}
 
         {isDeadlinePassed && (
-          <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
-            {canMakeTransfer ? (
-              <Alert severity="info" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 0.5, sm: 1 } }}>
-                Squad Deadline Passed. Your squad is locked. You can only make changes using available transfers.
-              </Alert>
-            ) : (
-              <Alert severity="warning" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 0.5, sm: 1 } }}>
-                Transfers are currently disabled.
-                {!isLeagueStarted && ' The league has not started yet.'}
-                {isLeagueStarted && !league?.flexibleChangesEnabled && !league?.benchChangesEnabled && ' No transfer types are enabled by the league admin.'}
-                {isLeagueStarted && (league?.flexibleChangesEnabled || league?.benchChangesEnabled) && league?.transferTypes?.midSeasonTransfers.enabled && ' Mid-season transfer window is closed.'}
-              </Alert>
-            )}
-          </Box>
+          canMakeTransfer ? (
+            <StatusBanner severity="info">
+              Squad Deadline Passed. Your squad is locked. You can only make changes using available transfers.
+            </StatusBanner>
+          ) : (
+            <StatusBanner severity="warning">
+              Transfers are currently disabled.
+              {!isLeagueStarted && ' The league has not started yet.'}
+              {isLeagueStarted && !league?.flexibleChangesEnabled && !league?.benchChangesEnabled && ' No transfer types are enabled by the league admin.'}
+              {isLeagueStarted && (league?.flexibleChangesEnabled || league?.benchChangesEnabled) && league?.transferTypes?.midSeasonTransfers.enabled && ' Mid-season transfer window is closed.'}
+            </StatusBanner>
+          )
         )}
 
         {!existingSquad?.isSubmitted && !isDeadlinePassed && (
-          <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
-            <Alert severity="warning" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 0.5, sm: 1 } }}>
-              Squad Not Submitted. Please submit your squad before the deadline: {new Date(league.squadDeadline).toLocaleString()}
-            </Alert>
-          </Box>
+          <StatusBanner severity="warning">
+            Squad Not Submitted. Please submit your squad before the deadline: {new Date(league.squadDeadline).toLocaleString()}
+          </StatusBanner>
         )}
 
         {/* Enhanced Error Alert */}
@@ -2093,212 +2146,183 @@ const SquadSelectionPage: React.FC = () => {
 
         {/* Simple Error Alert (backward compatibility) */}
         {submitError && !enhancedError && (
-          <Box sx={{ mb: { xs: 2, sm: 3 } }}>
-            <Alert severity="error" onClose={() => setSubmitError('')} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 0.5, sm: 1 } }}>
-              {submitError}
-            </Alert>
-          </Box>
+          <StatusBanner severity="error">
+            {submitError}
+          </StatusBanner>
         )}
 
-        {/* Squad Summary - Moved to top */}
-        <Card sx={{
-          mb: { xs: 2, sm: 3 },
-          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.08)}, ${alpha(theme.palette.secondary.main, 0.05)})`,
-          backdropFilter: 'blur(20px)',
-          border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-          borderRadius: 2,
-          boxShadow: `0 4px 16px ${alpha('#000', 0.3)}`,
-          transition: 'box-shadow 0.3s ease',
-        }}>
-          <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 600, fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' }, letterSpacing: '0.01em' }}>
-                Squad Summary
-              </Typography>
-              {existingSquad && (
-                <StatusChip status={existingSquad.isSubmitted ? 'submitted' : 'draft'} />
-              )}
-            </Box>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 1, sm: 1.5 } }}>
-              <Chip
-                label={`Players: ${selectedPlayers.filter(p => p.position !== 'bench').length}/${league?.squadSize || 0}`}
-                variant="outlined"
-                sx={{
-                  fontFamily: "'Satoshi', sans-serif",
-                  fontWeight: 500,
-                  fontSize: { xs: '0.6875rem', sm: '0.75rem' },
-                  height: { xs: 28, sm: 32 },
-                  borderColor: theme.palette.primary.main,
-                  color: 'text.primary',
-                  bgcolor: alpha(theme.palette.primary.main, 0.05)
-                }}
-              />
-              {league?.squadRules?.overseasPlayersEnabled && (
-                <Chip
-                  label={`Overseas: ${selectedPlayers.filter(p => p.position !== 'bench' && p.isOverseas).length}/${league.squadRules.maxOverseasPlayers || 4}`}
-                  variant="outlined"
-                  sx={{
-                    fontFamily: "'Satoshi', sans-serif",
-                    fontWeight: 500,
-                    fontSize: { xs: '0.6875rem', sm: '0.75rem' },
-                    height: { xs: 28, sm: 32 },
-                    borderColor: selectedPlayers.filter(p => p.position !== 'bench' && p.isOverseas).length > (league.squadRules.maxOverseasPlayers || 4)
-                      ? theme.palette.error.main
-                      : theme.palette.info.main,
-                    color: selectedPlayers.filter(p => p.position !== 'bench' && p.isOverseas).length > (league.squadRules.maxOverseasPlayers || 4)
-                      ? theme.palette.error.main
-                      : 'text.primary',
-                    bgcolor: alpha(
-                      selectedPlayers.filter(p => p.position !== 'bench' && p.isOverseas).length > (league.squadRules.maxOverseasPlayers || 4)
-                        ? theme.palette.error.main
-                        : theme.palette.info.main,
-                      0.05
-                    )
-                  }}
-                />
-              )}
-              {league?.transferTypes?.benchTransfers?.enabled && (
-                <Chip
-                  label={
-                    isDeadlinePassed
-                      ? `${league.transferTypes.benchTransfers.maxAllowed - (existingSquad?.benchTransfersUsed || 0)} Bench Transfer${league.transferTypes.benchTransfers.maxAllowed - (existingSquad?.benchTransfersUsed || 0) === 1 ? '' : 's'} Available`
-                      : `Bench: ${selectedPlayers.filter(p => p.position === 'bench').length}/${league.transferTypes.benchTransfers.benchSlots}`
-                  }
-                  variant="outlined"
-                  sx={{
-                    fontFamily: "'Satoshi', sans-serif",
-                    fontWeight: 500,
-                    fontSize: { xs: '0.6875rem', sm: '0.75rem' },
-                    height: { xs: 28, sm: 32 },
-                    borderColor: theme.palette.secondary.main,
-                    color: 'text.primary',
-                    bgcolor: alpha(theme.palette.secondary.main, 0.05)
-                  }}
-                />
-              )}
-              {league?.transferTypes?.flexibleTransfers?.enabled && isDeadlinePassed && (
-                <Chip
-                  label={`${league.transferTypes.flexibleTransfers.maxAllowed - (existingSquad?.flexibleTransfersUsed || 0)} Flexible Transfer${league.transferTypes.flexibleTransfers.maxAllowed - (existingSquad?.flexibleTransfersUsed || 0) === 1 ? '' : 's'} Available`}
-                  variant="outlined"
-                  sx={{
-                    fontFamily: "'Satoshi', sans-serif",
-                    fontWeight: 500,
-                    fontSize: { xs: '0.6875rem', sm: '0.75rem' },
-                    height: { xs: 28, sm: 32 },
-                    borderColor: theme.palette.info.main,
-                    color: 'text.primary',
-                    bgcolor: alpha(theme.palette.info.main, 0.05)
-                  }}
-                />
-              )}
-              <Chip
-                icon={captainId ? <Star sx={{ fontSize: 18, color: theme.palette.primary.main }} /> : undefined}
-                label="Captain"
-                variant={captainId ? 'filled' : 'outlined'}
-                sx={{
-                  fontFamily: "'Satoshi', sans-serif",
-                  fontWeight: 500,
-                  fontSize: { xs: '0.6875rem', sm: '0.75rem' },
-                  height: { xs: 28, sm: 32 },
-                  bgcolor: captainId ? alpha(theme.palette.primary.main, 0.15) : 'transparent',
-                  borderColor: captainId ? theme.palette.primary.main : alpha(theme.palette.text.secondary, 0.3),
-                  color: captainId ? theme.palette.primary.main : 'text.secondary'
-                }}
-              />
-              <Chip
-                icon={viceCaptainId ? <Star sx={{ fontSize: 18, color: theme.palette.secondary.main }} /> : undefined}
-                label="Vice Captain"
-                variant={viceCaptainId ? 'filled' : 'outlined'}
-                sx={{
-                  fontFamily: "'Satoshi', sans-serif",
-                  fontWeight: 500,
-                  fontSize: { xs: '0.6875rem', sm: '0.75rem' },
-                  height: { xs: 28, sm: 32 },
-                  bgcolor: viceCaptainId ? alpha(theme.palette.secondary.main, 0.15) : 'transparent',
-                  borderColor: viceCaptainId ? theme.palette.secondary.main : alpha(theme.palette.text.secondary, 0.3),
-                  color: viceCaptainId ? theme.palette.secondary.main : 'text.secondary'
-                }}
-              />
-              <Chip
-                icon={xFactorId ? <Star sx={{ fontSize: 18, color: theme.palette.info.main }} /> : undefined}
-                label="X-Factor"
-                variant={xFactorId ? 'filled' : 'outlined'}
-                sx={{
-                  fontFamily: "'Satoshi', sans-serif",
-                  fontWeight: 500,
-                  fontSize: { xs: '0.6875rem', sm: '0.75rem' },
-                  height: { xs: 28, sm: 32 },
-                  bgcolor: xFactorId ? alpha(theme.palette.info.main, 0.15) : 'transparent',
-                  borderColor: xFactorId ? theme.palette.info.main : alpha(theme.palette.text.secondary, 0.3),
-                  color: xFactorId ? theme.palette.info.main : 'text.secondary'
-                }}
-              />
-              <Chip
-                label={`Predictions: ${topRunScorer && topWicketTaker && winningTeam ? 'Complete' : 'Incomplete'}`}
-                variant={topRunScorer && topWicketTaker && winningTeam ? 'filled' : 'outlined'}
-                sx={{
-                  fontFamily: "'Satoshi', sans-serif",
-                  fontWeight: 500,
-                  fontSize: { xs: '0.6875rem', sm: '0.75rem' },
-                  height: { xs: 28, sm: 32 },
-                  bgcolor: topRunScorer && topWicketTaker && winningTeam ? alpha(theme.palette.secondary.main, 0.15) : 'transparent',
-                  borderColor: topRunScorer && topWicketTaker && winningTeam ? theme.palette.secondary.main : alpha(theme.palette.text.secondary, 0.3),
-                  color: topRunScorer && topWicketTaker && winningTeam ? theme.palette.secondary.main : 'text.secondary'
-                }}
-              />
-              {league?.powerplayEnabled && (
-                <Chip
-                  label={
-                    powerplayMatch.trim() !== ''
-                      ? `PP Match: Match ${powerplayMatch}`
-                      : (league.ppMatchMode ?? 'fixed') === 'activation'
-                        ? 'PP: Activate anytime'
-                        : 'PP Match: Not Selected'
-                  }
-                  variant={powerplayMatch.trim() !== '' ? 'filled' : 'outlined'}
-                  sx={{
-                    fontFamily: "'Satoshi', sans-serif",
-                    fontWeight: 500,
-                    fontSize: { xs: '0.6875rem', sm: '0.75rem' },
-                    height: { xs: 28, sm: 32 },
-                    bgcolor: powerplayMatch.trim() !== '' ? alpha(theme.palette.warning.main, 0.15) : 'transparent',
-                    borderColor: powerplayMatch.trim() !== ''
-                      ? theme.palette.warning.main
-                      : (league.ppMatchMode ?? 'fixed') === 'activation'
-                        ? alpha(theme.palette.info.main, 0.4)
-                        : alpha(theme.palette.text.secondary, 0.3),
-                    color: powerplayMatch.trim() !== ''
-                      ? theme.palette.warning.main
-                      : (league.ppMatchMode ?? 'fixed') === 'activation'
-                        ? 'info.main'
-                        : 'text.secondary'
-                  }}
-                />
-              )}
-              {league?.hiddenPlayerEnabled && hiddenPlayerId && (() => {
-                const hp = availablePlayers.find(p => p.id === hiddenPlayerId);
-                return hp ? (
+        {/* Squad Summary - Premium Layout */}
+        {(() => {
+          const regularCount = selectedPlayers.filter(p => p.position !== 'bench').length;
+          const squadMax = league?.squadSize || 0;
+          const isPlayersValid = regularCount === squadMax;
+          const overseasCount = selectedPlayers.filter(p => p.position !== 'bench' && p.isOverseas).length;
+          const overseasMax = league?.squadRules?.maxOverseasPlayers || 4;
+          const isOverseasOver = overseasCount > overseasMax;
+          const hasBench = league?.transferTypes?.benchTransfers?.enabled;
+          const elBlue = themeColors.blue.electric;
+
+          return (
+            <Card sx={{
+              mb: { xs: 2, sm: 3 },
+              background: `linear-gradient(145deg, ${alpha('#0D2137', 0.95)}, ${alpha('#060D17', 0.98)})`,
+              backdropFilter: 'blur(24px)',
+              border: `1px solid ${alpha(elBlue, 0.18)}`,
+              borderRadius: 3,
+              boxShadow: `0 8px 32px ${alpha('#000', 0.4)}, 0 0 0 1px ${alpha(elBlue, 0.06)}`,
+              overflow: 'hidden',
+              '&::before': {
+                content: '""',
+                display: 'block',
+                height: '2px',
+                background: `linear-gradient(90deg, ${elBlue}, ${alpha(elBlue, 0)})`,
+              },
+            }}>
+              <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
+                {/* Header */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 600, fontSize: { xs: '0.9375rem', sm: '1.0625rem' }, letterSpacing: '0.01em' }}>
+                    Squad Summary
+                  </Typography>
+                  {existingSquad && (
+                    <StatusChip status={existingSquad.isSubmitted ? 'submitted' : 'draft'} />
+                  )}
+                </Box>
+
+                {/* Stats + Role assignments — two columns on desktop */}
+                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, alignItems: { sm: 'stretch' } }}>
+                  {/* Section 1 — Stats row */}
+                  <Box sx={{ display: 'flex', gap: 1.5, flex: { sm: 1 } }}>
+                    {/* Players stat */}
+                    <Box sx={{ flex: 1, textAlign: 'center', px: 1.5, py: 1, borderRadius: 2, bgcolor: alpha(elBlue, 0.06) }}>
+                      <Typography sx={{ fontSize: { xs: '1.5rem', sm: '1.6rem' }, fontWeight: 700, color: isPlayersValid ? elBlue : 'error.main', lineHeight: 1, letterSpacing: '-0.02em', textShadow: `0 0 20px ${alpha(isPlayersValid ? elBlue : '#F44336', 0.4)}` }}>
+                        {regularCount}<Typography component="span" sx={{ fontSize: '0.85rem', color: 'text.secondary', fontWeight: 400 }}>/{squadMax}</Typography>
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.6rem' }}>Players</Typography>
+                    </Box>
+                    {/* Overseas stat */}
+                    {league?.squadRules?.overseasPlayersEnabled && (
+                      <Box sx={{ flex: 1, textAlign: 'center', px: 1.5, py: 1, borderRadius: 2, bgcolor: alpha(isOverseasOver ? '#F44336' : '#2196F3', 0.06) }}>
+                        <Typography sx={{ fontSize: { xs: '1.5rem', sm: '1.6rem' }, fontWeight: 700, color: isOverseasOver ? 'error.main' : '#2196F3', lineHeight: 1, letterSpacing: '-0.02em', textShadow: `0 0 20px ${alpha(isOverseasOver ? '#F44336' : '#2196F3', 0.4)}` }}>
+                          {overseasCount}<Typography component="span" sx={{ fontSize: '0.85rem', color: 'text.secondary', fontWeight: 400 }}>/{overseasMax}</Typography>
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.6rem' }}>Overseas</Typography>
+                      </Box>
+                    )}
+                    {/* Bench slots (pre-deadline) */}
+                    {!isDeadlinePassed && hasBench && (
+                      <Box sx={{ flex: 1, textAlign: 'center', px: 1.5, py: 1, borderRadius: 2, bgcolor: alpha('#9C27B0', 0.06) }}>
+                        <Typography sx={{ fontSize: { xs: '1.5rem', sm: '1.6rem' }, fontWeight: 700, color: '#9C27B0', lineHeight: 1, letterSpacing: '-0.02em', textShadow: `0 0 20px ${alpha('#9C27B0', 0.4)}` }}>
+                          {selectedPlayers.filter(p => p.position === 'bench').length}<Typography component="span" sx={{ fontSize: '0.85rem', color: 'text.secondary', fontWeight: 400 }}>/{league.transferTypes!.benchTransfers.benchSlots}</Typography>
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.6rem' }}>Bench</Typography>
+                      </Box>
+                    )}
+                  </Box>
+
+                  <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', sm: 'block' }, borderColor: alpha('#fff', 0.07) }} />
+                  <Divider sx={{ display: { xs: 'block', sm: 'none' }, borderColor: alpha('#fff', 0.05) }} />
+
+                  {/* Section 2 — Role assignments (C / VC / XF) */}
+                  <Box sx={{ display: 'flex', gap: 1, flex: { sm: 1 } }}>
+                    {[
+                      { label: 'C', id: captainId, color: '#FFB300', icon: <Star /> },
+                      { label: 'VC', id: viceCaptainId, color: '#9C27B0', icon: <Star /> },
+                      { label: 'XF', id: xFactorId, color: themeColors.blue.light, icon: <AutoAwesome /> },
+                    ].map(({ label, id, color, icon }) => {
+                      const player = id ? availablePlayers.find(p => p.id === id) : null;
+                      return (
+                        <Box key={label} sx={{
+                          flex: 1, py: 1, px: 0.75, borderRadius: 2, textAlign: 'center',
+                          bgcolor: id ? alpha(color, 0.1) : 'transparent',
+                          border: id ? `1px solid ${alpha(color, 0.35)}` : `1px dashed ${alpha('#fff', 0.1)}`,
+                          boxShadow: id ? `0 0 12px ${alpha(color, 0.15)}` : 'none',
+                        }}>
+                          {React.cloneElement(icon, { sx: { fontSize: 14, color: id ? color : 'text.disabled', mb: 0.25 } })}
+                          <Typography variant="caption" sx={{ display: 'block', fontSize: '0.6rem', color: id ? color : 'text.disabled', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{label}</Typography>
+                          <Typography variant="caption" sx={{ display: 'block', fontSize: '0.65rem', color: id ? 'text.primary' : 'text.disabled', fontWeight: 500, lineHeight: 1.2, mt: 0.25 }} noWrap>
+                            {player ? player.name.split(' ').slice(-1)[0] : '—'}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                </Box>
+
+                <Divider sx={{ my: 1.5, borderColor: alpha('#fff', 0.05) }} />
+
+                {/* Section 4 — Status chips */}
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 0.75, sm: 1 } }}>
                   <Chip
-                    icon={<LockIcon sx={{ fontSize: '0.875rem !important', color: '#FFB300 !important' }} />}
-                    label={`${hp.name} · Hidden until season end`}
+                    label={`Predictions: ${topRunScorer && topWicketTaker && winningTeam ? 'Complete' : 'Incomplete'}`}
+                    variant={topRunScorer && topWicketTaker && winningTeam ? 'filled' : 'outlined'}
                     size="small"
-                    variant="outlined"
                     sx={{
                       fontFamily: "'Satoshi', sans-serif",
                       fontWeight: 500,
                       fontSize: { xs: '0.6875rem', sm: '0.75rem' },
-                      height: { xs: 28, sm: 32 },
-                      bgcolor: 'rgba(255,193,7,0.10)',
-                      borderColor: 'rgba(255,193,7,0.45)',
-                      color: '#FFB300',
-                      '& .MuiChip-label': { color: '#FFB300' },
+                      height: { xs: 26, sm: 28 },
+                      bgcolor: topRunScorer && topWicketTaker && winningTeam ? alpha(theme.palette.secondary.main, 0.15) : 'transparent',
+                      borderColor: topRunScorer && topWicketTaker && winningTeam ? theme.palette.secondary.main : alpha(theme.palette.text.secondary, 0.3),
+                      color: topRunScorer && topWicketTaker && winningTeam ? theme.palette.secondary.main : 'text.secondary'
                     }}
                   />
-                ) : null;
-              })()}
-            </Box>
-          </CardContent>
-        </Card>
+                  {league?.powerplayEnabled && (
+                    <Chip
+                      label={
+                        powerplayMatch.trim() !== ''
+                          ? `PP Match: Match ${powerplayMatch}`
+                          : (league.ppMatchMode ?? 'fixed') === 'activation'
+                            ? 'PP: Activate anytime'
+                            : 'PP Match: Not Selected'
+                      }
+                      variant={powerplayMatch.trim() !== '' ? 'filled' : 'outlined'}
+                      size="small"
+                      sx={{
+                        fontFamily: "'Satoshi', sans-serif",
+                        fontWeight: 500,
+                        fontSize: { xs: '0.6875rem', sm: '0.75rem' },
+                        height: { xs: 26, sm: 28 },
+                        bgcolor: powerplayMatch.trim() !== '' ? alpha(theme.palette.warning.main, 0.15) : 'transparent',
+                        borderColor: powerplayMatch.trim() !== ''
+                          ? theme.palette.warning.main
+                          : (league.ppMatchMode ?? 'fixed') === 'activation'
+                            ? alpha(theme.palette.info.main, 0.4)
+                            : alpha(theme.palette.text.secondary, 0.3),
+                        color: powerplayMatch.trim() !== ''
+                          ? theme.palette.warning.main
+                          : (league.ppMatchMode ?? 'fixed') === 'activation'
+                            ? 'info.main'
+                            : 'text.secondary'
+                      }}
+                    />
+                  )}
+                  {league?.hiddenPlayerEnabled && hiddenPlayerId && (() => {
+                    const hp = availablePlayers.find(p => p.id === hiddenPlayerId);
+                    return hp ? (
+                      <Chip
+                        icon={<LockIcon sx={{ fontSize: '0.875rem !important', color: '#FFB300 !important' }} />}
+                        label={`${hp.name} · Hidden`}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          fontFamily: "'Satoshi', sans-serif",
+                          fontWeight: 500,
+                          fontSize: { xs: '0.6875rem', sm: '0.75rem' },
+                          height: { xs: 26, sm: 28 },
+                          bgcolor: 'rgba(255,193,7,0.10)',
+                          borderColor: 'rgba(255,193,7,0.45)',
+                          color: '#FFB300',
+                          '& .MuiChip-label': { color: '#FFB300' },
+                        }}
+                      />
+                    ) : null;
+                  })()}
+                </Box>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         <Grid container spacing={{ xs: 2, sm: 3 }}>
           {/* Left Panel - Squad Formation */}
@@ -3035,6 +3059,11 @@ const CricketPitchFormation: React.FC<{
                         py: 1.2,
                         color: '#000',
                         '&:hover': { boxShadow: '0 4px 16px rgba(0,0,0,0.5)', background: 'linear-gradient(135deg, #FFE44D, #FF9F00)' },
+                        '&.Mui-disabled': {
+                          background: 'linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,140,0,0.3))',
+                          color: 'rgba(255,215,0,0.75)',
+                          boxShadow: 'none',
+                        },
                       }}
                     >
                       <BoltIcon fontSize="small" sx={{ mr: 0.5 }} />Activate Powerplay
