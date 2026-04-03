@@ -273,7 +273,7 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league }) => {
                 boxShadow: `0 4px 12px ${rankColor}2b`,
                 mt: { xs: 2, sm: 2.5 },
                 mb: 0.4,
-                bgcolor: '#000',
+                bgcolor: '#050E18',
               }}
             >
               <Typography sx={{ fontSize: { xs: '1rem', sm: '1.2rem', md: '1.4rem' }, fontWeight: 700, color: '#1E88E5', lineHeight: 1 }}>

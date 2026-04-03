@@ -280,7 +280,7 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
             borderColor: borderColor,
             boxShadow: `0 2px 8px ${typeof borderColor === 'string' && borderColor.includes('rgba') ? borderColor : `${borderColor}30`}`,
             flexShrink: 0,
-            bgcolor: '#000',
+            bgcolor: '#050E18',
           }}
           slotProps={{ img: { referrerPolicy: 'no-referrer' } }}
         >
