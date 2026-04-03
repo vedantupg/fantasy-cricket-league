@@ -227,7 +227,7 @@ const LeaderboardPage: React.FC = () => {
 
   if (loading && !snapshot) {
     return (
-      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      <Box sx={{ minHeight: '100vh', bgcolor: '#050E18' }}>
         <AppHeader />
         {leagueId && (
           <LeagueNav
@@ -277,7 +277,7 @@ const LeaderboardPage: React.FC = () => {
 
   if (!league || (error && !snapshot)) {
     return (
-      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      <Box sx={{ minHeight: '100vh', bgcolor: '#050E18' }}>
         <AppHeader />
         <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3, md: 4 } }}>
           {error ? (
@@ -296,7 +296,7 @@ const LeaderboardPage: React.FC = () => {
   const topFive = snapshot?.standings.slice(0, 5) || [];
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#050E18' }}>
       <AppHeader />
       {leagueId && (
         <LeagueNav
