@@ -77,6 +77,31 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
     }
   };
 
+  const isActive = (index: number) => getTabValue() === index;
+
+  const tabSx = (index: number) => ({
+    px: { xs: 1.5, sm: 2 },
+    py: { xs: 0.75, sm: 1 },
+    fontSize: { xs: '0.65rem', sm: '0.75rem' },
+    fontWeight: isActive(index) ? 600 : 400,
+    whiteSpace: 'nowrap',
+    borderRadius: 0,
+    borderBottom: isActive(index) ? '2px solid #FF9800' : '2px solid transparent',
+    color: isActive(index) ? '#FF9800' : 'rgba(255,255,255,0.55)',
+    '& .MuiButton-startIcon': {
+      color: isActive(index) ? '#FF9800' : 'rgba(255,255,255,0.55)',
+    },
+    '&:hover': {
+      bgcolor: 'rgba(255,152,0,0.06)',
+      color: isActive(index) ? '#FF9800' : 'rgba(255,255,255,0.9)',
+      '& .MuiButton-startIcon': {
+        color: isActive(index) ? '#FF9800' : 'rgba(255,255,255,0.9)',
+      },
+    },
+    transition: 'color 0.15s, border-color 0.15s',
+    minWidth: 'auto',
+  });
+
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     switch (newValue) {
       case 0:
@@ -109,7 +134,7 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
   return (
     <Box
       sx={{
-        bgcolor: 'background.paper',
+        bgcolor: '#060D17',
         borderBottom: `1px solid ${theme.palette.divider}`,
         position: 'sticky',
         top: { xs: 56, sm: 64, md: 72 }, // Match actual AppHeader rendered height
@@ -160,8 +185,9 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
             <Typography
               onClick={() => navigate(`/leagues/${leagueId}`)}
               sx={{
+                fontFamily: '"Montserrat", sans-serif',
                 color: 'text.primary',
-                fontWeight: 600,
+                fontWeight: 700,
                 fontSize: { xs: '0.9rem', sm: '1.1rem', md: '1.2rem' },
                 cursor: 'pointer',
                 overflow: 'hidden',
@@ -237,111 +263,32 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
         <Box sx={{
           display: 'flex',
           gap: { xs: 0.5, sm: 1 },
-          p: { xs: 1, sm: 1.5 },
+          py: 0,
+          px: { xs: 0, sm: 1 },
           minWidth: 'fit-content',
         }}>
-          <Button
-            variant={getTabValue() === 0 ? 'contained' : 'text'}
-            startIcon={<Dashboard />}
-            onClick={() => handleTabChange({} as React.SyntheticEvent, 0)}
-            sx={{
-              px: { xs: 1.5, sm: 2 },
-              py: { xs: 0.75, sm: 1 },
-              fontSize: { xs: '0.65rem', sm: '0.75rem' },
-              whiteSpace: 'nowrap'
-            }}
-          >
+          <Button variant='text' startIcon={<Dashboard />} onClick={() => handleTabChange({} as React.SyntheticEvent, 0)} sx={tabSx(0)}>
             {isSmallMobile ? '' : (currentPage === 'Squad Selection' ? 'Back' : 'Overview')}
           </Button>
-          <Button
-            variant={getTabValue() === 1 ? 'contained' : 'text'}
-            startIcon={<People />}
-            onClick={() => handleTabChange({} as React.SyntheticEvent, 1)}
-            sx={{
-              px: { xs: 1.5, sm: 2 },
-              py: { xs: 0.75, sm: 1 },
-              fontSize: { xs: '0.65rem', sm: '0.75rem' },
-              whiteSpace: 'nowrap'
-            }}
-          >
+          <Button variant='text' startIcon={<People />} onClick={() => handleTabChange({} as React.SyntheticEvent, 1)} sx={tabSx(1)}>
             {!isSmallMobile && 'Squad'}
           </Button>
-          <Button
-            variant={getTabValue() === 2 ? 'contained' : 'text'}
-            startIcon={<EmojiEvents />}
-            onClick={() => handleTabChange({} as React.SyntheticEvent, 2)}
-            sx={{
-              px: { xs: 1.5, sm: 2 },
-              py: { xs: 0.75, sm: 1 },
-              fontSize: { xs: '0.65rem', sm: '0.75rem' },
-              whiteSpace: 'nowrap'
-            }}
-          >
+          <Button variant='text' startIcon={<EmojiEvents />} onClick={() => handleTabChange({} as React.SyntheticEvent, 2)} sx={tabSx(2)}>
             {!isSmallMobile && 'Leaderboard'}
           </Button>
-          <Button
-            variant={getTabValue() === 3 ? 'contained' : 'text'}
-            startIcon={<Groups />}
-            onClick={() => handleTabChange({} as React.SyntheticEvent, 3)}
-            sx={{
-              px: { xs: 1.5, sm: 2 },
-              py: { xs: 0.75, sm: 1 },
-              fontSize: { xs: '0.65rem', sm: '0.75rem' },
-              whiteSpace: 'nowrap'
-            }}
-          >
+          <Button variant='text' startIcon={<Groups />} onClick={() => handleTabChange({} as React.SyntheticEvent, 3)} sx={tabSx(3)}>
             {!isSmallMobile && 'Teams'}
           </Button>
-          <Button
-            variant={getTabValue() === 4 ? 'contained' : 'text'}
-            startIcon={<MenuBook />}
-            onClick={() => handleTabChange({} as React.SyntheticEvent, 4)}
-            sx={{
-              px: { xs: 1.5, sm: 2 },
-              py: { xs: 0.75, sm: 1 },
-              fontSize: { xs: '0.65rem', sm: '0.75rem' },
-              whiteSpace: 'nowrap'
-            }}
-          >
+          <Button variant='text' startIcon={<MenuBook />} onClick={() => handleTabChange({} as React.SyntheticEvent, 4)} sx={tabSx(4)}>
             {!isSmallMobile && 'Rules'}
           </Button>
-          <Button
-            variant={getTabValue() === 5 ? 'contained' : 'text'}
-            startIcon={<CalendarMonth />}
-            onClick={() => handleTabChange({} as React.SyntheticEvent, 5)}
-            sx={{
-              px: { xs: 1.5, sm: 2 },
-              py: { xs: 0.75, sm: 1 },
-              fontSize: { xs: '0.65rem', sm: '0.75rem' },
-              whiteSpace: 'nowrap'
-            }}
-          >
+          <Button variant='text' startIcon={<CalendarMonth />} onClick={() => handleTabChange({} as React.SyntheticEvent, 5)} sx={tabSx(5)}>
             {!isSmallMobile && 'Schedule'}
           </Button>
-          <Button
-            variant={getTabValue() === 6 ? 'contained' : 'text'}
-            startIcon={<BarChart />}
-            onClick={() => handleTabChange({} as React.SyntheticEvent, 6)}
-            sx={{
-              px: { xs: 1.5, sm: 2 },
-              py: { xs: 0.75, sm: 1 },
-              fontSize: { xs: '0.65rem', sm: '0.75rem' },
-              whiteSpace: 'nowrap'
-            }}
-          >
+          <Button variant='text' startIcon={<BarChart />} onClick={() => handleTabChange({} as React.SyntheticEvent, 6)} sx={tabSx(6)}>
             {!isSmallMobile && 'Analytics'}
           </Button>
-          <Button
-            variant={getTabValue() === 7 ? 'contained' : 'text'}
-            startIcon={<SportsScore />}
-            onClick={() => handleTabChange({} as React.SyntheticEvent, 7)}
-            sx={{
-              px: { xs: 1.5, sm: 2 },
-              py: { xs: 0.75, sm: 1 },
-              fontSize: { xs: '0.65rem', sm: '0.75rem' },
-              whiteSpace: 'nowrap'
-            }}
-          >
+          <Button variant='text' startIcon={<SportsScore />} onClick={() => handleTabChange({} as React.SyntheticEvent, 7)} sx={tabSx(7)}>
             {!isSmallMobile && 'Scoring System'}
           </Button>
         </Box>
