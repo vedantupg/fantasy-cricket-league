@@ -206,6 +206,7 @@ const LandingPage: React.FC = () => {
                 <Typography
                   variant="h1"
                   sx={{
+                    fontFamily: '"Montserrat", sans-serif',
                     fontWeight: 900,
                     mb: 5,
                     fontSize: { xs: '2.5rem', md: '3.5rem', lg: '4rem' },

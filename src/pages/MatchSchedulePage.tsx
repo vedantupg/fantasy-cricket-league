@@ -5,7 +5,9 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  Button
+  Button,
+  Card,
+  CardContent
 } from '@mui/material';
 import { ArrowBack, Upload } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -18,6 +20,22 @@ import LeagueAssistant from '../components/LeagueAssistant';
 import type { League } from '../types/database';
 import colors from '../theme/colors';
 import { alpha } from '@mui/material/styles';
+
+const cardSx = {
+  background: `linear-gradient(145deg, ${alpha(colors.blue.navy, 0.95)} 0%, ${alpha('#0A1929', 0.98)} 100%)`,
+  border: `1px solid ${colors.border.default}`,
+  borderRadius: 4,
+  boxShadow: `0 20px 60px rgba(0,0,0,0.4)`,
+  overflow: 'hidden',
+  position: 'relative' as const,
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: '1px',
+    background: `linear-gradient(90deg, transparent, ${alpha(colors.blue.electric, 0.6)}, transparent)`,
+  }
+};
 
 const MatchSchedulePage: React.FC = () => {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -69,7 +87,7 @@ const MatchSchedulePage: React.FC = () => {
     return (
       <Box>
         <AppHeader />
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3, md: 4 }, px: { xs: 2, sm: 3 } }}>
           <Alert severity="error">{error || 'League not found'}</Alert>
           <Button startIcon={<ArrowBack />} onClick={() => navigate('/leagues')} sx={{ mt: 2 }}>
             Back to Leagues
@@ -88,7 +106,7 @@ const MatchSchedulePage: React.FC = () => {
         currentPage="Match Schedule"
       />
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3, md: 4 }, px: { xs: 2, sm: 3 } }}>
         {/* Header */}
         <Box sx={{
           position: 'relative', pl: 3, py: 2, mb: 4,
@@ -149,10 +167,14 @@ const MatchSchedulePage: React.FC = () => {
         )}
 
         {/* Schedule Viewer */}
-        <MatchScheduleViewer
-          matches={league.matchSchedule || []}
-          highlightMatchNumber={undefined}
-        />
+        <Card sx={cardSx}>
+          <CardContent sx={{ p: { xs: 1.5, sm: 2, md: 3 } }}>
+            <MatchScheduleViewer
+              matches={league.matchSchedule || []}
+              highlightMatchNumber={undefined}
+            />
+          </CardContent>
+        </Card>
       </Container>
       <LeagueAssistant leagueId={leagueId} />
     </Box>

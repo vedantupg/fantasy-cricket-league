@@ -223,23 +223,6 @@ const AnalyticsPage: React.FC = () => {
           </Typography>
         </Box>
 
-        {/* League Info */}
-        <Card sx={{ mb: { xs: 2, sm: 3, md: 4 }, ...cardSx }}>
-          <CardContent sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: { xs: 1.5, sm: 2, md: 2.5 } }}>
-            <Typography variant="h6" fontWeight="bold" sx={{
-              fontSize: { xs: '1rem', sm: '1.25rem' },
-              background: `linear-gradient(90deg, ${colors.text.primary} 60%, ${colors.blue.light})`,
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-            }}>
-              League Analytics
-            </Typography>
-            <Typography variant="body2" sx={{ color: alpha(colors.text.secondary, 0.6), fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-              {league?.tournamentName || 'Tournament'}
-              {snapshot ? ` • Last updated: ${snapshot.snapshotDate.toLocaleString()}` : ''}
-            </Typography>
-          </CardContent>
-        </Card>
-
         {/* Analytics Content */}
         {!hasLeagueStarted && (
           <Card sx={{

@@ -134,7 +134,7 @@ const LeagueRulesPage: React.FC = () => {
           </Typography>
         </Box>
         <Card sx={cardSx}>
-          <CardContent>
+          <CardContent sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: { xs: 1.5, sm: 2, md: 2.5 } }}>
             <LeagueRulesDisplay league={league} />
           </CardContent>
         </Card>

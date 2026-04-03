@@ -34,7 +34,7 @@ import LeagueInvitePage from './pages/LeagueInvitePage';
 // Layouts
 import LeagueLayout from './components/layouts/LeagueLayout';
 
-// Create Material-UI theme with Montserrat font
+// Create Material-UI theme with Satoshi font
 const theme = createTheme({
   palette: {
     mode: 'dark',
@@ -45,47 +45,47 @@ const theme = createTheme({
       main: '#00e5ff',
     },
     background: {
-      default: '#0A1929',
+      default: '#060D17',
       paper: '#003E5C',
     },
   },
   typography: {
-    fontFamily: '"Montserrat", "Segoe UI", "Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: "'Satoshi', 'Montserrat', 'Segoe UI', sans-serif",
     h1: {
-      fontFamily: '"Montserrat", sans-serif',
+      fontFamily: "'Satoshi', sans-serif",
       fontWeight: 700,
     },
     h2: {
-      fontFamily: '"Montserrat", sans-serif',
+      fontFamily: "'Satoshi', sans-serif",
       fontWeight: 700,
     },
     h3: {
-      fontFamily: '"Montserrat", sans-serif',
+      fontFamily: "'Satoshi', sans-serif",
       fontWeight: 600,
     },
     h4: {
-      fontFamily: '"Montserrat", sans-serif',
-      fontWeight: 600,
+      fontFamily: "'Satoshi', sans-serif",
+      fontWeight: 800,
     },
     h5: {
-      fontFamily: '"Montserrat", sans-serif',
-      fontWeight: 600,
+      fontFamily: "'Satoshi', sans-serif",
+      fontWeight: 700,
     },
     h6: {
-      fontFamily: '"Montserrat", sans-serif',
-      fontWeight: 600,
+      fontFamily: "'Satoshi', sans-serif",
+      fontWeight: 700,
     },
     button: {
-      fontFamily: '"Montserrat", sans-serif',
-      fontWeight: 500,
+      fontFamily: "'Satoshi', sans-serif",
+      fontWeight: 600,
       textTransform: 'none',
     },
     body1: {
-      fontFamily: '"Montserrat", sans-serif',
+      fontFamily: "'Satoshi', sans-serif",
       fontWeight: 400,
     },
     body2: {
-      fontFamily: '"Montserrat", sans-serif',
+      fontFamily: "'Satoshi', sans-serif",
       fontWeight: 400,
     },
   },

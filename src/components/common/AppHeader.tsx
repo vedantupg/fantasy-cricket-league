@@ -87,7 +87,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
             sx={{
               minHeight: 'auto',
               '& .MuiTabs-indicator': {
-                backgroundColor: theme.palette.primary.main,
+                backgroundColor: '#FF9800',
                 height: 3,
                 borderRadius: '3px 3px 0 0'
               },
@@ -101,11 +101,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
                 fontSize: { xs: '0.75rem', sm: '0.95rem' },
                 color: alpha(theme.palette.text.primary, 0.6),
                 '&.Mui-selected': {
-                  color: theme.palette.primary.main,
+                  color: '#FF9800',
                 },
                 '&:hover': {
-                  color: theme.palette.primary.main,
-                  backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                  color: '#FF9800',
+                  backgroundColor: 'rgba(255,152,0,0.06)',
                 }
               }
             }}

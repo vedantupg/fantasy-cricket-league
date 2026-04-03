@@ -459,6 +459,7 @@ const LeagueListPage: React.FC = () => {
                           noWrap
                           sx={{
                             flex: 1,
+                            fontFamily: '"Montserrat", sans-serif',
                             fontSize: '1.05rem',
                             letterSpacing: '-0.01em',
                             color: colors.text.primary,

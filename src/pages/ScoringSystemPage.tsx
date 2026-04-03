@@ -16,7 +16,6 @@ import LeagueNav from '../components/common/LeagueNav';
 import LeagueAssistant from '../components/LeagueAssistant';
 import type { League, PlayerPool } from '../types/database';
 import { DEFAULT_BATTING_CONFIG, DEFAULT_BOWLING_CONFIG, DEFAULT_FIELDING_CONFIG } from '../utils/pointsCalculation';
-import { InfoOutlined } from '@mui/icons-material';
 import colors from '../theme/colors';
 import { alpha } from '@mui/material/styles';
 
@@ -680,26 +679,27 @@ const ScoringSystemPage: React.FC = () => {
       )}
 
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3, md: 4 } }}>
+        <Box sx={{
+          position: 'relative', pl: 3, py: 2, mb: 4,
+          '&::before': {
+            content: '""', position: 'absolute',
+            left: 0, top: 0, bottom: 0, width: '4px', borderRadius: '4px',
+            background: `linear-gradient(180deg, ${colors.blue.electric}, ${alpha(colors.blue.electric, 0.2)})`,
+          }
+        }}>
+          <Typography variant="h4" fontWeight={800} sx={{
+            letterSpacing: '-0.02em',
+            background: `linear-gradient(90deg, ${colors.text.primary} 60%, ${colors.blue.light})`,
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          }}>
+            Scoring System
+          </Typography>
+          <Typography variant="body2" sx={{ color: alpha(colors.text.secondary, 0.6), mt: 0.4 }}>
+            {playerPool.name} • {league.tournamentName}
+          </Typography>
+        </Box>
         <Card sx={cardSx}>
-          <CardContent>
-            <Box sx={{
-              position: 'relative', pl: 3, py: 2, mb: 3,
-              '&::before': {
-                content: '""', position: 'absolute',
-                left: 0, top: 0, bottom: 0, width: '4px', borderRadius: '4px',
-                background: `linear-gradient(180deg, ${colors.blue.electric}, ${alpha(colors.blue.electric, 0.2)})`,
-              }
-            }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <InfoOutlined sx={{ color: colors.blue.electric }} />
-                <Typography variant="h5" fontWeight="bold" sx={{
-                  background: `linear-gradient(90deg, ${colors.text.primary} 60%, ${colors.blue.light})`,
-                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                }}>
-                  Scoring Configuration - {playerPool.name}
-                </Typography>
-              </Box>
-            </Box>
+          <CardContent sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: { xs: 1.5, sm: 2, md: 2.5 } }}>
             <ScoringConfigContent pool={playerPool} />
           </CardContent>
         </Card>

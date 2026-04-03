@@ -238,6 +238,7 @@ const LeagueDashboardPage: React.FC = () => {
             variant="h4"
             fontWeight={800}
             sx={{
+              fontFamily: '"Montserrat", sans-serif',
               letterSpacing: '-0.02em',
               lineHeight: 1.2,
               background: `linear-gradient(90deg, ${colors.text.primary} 60%, ${colors.blue.light})`,
