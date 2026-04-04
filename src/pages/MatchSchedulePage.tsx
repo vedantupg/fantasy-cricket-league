@@ -7,12 +7,15 @@ import {
   Alert,
   Button,
   Card,
-  CardContent
+  CardContent,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import { ArrowBack, Upload } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { leagueService } from '../services/firestore';
+import { filterMatchesFromDate } from '../utils/scheduleParser';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
 import MatchScheduleViewer from '../components/schedule/MatchScheduleViewer';
@@ -42,6 +45,7 @@ const MatchSchedulePage: React.FC = () => {
   const [league, setLeague] = useState<League | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [scheduleView, setScheduleView] = useState<'current' | 'full'>('current');
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -167,15 +171,42 @@ const MatchSchedulePage: React.FC = () => {
         )}
 
         {/* Schedule Viewer */}
-        <Card sx={cardSx}>
-          <CardContent sx={{ p: { xs: 1.5, sm: 2, md: 3 } }}>
-            <MatchScheduleViewer
-              matches={league.matchSchedule || []}
-              highlightMatchNumber={undefined}
-              tournamentName={league.tournamentName}
-            />
-          </CardContent>
-        </Card>
+        {(() => {
+          const allMatches = league.matchSchedule || [];
+          const currentMatches = filterMatchesFromDate(allMatches, new Date());
+          const hasPastMatches = currentMatches.length < allMatches.length;
+          const displayedMatches = scheduleView === 'current' ? currentMatches : allMatches;
+
+          return (
+            <>
+              {hasPastMatches && (
+                <ToggleButtonGroup
+                  value={scheduleView}
+                  exclusive
+                  onChange={(_, v) => v && setScheduleView(v)}
+                  size="small"
+                  sx={{ mb: 3 }}
+                >
+                  <ToggleButton value="current" sx={{ fontWeight: 600, fontSize: '0.8rem', px: 2 }}>
+                    From Today
+                  </ToggleButton>
+                  <ToggleButton value="full" sx={{ fontWeight: 600, fontSize: '0.8rem', px: 2 }}>
+                    Full Schedule
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              )}
+              <Card sx={cardSx}>
+                <CardContent sx={{ p: { xs: 1.5, sm: 2, md: 3 } }}>
+                  <MatchScheduleViewer
+                    matches={displayedMatches}
+                    highlightMatchNumber={undefined}
+                    tournamentName={league.tournamentName}
+                  />
+                </CardContent>
+              </Card>
+            </>
+          );
+        })()}
       </Container>
       <LeagueAssistant leagueId={leagueId} />
     </Box>

@@ -9,6 +9,7 @@ import type { StandingEntry, League } from '../../types/database';
 interface CompactPodiumProps {
   topFive: StandingEntry[];
   league?: League;
+  onPlayerClick?: (standing: StandingEntry, element: HTMLElement) => void;
 }
 
 const getInitials = (name: string) =>
@@ -21,7 +22,7 @@ const getLeadColor = (lead: number): string => {
   return '#1E88E5';                  // blue — dominant
 };
 
-const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league }) => {
+const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league, onPlayerClick }) => {
   if (topFive.length === 0) return null;
 
   // Display in sequential order: 1st, 2nd, 3rd, 4th, 5th
@@ -202,7 +203,9 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league }) => {
           <Paper
             key={standing.userId}
             elevation={rank === 1 ? 0 : rank === 2 ? 6 : rank === 3 ? 4 : 2}
+            onClick={onPlayerClick ? (e) => onPlayerClick(standing, e.currentTarget as HTMLElement) : undefined}
             sx={{
+              cursor: onPlayerClick ? 'pointer' : 'default',
               // 🎨 CARD WIDTH - Fixed width to prevent username length issues
               width: { xs: 155, sm: 180, md: 205 }, // Increased width to prevent points truncation
               p: { xs: 1.5, sm: 1.75, md: 2 },

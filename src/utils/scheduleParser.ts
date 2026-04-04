@@ -239,3 +239,18 @@ export function groupMatchesByDate(matches: ScheduleMatch[]): Map<string, Schedu
 
   return grouped;
 }
+
+
+/**
+ * Returns matches on or after the given date (midnight comparison).
+ * Falls back to all matches if none qualify (tournament ended).
+ */
+export function filterMatchesFromDate(
+  matches: ScheduleMatch[],
+  fromDate: Date
+): ScheduleMatch[] {
+  const midnight = new Date(fromDate);
+  midnight.setHours(0, 0, 0, 0);
+  const filtered = matches.filter(m => new Date(m.date) >= midnight);
+  return filtered.length > 0 ? filtered : matches;
+}
