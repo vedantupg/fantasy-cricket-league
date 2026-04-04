@@ -172,6 +172,7 @@ const MatchSchedulePage: React.FC = () => {
             <MatchScheduleViewer
               matches={league.matchSchedule || []}
               highlightMatchNumber={undefined}
+              tournamentName={league.tournamentName}
             />
           </CardContent>
         </Card>
