@@ -22,7 +22,9 @@ import {
   Step,
   StepLabel,
   alpha,
-  Divider
+  Divider,
+  Autocomplete,
+  TextField,
 } from '@mui/material';
 import {
   SwapHoriz,
@@ -626,16 +628,23 @@ const TransferModal: React.FC<TransferModalProps> = ({
                             <Typography variant="body2" gutterBottom fontWeight="600" color="text.secondary">
                               Player In
                             </Typography>
-                            <Select
+                            <Autocomplete
                               fullWidth
-                              value={playerIn}
-                              onChange={(e) => setPlayerIn(e.target.value)}
                               size="small"
-                              displayEmpty
-                            >
-                              <MenuItem value="">Select player to add</MenuItem>
-                              {getAvailablePlayersForSelection().map(player => (
-                                <MenuItem key={player.id} value={player.id}>
+                              options={getAvailablePlayersForSelection()}
+                              getOptionLabel={(player) => player.name}
+                              value={getAvailablePlayersForSelection().find(p => p.id === playerIn) ?? null}
+                              onChange={(_, newValue) => setPlayerIn(newValue?.id ?? '')}
+                              isOptionEqualToValue={(option, value) => option.id === value.id}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  placeholder="Search player to add..."
+                                  size="small"
+                                />
+                              )}
+                              renderOption={(props, player) => (
+                                <Box component="li" {...props}>
                                   <Box display="flex" alignItems="center" gap={1}>
                                     <Avatar sx={{ width: 28, height: 28, fontSize: '0.8rem' }}>
                                       {player.name.charAt(0)}
@@ -643,9 +652,9 @@ const TransferModal: React.FC<TransferModalProps> = ({
                                     <Typography variant="body2">{player.name}</Typography>
                                     <Chip label={player.role} size="small" sx={{ height: 20, fontSize: '0.65rem' }} />
                                   </Box>
-                                </MenuItem>
-                              ))}
-                            </Select>
+                                </Box>
+                              )}
+                            />
                           </Box>
                         </Box>
                       </Box>
