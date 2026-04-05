@@ -36,6 +36,7 @@ import LeagueLayout from './components/layouts/LeagueLayout';
 import InstallPromptBanner from './components/common/InstallPromptBanner';
 import PullToRefresh from './components/common/PullToRefresh';
 import WhatsNewModal from './components/common/WhatsNewModal';
+import { Analytics } from '@vercel/analytics/react';
 
 // Create Material-UI theme with Satoshi font
 const theme = createTheme({
@@ -98,6 +99,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <Analytics />
       <WhatsNewModal />
       <InstallPromptBanner />
       <PullToRefresh />
