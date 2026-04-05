@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Container,
@@ -21,7 +21,8 @@ import CompactLeaderboardCard from '../components/leaderboard/CompactLeaderboard
 import LeaderboardHighlights from '../components/leaderboard/LeaderboardHighlights';
 import LeagueAssistant from '../components/LeagueAssistant';
 import { leaderboardSnapshotService, leagueService, squadService, playerPoolSnapshotService } from '../services/firestore';
-import type { LeaderboardSnapshot, League, StandingEntry, PlayerPoolSnapshot } from '../types/database';
+import type { LeaderboardSnapshot, League, StandingEntry, PlayerPoolSnapshot, LeagueSquad } from '../types/database';
+import SquadPeekPopover from '../components/leaderboard/SquadPeekPopover';
 import { calculateRankStreaks, attachStreaksToStandings } from '../utils/streakCalculator';
 
 const LeaderboardPage: React.FC = () => {
@@ -33,6 +34,16 @@ const LeaderboardPage: React.FC = () => {
   const [poolSnapshot, setPoolSnapshot] = useState<PlayerPoolSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Squad peek popover state
+  const [peekAnchor, setPeekAnchor] = useState<HTMLElement | null>(null);
+  const [peekStanding, setPeekStanding] = useState<StandingEntry | null>(null);
+  const squadCache = useRef<Map<string, LeagueSquad>>(new Map());
+
+  const handlePlayerClick = (standing: StandingEntry, element: HTMLElement) => {
+    setPeekStanding(standing);
+    setPeekAnchor(element);
+  };
 
   const loadLeaderboard = useCallback(async () => {
     if (!leagueId) {
@@ -509,7 +520,9 @@ const LeaderboardPage: React.FC = () => {
         )}
 
         {/* Podium for Top 5 */}
-        {topFive.length > 0 && hasLeagueStarted && <CompactPodium topFive={topFive} league={league} />}
+        {topFive.length > 0 && hasLeagueStarted && (
+          <CompactPodium topFive={topFive} league={league} onPlayerClick={handlePlayerClick} />
+        )}
 
         {/* Full Leaderboard - Grid layout */}
         {snapshot && snapshot.standings.length > 5 && hasLeagueStarted && (
@@ -536,6 +549,7 @@ const LeaderboardPage: React.FC = () => {
                   standing={standing}
                   isCurrentUser={standing.userId === userData?.uid}
                   league={league}
+                  onPlayerClick={handlePlayerClick}
                 />
               ))}
             </Box>
@@ -578,6 +592,17 @@ const LeaderboardPage: React.FC = () => {
           </Card>
         )}
       </Container>
+
+      {/* Squad Peek Popover */}
+      {leagueId && (
+        <SquadPeekPopover
+          anchor={peekAnchor}
+          standing={peekStanding}
+          leagueId={leagueId}
+          squadCache={squadCache}
+          onClose={() => setPeekAnchor(null)}
+        />
+      )}
 
       {/* AI Assistant Widget */}
       <LeagueAssistant leagueId={leagueId} />

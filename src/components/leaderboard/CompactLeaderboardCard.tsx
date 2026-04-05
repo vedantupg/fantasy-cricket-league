@@ -11,6 +11,7 @@ interface CompactLeaderboardCardProps {
   standing: StandingEntry;
   isCurrentUser?: boolean;
   league?: League; // Optional league data for transfer limits
+  onPlayerClick?: (standing: StandingEntry, element: HTMLElement) => void;
 }
 
 const getInitials = (name: string) =>
@@ -23,7 +24,7 @@ const getLeadColor = (lead: number): string => {
   return '#1E88E5';                  // blue — dominant
 };
 
-const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standing, isCurrentUser = false, league }) => {
+const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standing, isCurrentUser = false, league, onPlayerClick }) => {
   // 🎨 COLOR CUSTOMIZATION ZONE - LEADERBOARD CARD COLORS
   const getRankColor = (rank: number) => {
     if (rank <= 3) {
@@ -227,7 +228,9 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
   return (
     <Paper
       elevation={isCurrentUser ? 6 : 2}
+      onClick={onPlayerClick ? (e) => onPlayerClick(standing, e.currentTarget as HTMLElement) : undefined}
       sx={{
+        cursor: onPlayerClick ? 'pointer' : 'default',
         p: { xs: 1, sm: 1.25 },
         // 🎨 CARD BACKGROUND - Subtle gradient based on rank
         background: getBackgroundGradient(),
