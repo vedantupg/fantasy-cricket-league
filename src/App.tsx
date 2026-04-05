@@ -35,6 +35,7 @@ import LeagueInvitePage from './pages/LeagueInvitePage';
 import LeagueLayout from './components/layouts/LeagueLayout';
 import InstallPromptBanner from './components/common/InstallPromptBanner';
 import PullToRefresh from './components/common/PullToRefresh';
+import WhatsNewModal from './components/common/WhatsNewModal';
 
 // Create Material-UI theme with Satoshi font
 const theme = createTheme({
@@ -97,6 +98,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <WhatsNewModal />
       <InstallPromptBanner />
       <PullToRefresh />
       <AuthProvider>
