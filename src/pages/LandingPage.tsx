@@ -13,6 +13,7 @@ import {
   Fade,
   Slide,
   Zoom,
+  IconButton,
 } from '@mui/material';
 import {
   EmojiEvents,
@@ -25,7 +26,8 @@ import {
   Dashboard,
   WhatsApp,
   KeyboardArrowDown,
-  GroupAdd
+  GroupAdd,
+  Block,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -61,7 +63,7 @@ const LandingPage: React.FC = () => {
     },
     {
       icon: <Star sx={{ fontSize: 40 }} />,
-      title: "Discuss the game with Real Ball Knowledge",
+      title: "Real Cricket Knowledge",
       description: "Connect with cricket fans who actually get it. No fake hype, just real cricket lovers building genuine connections.",
       color: theme.palette.primary.main
     },
@@ -74,10 +76,15 @@ const LandingPage: React.FC = () => {
   ];
 
   const stats = [
-    { number: "100+", label: "Active Players", icon: <People /> },
-    { number: "15+", label: "Leagues hosted", icon: <EmojiEvents /> },
-    { number: "5+ yrs", label: "Established since 2020", icon: <Timeline /> }
+    { number: "100+", label: "Active Players", icon: <People />, raw: 100, suffix: "+" },
+    { number: "25+", label: "Leagues hosted", icon: <EmojiEvents />, raw: 25, suffix: "+" },
+    { number: "6 yrs", label: "Established since 2020", icon: <Timeline />, raw: 6, suffix: " yrs" },
+    { number: "0", label: "Daily Transfers Required", icon: <Block />, raw: 0, suffix: "" },
   ];
+
+  // Animated stat counters
+  const [statCounts, setStatCounts] = useState<number[]>(stats.map(() => 0));
+  const statsAnimatedRef = useRef(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -113,6 +120,24 @@ const LandingPage: React.FC = () => {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (visibleSections.has('stats-section') && !statsAnimatedRef.current) {
+      statsAnimatedRef.current = true;
+      const duration = 1200;
+      const steps = 60;
+      const interval = duration / steps;
+      let step = 0;
+      const timer = setInterval(() => {
+        step++;
+        const progress = step / steps;
+        const eased = 1 - Math.pow(1 - progress, 3);
+        setStatCounts(stats.map((s) => Math.round(s.raw * eased)));
+        if (step >= steps) clearInterval(timer);
+      }, interval);
+      return () => clearInterval(timer);
+    }
+  }, [visibleSections]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const loadUserLeagues = async () => {
@@ -202,6 +227,20 @@ const LandingPage: React.FC = () => {
         <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, py: 8 }}>
           <Fade in timeout={1000}>
             <Box sx={{ textAlign: 'center' }}>
+              {/* FCL Logo Badge */}
+              <Box
+                component="img"
+                src="/logo192.png"
+                sx={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: '50%',
+                  mb: 3,
+                  mx: 'auto',
+                  display: 'block',
+                  boxShadow: `0 0 24px ${alpha(colors.blue.electric, 0.4)}`
+                }}
+              />
               <Slide direction="down" in timeout={800}>
                 <Typography
                   variant="h1"
@@ -228,24 +267,31 @@ const LandingPage: React.FC = () => {
               </Slide>
 
               <Slide direction="up" in timeout={1200}>
-                <Typography
-                  variant="h5"
-                  sx={{
-                    mb: 6,
-                    maxWidth: '700px',
-                    mx: 'auto',
-                    color: colors.orange.primary,
-                    fontWeight: 500,
-                    lineHeight: 1.6,
-                    fontSize: { xs: '1rem', md: '1.125rem' } // 16-18px
-                  }}
-                >
-                  Pick once. Vibe all season
-                </Typography>
+                <Box sx={{ mb: 6, mx: 'auto', maxWidth: 560 }}>
+                  {/* Divider rule */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2.5 }}>
+                    <Box sx={{ flex: 1, height: '1px', background: `linear-gradient(90deg, transparent, ${alpha(colors.orange.primary, 0.5)})` }} />
+                    <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: colors.orange.primary, boxShadow: `0 0 8px ${colors.orange.primary}` }} />
+                    <Box sx={{ flex: 1, height: '1px', background: `linear-gradient(90deg, ${alpha(colors.orange.primary, 0.5)}, transparent)` }} />
+                  </Box>
+                  <Typography
+                    sx={{
+                      fontFamily: '"Georgia", "Playfair Display", serif',
+                      fontStyle: 'italic',
+                      fontWeight: 400,
+                      fontSize: { xs: '1.35rem', md: '1.65rem' },
+                      color: colors.orange.primary,
+                      letterSpacing: '0.02em',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    Pick once. Vibe all season.
+                  </Typography>
+                </Box>
               </Slide>
 
               <Zoom in timeout={1500}>
-                <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', flexWrap: 'wrap', mb: 6 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, mb: 6 }}>
                   <Button
                     variant="contained"
                     size="large"
@@ -271,6 +317,29 @@ const LandingPage: React.FC = () => {
                   >
                     Start Winning
                   </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={() => document.getElementById('how-it-works-section')?.scrollIntoView({ behavior: 'smooth' })}
+                    sx={{
+                      color: alpha(colors.text.primary, 0.75),
+                      borderColor: alpha(colors.text.primary, 0.25),
+                      fontSize: '0.95rem',
+                      textTransform: 'none',
+                      fontWeight: 500,
+                      borderRadius: 2.5,
+                      px: 3,
+                      py: 1,
+                      transition: 'all 0.25s ease',
+                      '&:hover': {
+                        color: colors.text.primary,
+                        borderColor: alpha(colors.blue.electric, 0.6),
+                        bgcolor: alpha(colors.blue.electric, 0.08),
+                        boxShadow: `0 0 16px ${alpha(colors.blue.electric, 0.2)}`,
+                      }
+                    }}
+                  >
+                    See how it works ↓
+                  </Button>
                 </Box>
               </Zoom>
 
@@ -283,6 +352,7 @@ const LandingPage: React.FC = () => {
                     left: '50%',
                     transform: 'translateX(-50%)',
                     animation: 'bounce 2s infinite',
+                    display: { xs: 'none', md: 'block' },
                     '@keyframes bounce': {
                       '0%, 100%': { transform: 'translateX(-50%) translateY(0)' },
                       '50%': { transform: 'translateX(-50%) translateY(10px)' }
@@ -633,7 +703,7 @@ const LandingPage: React.FC = () => {
           id="stats-section"
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' },
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
             gap: 2,
             transition: 'all 0.8s ease',
             opacity: visibleSections.has('stats-section') ? 1 : 0,
@@ -676,12 +746,97 @@ const LandingPage: React.FC = () => {
                     fontSize: { xs: '1.5rem', md: '2rem' }
                   }}
                 >
-                  {stat.number}
+                  {statCounts[index]}{stat.suffix}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" fontWeight={500} fontSize={{ xs: '0.75rem', md: '0.875rem' }}>
                   {stat.label}
                 </Typography>
               </CardContent>
+            </Card>
+          ))}
+        </Box>
+      </Container>
+
+      {/* How It Works Section */}
+      <Container maxWidth="lg" sx={{ py: 8, position: 'relative', zIndex: 1 }}>
+        <Typography
+          variant="h2"
+          sx={{
+            textAlign: 'center',
+            mb: 6,
+            fontWeight: 'bold',
+            background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            fontSize: { xs: '2rem', md: '2.5rem' }
+          }}
+        >
+          How It Works
+        </Typography>
+
+        <Box
+          data-animate
+          id="how-it-works-section"
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            gap: 3,
+            transition: 'all 0.8s ease',
+            opacity: visibleSections.has('how-it-works-section') ? 1 : 0,
+            transform: visibleSections.has('how-it-works-section') ? 'translateY(0)' : 'translateY(40px)'
+          }}
+        >
+          {[
+            { step: 1, title: "Pick Your Squad", description: "Choose 15 players once before the tournament starts." },
+            { step: 2, title: "Join a League", description: "Create or join a private league with your crew." },
+            { step: 3, title: "Track All Season", description: "Watch your squad earn points across every match, no daily effort needed." },
+          ].map((item, index) => (
+            <Card
+              key={index}
+              sx={{
+                flex: 1,
+                background: `linear-gradient(135deg, ${alpha(colors.blue.navy, 0.8)}, ${alpha('#0A1929', 0.6)})`,
+                backdropFilter: 'blur(20px)',
+                border: `1px solid ${alpha(colors.blue.electric, 0.15)}`,
+                borderRadius: 3,
+                p: 3,
+                transition: 'all 0.4s ease',
+                transitionDelay: `${index * 0.15}s`,
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  border: `1px solid ${alpha(colors.blue.electric, 0.35)}`,
+                  boxShadow: `0 12px 40px ${alpha(colors.blue.electric, 0.2)}`
+                }
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                <Box
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    bgcolor: colors.blue.electric,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    boxShadow: `0 0 16px ${alpha(colors.blue.electric, 0.5)}`
+                  }}
+                >
+                  <Typography variant="body1" fontWeight={700} sx={{ color: 'white', lineHeight: 1 }}>
+                    {item.step}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="h6" fontWeight={700} mb={0.75} sx={{ color: colors.text.primary }}>
+                    {item.title}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+                    {item.description}
+                  </Typography>
+                </Box>
+              </Box>
             </Card>
           ))}
         </Box>
@@ -821,14 +976,14 @@ const LandingPage: React.FC = () => {
                     fontSize: { xs: '1.25rem', md: '1.5rem' }
                   }}
                 >
-                  Join Our Cricket Community!
+                  Join 100+ Cricket Fans on WhatsApp
                 </Typography>
                 <Typography
                   variant="body2"
                   color="text.secondary"
                   sx={{ mb: { xs: 1.5, md: 0 }, lineHeight: 1.5 }}
                 >
-                  Connect with 100+ cricket fans. Live updates, strategies & exclusive contests.
+                  Live match updates, squad strategies, trash talk, and exclusive contests — all in one place.
                 </Typography>
               </Box>
 
@@ -874,15 +1029,30 @@ const LandingPage: React.FC = () => {
           zIndex: 1
         }}
       >
-        <Typography
-          variant="body2"
-          sx={{
-            color: alpha(theme.palette.text.secondary, 0.6),
-            fontWeight: 400
-          }}
-        >
-          © 2026 FCL. All rights reserved.
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: alpha(theme.palette.text.secondary, 0.6),
+              fontWeight: 400
+            }}
+          >
+            © 2026 FCL. All rights reserved.
+          </Typography>
+          <IconButton
+            component="a"
+            href="https://chat.whatsapp.com/CREMSkJQbIu2rkuZ75mjzM"
+            target="_blank"
+            rel="noopener noreferrer"
+            size="small"
+            sx={{
+              color: '#25D366',
+              '&:hover': { bgcolor: alpha('#25D366', 0.1) }
+            }}
+          >
+            <WhatsApp sx={{ fontSize: 20 }} />
+          </IconButton>
+        </Box>
       </Box>
     </Box>
   );

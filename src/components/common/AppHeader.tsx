@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Box,
-  Typography,
   Button,
   useTheme,
   alpha,
@@ -59,22 +58,21 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
       {/* Left side - Logo and Navigation */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, sm: 4 }, flex: 1, minWidth: 0 }}>
         {/* Brand Logo */}
-        <Typography
-          variant={isSmallMobile ? 'h6' : 'h5'}
-          sx={{
-            fontWeight: 'bold',
-            background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            cursor: 'pointer',
-            letterSpacing: 1,
-            flexShrink: 0
-          }}
+        <Box
+          component="img"
+          src="/logo192.png"
+          alt="FCL"
           onClick={() => transitionTo(navigate, '/')}
-        >
-          FCL
-        </Typography>
+          sx={{
+            width: { xs: 32, sm: 36 },
+            height: { xs: 32, sm: 36 },
+            borderRadius: '50%',
+            cursor: 'pointer',
+            flexShrink: 0,
+            transition: 'opacity 0.2s ease',
+            '&:hover': { opacity: 0.85 }
+          }}
+        />
 
         {/* Global Navigation Tabs - Only show for authenticated users */}
         {user && !hideNavigation && (
