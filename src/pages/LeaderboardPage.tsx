@@ -601,6 +601,7 @@ const LeaderboardPage: React.FC = () => {
           leagueId={leagueId}
           squadCache={squadCache}
           onClose={() => setPeekAnchor(null)}
+          squadSize={league?.squadSize ?? 11}
         />
       )}
 

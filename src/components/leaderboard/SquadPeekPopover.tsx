@@ -22,6 +22,7 @@ interface SquadPeekPopoverProps {
   leagueId: string;
   squadCache: React.MutableRefObject<Map<string, LeagueSquad>>;
   onClose: () => void;
+  squadSize?: number;
 }
 
 const ROLE_ORDER = ['wicketkeeper', 'batsman', 'allrounder', 'bowler'] as const;
@@ -95,9 +96,13 @@ const SquadPeekContent: React.FC<{
   loading: boolean;
   error: string | null;
   onClose: () => void;
-}> = ({ standing, squad, loading, error, onClose }) => {
+  squadSize: number;
+}> = ({ standing, squad, loading, error, onClose, squadSize }) => {
   const rankColor = getRankColor(standing.rank);
-  const grouped = squad ? groupByRole(squad.players) : {};
+  const playingXI = squad ? squad.players.slice(0, squadSize) : [];
+  const bench = squad ? squad.players.slice(squadSize) : [];
+  const groupedXI = groupByRole(playingXI);
+  const groupedBench = groupByRole(bench);
   const specialIds = new Set([squad?.captainId, squad?.viceCaptainId, squad?.xFactorId].filter(Boolean));
 
   return (
@@ -336,7 +341,7 @@ const SquadPeekContent: React.FC<{
             })}
           </Box>
 
-          {/* ── Divider ── */}
+          {/* ── Playing XI ── */}
           <Box sx={{
             display: 'flex',
             alignItems: 'center',
@@ -351,21 +356,19 @@ const SquadPeekContent: React.FC<{
               textTransform: 'uppercase',
               color: 'rgba(255,255,255,0.2)',
             }}>
-              Squad
+              Playing XI
             </Typography>
             <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,255,255,0.07)' }} />
           </Box>
 
-          {/* ── Role groups ── */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             {ROLE_ORDER.map(role => {
-              const players = (grouped[role] || []).filter(p => !specialIds.has(p.playerId));
+              const players = (groupedXI[role] || []).filter(p => !specialIds.has(p.playerId));
               if (players.length === 0) return null;
               const meta = ROLE_META[role];
 
               return (
                 <Box key={role}>
-                  {/* Role header */}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
                     <Box sx={{
                       width: 3,
@@ -393,8 +396,6 @@ const SquadPeekContent: React.FC<{
                       {players.length}
                     </Typography>
                   </Box>
-
-                  {/* Player pills */}
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.6 }}>
                     {players.map(p => (
                       <Chip
@@ -425,6 +426,99 @@ const SquadPeekContent: React.FC<{
               );
             })}
           </Box>
+
+          {/* ── Bench ── */}
+          {bench.length > 0 && (
+            <>
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                mt: 2,
+                mb: 1.75,
+              }}>
+                <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,255,255,0.05)' }} />
+                <Typography sx={{
+                  fontSize: '0.55rem',
+                  fontWeight: 700,
+                  letterSpacing: '2px',
+                  textTransform: 'uppercase',
+                  color: 'rgba(255,255,255,0.15)',
+                }}>
+                  Bench
+                </Typography>
+                <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,255,255,0.05)' }} />
+              </Box>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                {ROLE_ORDER.map(role => {
+                  const players = (groupedBench[role] || []).filter(p => !specialIds.has(p.playerId));
+                  if (players.length === 0) return null;
+                  const meta = ROLE_META[role];
+
+                  return (
+                    <Box key={role}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
+                        <Box sx={{
+                          width: 3,
+                          height: 12,
+                          borderRadius: 99,
+                          bgcolor: meta.color,
+                          opacity: 0.4,
+                          flexShrink: 0,
+                        }} />
+                        <Typography sx={{
+                          fontSize: '0.6rem',
+                          fontWeight: 800,
+                          letterSpacing: '1.5px',
+                          textTransform: 'uppercase',
+                          color: meta.color,
+                          opacity: 0.5,
+                        }}>
+                          {meta.short}
+                        </Typography>
+                        <Typography sx={{
+                          fontSize: '0.58rem',
+                          color: 'rgba(255,255,255,0.18)',
+                          ml: 0.25,
+                        }}>
+                          {players.length}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.6 }}>
+                        {players.map(p => (
+                          <Chip
+                            key={p.playerId}
+                            label={p.playerName}
+                            size="small"
+                            sx={{
+                              height: 26,
+                              fontSize: '0.72rem',
+                              fontWeight: 500,
+                              fontFamily: "'Satoshi', sans-serif",
+                              bgcolor: 'rgba(255,255,255,0.02)',
+                              color: 'rgba(255,255,255,0.4)',
+                              border: `1px solid rgba(255,255,255,0.06)`,
+                              borderRadius: 99,
+                              opacity: 0.65,
+                              transition: 'all 0.15s',
+                              '&:hover': {
+                                bgcolor: `${meta.color}10`,
+                                borderColor: `${meta.color}30`,
+                                color: 'rgba(255,255,255,0.65)',
+                                opacity: 1,
+                              },
+                              '& .MuiChip-label': { px: 1.25 },
+                            }}
+                          />
+                        ))}
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+            </>
+          )}
 
           {/* ── Footer stat row ── */}
           <Box sx={{
@@ -496,6 +590,7 @@ const SquadPeekPopover: React.FC<SquadPeekPopoverProps> = ({
   leagueId,
   squadCache,
   onClose,
+  squadSize = 11,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -542,6 +637,7 @@ const SquadPeekPopover: React.FC<SquadPeekPopoverProps> = ({
       loading={loading}
       error={error}
       onClose={onClose}
+      squadSize={squadSize}
     />
   );
 

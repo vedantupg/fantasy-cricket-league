@@ -214,6 +214,26 @@ const LeagueDashboardPage: React.FC = () => {
       <AppHeader />
       <Container maxWidth="lg" sx={{ py: 4 }}>
 
+      {/* Back navigation */}
+      <Button
+        variant="text"
+        startIcon={<ArrowBack fontSize="small" />}
+        onClick={() => navigate('/dashboard')}
+        sx={{
+          mb: 2,
+          color: alpha(colors.text.secondary, 0.7),
+          fontWeight: 500,
+          fontSize: '0.85rem',
+          pl: 0,
+          '&:hover': {
+            color: colors.text.secondary,
+            bgcolor: 'transparent',
+          },
+        }}
+      >
+        Back to Leagues
+      </Button>
+
       {/* Header */}
       <Box
         mb={4}
@@ -418,25 +438,6 @@ const LeagueDashboardPage: React.FC = () => {
                 Match Schedule
               </Button>
 
-              {/* Back to Leagues — escape nav, minimal */}
-              <Button
-                fullWidth
-                variant="text"
-                startIcon={<ArrowBack fontSize="small" />}
-                sx={{
-                  color: alpha(colors.text.secondary, 0.6),
-                  fontWeight: 500,
-                  fontSize: '0.85rem',
-                  '&:hover': {
-                    color: colors.text.secondary,
-                    bgcolor: alpha(colors.text.secondary, 0.06),
-                  },
-                  transition: 'all 0.2s ease',
-                }}
-                onClick={() => navigate('/dashboard')}
-              >
-                Back to Leagues
-              </Button>
             </CardContent>
           </Card>
 
