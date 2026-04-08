@@ -37,6 +37,8 @@
     "yup": "^1.7.0"
   },
   "scripts": {
+    "prestart": "node scripts/generate-firebase-messaging-sw.mjs",
+    "prebuild": "node scripts/generate-firebase-messaging-sw.mjs",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\"",
