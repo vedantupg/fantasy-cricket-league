@@ -66,6 +66,7 @@ import themeColors from '../theme/colors';
 import { formatMatchForDropdown } from '../utils/scheduleParser';
 import EnhancedAlert, { SquadStatusItem, EnhancedAlertAction } from '../components/common/EnhancedAlert';
 import { TeamLogo } from '../utils/teamLogos';
+import { vibrate } from '../utils/haptics';
 
 interface SelectedPlayer extends Player {
   position: 'regular' | 'bench';
@@ -2042,7 +2043,7 @@ const SquadSelectionPage: React.FC = () => {
             variant="contained"
             disabled={!isSquadValid() || submitting || isDeadlinePassed}
             startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <Star />}
-            onClick={handleSubmitSquad}
+            onClick={() => { vibrate([10, 50, 10]); handleSubmitSquad(); }}
             sx={{
               fontFamily: "'Satoshi', sans-serif",
               fontWeight: 600,

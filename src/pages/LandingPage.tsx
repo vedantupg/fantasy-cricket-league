@@ -35,6 +35,7 @@ import { leagueService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
 import type { League } from '../types/database';
 import colors from '../theme/colors';
+import { vibrate } from '../utils/haptics';
 
 const LandingPage: React.FC = () => {
   const theme = useTheme();
@@ -295,7 +296,7 @@ const LandingPage: React.FC = () => {
                   <Button
                     variant="contained"
                     size="large"
-                    onClick={handleGetStarted}
+                    onClick={() => { vibrate(8); handleGetStarted(); }}
                     startIcon={<PlayArrow />}
                     sx={{
                       borderRadius: 3,
@@ -476,7 +477,7 @@ const LandingPage: React.FC = () => {
                   <Button
                     variant="contained"
                     startIcon={<GroupAdd sx={{ fontSize: '1rem' }} />}
-                    onClick={() => navigate('/leagues/join')}
+                    onClick={() => { vibrate(8); navigate('/leagues/join'); }}
                     size="small"
                     sx={{
                       borderRadius: 2.5,

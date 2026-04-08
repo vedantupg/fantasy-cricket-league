@@ -10,7 +10,12 @@ self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    )
+    ).then(() => {
+      // Notify all open tabs that a new version is active
+      return self.clients.matchAll({ type: 'window' }).then(clients => {
+        clients.forEach(client => client.postMessage({ type: 'NEW_VERSION' }));
+      });
+    })
   );
   self.clients.claim();
 });

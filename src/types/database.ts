@@ -10,6 +10,10 @@ export interface User {
   totalPoints: number;
   createdAt: Date;
 
+  // Push Notifications
+  fcmToken?: string;
+  notificationsEnabled?: boolean;
+
   // User Preferences & Favorites
   favoriteBatter?: string; // Favorite batsman in the world
   favoriteBowler?: string; // Favorite bowler in the world

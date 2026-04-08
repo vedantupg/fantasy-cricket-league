@@ -13,7 +13,9 @@ import {
   Alert,
   CircularProgress,
   Grid,
-  alpha
+  alpha,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -27,9 +29,12 @@ import {
   Stars,
   SportsCricket,
   Check,
-  LockOutlined
+  LockOutlined,
+  NotificationsOutlined,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import { requestNotificationPermission, disableNotifications } from '../services/notifications';
+import { vibrate } from '../utils/haptics';
 import { imageService } from '../services/storage';
 import { squadService, leagueService } from '../services/firestore';
 import type { LeagueSquad, League } from '../types/database';
@@ -58,6 +63,7 @@ const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { userData, updateUserProfile, user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [notifToggling, setNotifToggling] = useState(false);
   const [editData, setEditData] = useState({
     displayName: userData?.displayName || '',
     email: userData?.email || '',
@@ -313,6 +319,23 @@ const ProfilePage: React.FC = () => {
     setError('');
     setUploading(false);
     setIsEditing(false);
+  };
+
+  const handleNotifToggle = async () => {
+    if (!user) return;
+    setNotifToggling(true);
+    try {
+      if (userData?.notificationsEnabled) {
+        await disableNotifications(user.uid);
+        await updateUserProfile({ notificationsEnabled: false, fcmToken: undefined });
+      } else {
+        vibrate([8, 40, 8]);
+        await requestNotificationPermission(user.uid);
+        await updateUserProfile({ notificationsEnabled: true });
+      }
+    } finally {
+      setNotifToggling(false);
+    }
   };
 
   const getRankBadgeColor = (rank: number | null) => {
@@ -1009,6 +1032,67 @@ const ProfilePage: React.FC = () => {
                       </Typography>
                     </Box>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* ── NOTIFICATIONS CARD ─────────────────────────────── */}
+              <Card
+                sx={{
+                  borderRadius: 3,
+                  border: `1px solid ${colors.border.subtle}`,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
+                  background: colors.background.paper,
+                }}
+              >
+                <CardContent sx={{ p: 3 }}>
+                  <Box display="flex" alignItems="center" gap={1} mb={2}>
+                    <NotificationsOutlined sx={{ color: colors.blue.electric, fontSize: '1.25rem' }} />
+                    <Typography
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                        background: colors.gradients.title,
+                        backgroundClip: 'text',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                      }}
+                    >
+                      Notifications
+                    </Typography>
+                  </Box>
+
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={userData?.notificationsEnabled ?? false}
+                        onChange={handleNotifToggle}
+                        disabled={notifToggling}
+                        size="small"
+                        sx={{
+                          '& .MuiSwitch-switchBase.Mui-checked': { color: colors.blue.electric },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: colors.blue.electric },
+                        }}
+                      />
+                    }
+                    label={
+                      <Typography sx={{ fontSize: '0.875rem', color: colors.text.primary }}>
+                        Leaderboard updates
+                      </Typography>
+                    }
+                  />
+
+                  <Typography
+                    sx={{
+                      fontSize: '0.7rem',
+                      color: alpha(colors.text.primary, 0.4),
+                      mt: 1,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Push notifications work on Android PWA and desktop browsers. Not supported on iOS.
+                  </Typography>
                 </CardContent>
               </Card>
             </Box>

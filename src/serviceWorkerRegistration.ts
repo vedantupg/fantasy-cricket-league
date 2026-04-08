@@ -10,5 +10,12 @@ export function register(): void {
     navigator.serviceWorker
       .register('/sw.js')
       .catch(err => console.error('SW registration failed:', err));
+
+    // Listen for NEW_VERSION broadcast from the service worker activate handler
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data?.type === 'NEW_VERSION') {
+        window.dispatchEvent(new CustomEvent('fcl:new-version'));
+      }
+    });
   });
 }

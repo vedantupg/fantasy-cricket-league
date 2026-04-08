@@ -1,7 +1,8 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, FirebaseApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
+import { getMessaging, isSupported } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAT7uu2q_ej91X3u9zNagCMYteUkckOOtc",
@@ -14,7 +15,7 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-let app;
+let app: FirebaseApp;
 try {
   app = initializeApp(firebaseConfig);
   console.log('Firebase initialized successfully');
@@ -27,5 +28,13 @@ try {
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
+
+// Lazily initialize Firebase Messaging (not supported in all environments)
+export let messaging: ReturnType<typeof getMessaging> | null = null;
+isSupported().then(supported => {
+  if (supported) {
+    messaging = getMessaging(app);
+  }
+}).catch(() => {/* messaging not available */});
 
 export default app;

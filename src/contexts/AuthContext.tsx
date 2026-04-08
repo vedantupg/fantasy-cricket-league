@@ -11,6 +11,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
+import { requestNotificationPermission } from '../services/notifications';
 
 // User data stored in Firestore
 interface UserData {
@@ -26,6 +27,8 @@ interface UserData {
   favoriteBowler?: string;
   favoriteFielder?: string;
   favoriteIPLTeam?: string;
+  fcmToken?: string;
+  notificationsEnabled?: boolean;
 }
 
 interface AuthContextType {
@@ -63,6 +66,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists()) {
           setUserData(userDoc.data() as UserData);
+        }
+        // Request notification permission if in PWA context and not yet asked
+        if ('serviceWorker' in navigator && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+          requestNotificationPermission(user.uid).catch(() => {/* silently ignore */});
         }
       } else {
         setUserData(null);

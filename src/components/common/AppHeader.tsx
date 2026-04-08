@@ -6,13 +6,17 @@ import {
   alpha,
   Tabs,
   Tab,
-  useMediaQuery
+  useMediaQuery,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
-import { Home, Dashboard } from '@mui/icons-material';
+import { Home, Dashboard, NotificationsOutlined, NotificationsOff } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import UserMenu from './UserMenu';
 import { transitionTo } from '../../utils/navigation';
+import { requestNotificationPermission, disableNotifications } from '../../services/notifications';
+import { vibrate } from '../../utils/haptics';
 
 interface AppHeaderProps {
   hideNavigation?: boolean;
@@ -26,9 +30,23 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, userData, updateUserProfile } = useAuth();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  const notificationsEnabled = userData?.notificationsEnabled ?? false;
+
+  const handleBellToggle = async () => {
+    if (!user) return;
+    if (notificationsEnabled) {
+      await disableNotifications(user.uid);
+      await updateUserProfile({ notificationsEnabled: false, fcmToken: undefined });
+    } else {
+      vibrate([8, 40, 8]);
+      await requestNotificationPermission(user.uid);
+      await updateUserProfile({ notificationsEnabled: true });
+    }
+  };
 
   // Determine current tab based on current route
   const getCurrentTab = () => {
@@ -125,7 +143,29 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
       {/* Right side - User menu or auth buttons */}
       <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, alignItems: 'center', flexShrink: 0 }}>
         {user ? (
-          <UserMenu />
+          <>
+            <Tooltip title={notificationsEnabled ? 'Notifications on' : 'Notifications off'}>
+              <IconButton
+                size="small"
+                onClick={handleBellToggle}
+                aria-label="Toggle notifications"
+                sx={{
+                  color: notificationsEnabled
+                    ? theme.palette.primary.main
+                    : alpha(theme.palette.text.primary, 0.35),
+                  transition: 'color 0.2s ease',
+                  '&:hover': { color: theme.palette.primary.main },
+                }}
+              >
+                {notificationsEnabled ? (
+                  <NotificationsOutlined sx={{ fontSize: { xs: 20, sm: 22 } }} />
+                ) : (
+                  <NotificationsOff sx={{ fontSize: { xs: 20, sm: 22 } }} />
+                )}
+              </IconButton>
+            </Tooltip>
+            <UserMenu />
+          </>
         ) : (
           <>
             <Button

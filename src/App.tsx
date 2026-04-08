@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import Snackbar from '@mui/material/Snackbar';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
@@ -96,6 +97,17 @@ const theme = createTheme({
 });
 
 function App() {
+  const [showUpdateSnackbar, setShowUpdateSnackbar] = useState(false);
+
+  useEffect(() => {
+    const handleNewVersion = () => {
+      setShowUpdateSnackbar(true);
+      setTimeout(() => window.location.reload(), 2000);
+    };
+    window.addEventListener('fcl:new-version', handleNewVersion);
+    return () => window.removeEventListener('fcl:new-version', handleNewVersion);
+  }, []);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -103,6 +115,11 @@ function App() {
       <WhatsNewModal />
       <InstallPromptBanner />
       <PullToRefresh />
+      <Snackbar
+        open={showUpdateSnackbar}
+        message="New update available — refreshing..."
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
       <AuthProvider>
         <Router>
           <Routes>
