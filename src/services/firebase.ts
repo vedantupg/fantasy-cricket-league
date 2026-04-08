@@ -4,14 +4,47 @@ import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 import { getMessaging, isSupported } from "firebase/messaging";
 
+/** Jest loads modules in different orders depending on the runner; set dummies before the required check. */
+if (process.env.NODE_ENV === "test") {
+  const testEnv: Record<string, string> = {
+    REACT_APP_FIREBASE_API_KEY: "test-firebase-api-key",
+    REACT_APP_FIREBASE_AUTH_DOMAIN: "test.firebaseapp.com",
+    REACT_APP_FIREBASE_PROJECT_ID: "test-project",
+    REACT_APP_FIREBASE_STORAGE_BUCKET: "test.appspot.com",
+    REACT_APP_FIREBASE_MESSAGING_SENDER_ID: "000000000000",
+    REACT_APP_FIREBASE_APP_ID: "1:000000000000:web:0000000000000000000000",
+  };
+  for (const [key, value] of Object.entries(testEnv)) {
+    if (!process.env[key]) process.env[key] = value;
+  }
+}
+
+const required = [
+  "REACT_APP_FIREBASE_API_KEY",
+  "REACT_APP_FIREBASE_AUTH_DOMAIN",
+  "REACT_APP_FIREBASE_PROJECT_ID",
+  "REACT_APP_FIREBASE_STORAGE_BUCKET",
+  "REACT_APP_FIREBASE_MESSAGING_SENDER_ID",
+  "REACT_APP_FIREBASE_APP_ID",
+] as const;
+
+const missing = required.filter((k) => !process.env[k]);
+if (missing.length > 0) {
+  throw new Error(
+    `Missing Firebase env: ${missing.join(", ")}. Copy .env.example to .env and set values from the Firebase console.`,
+  );
+}
+
 const firebaseConfig = {
-  apiKey: "AIzaSyAT7uu2q_ej91X3u9zNagCMYteUkckOOtc",
-  authDomain: "fantasy-cricket-league-2554c.firebaseapp.com",
-  projectId: "fantasy-cricket-league-2554c",
-  storageBucket: "fantasy-cricket-league-2554c.firebasestorage.app",
-  messagingSenderId: "310912152259",
-  appId: "1:310912152259:web:dba9c4b0e34e3665682876",
-  measurementId: "G-Y74QWZKSY5"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  ...(process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
+    ? { measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID }
+    : {}),
 };
 
 // Initialize Firebase
