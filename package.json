@@ -53,6 +53,18 @@
     "extends": [
       "react-app",
       "react-app/jest"
+    ],
+    "overrides": [
+      {
+        "files": [
+          "**/__tests__/**/*.{ts,tsx,js,jsx}",
+          "**/*.{test,spec}.{ts,tsx,js,jsx}"
+        ],
+        "rules": {
+          "@typescript-eslint/no-unused-vars": "off",
+          "no-unreachable": "off"
+        }
+      }
     ]
   },
   "jest": {
