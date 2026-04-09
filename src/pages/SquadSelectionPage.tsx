@@ -2351,10 +2351,15 @@ const SquadSelectionPage: React.FC = () => {
               setPpMatchConfirmOpen={setPpMatchConfirmOpen}
               ppMatchPending={ppMatchPending}
               setPpMatchPending={setPpMatchPending}
-              onConfirmPpMatch={() => {
+              onConfirmPpMatch={async () => {
                 setPowerplayMatch(ppMatchPending);
                 setPpMatchConfirmOpen(false);
                 setPpMatchPending('');
+                if (existingSquad && ppMatchPending) {
+                  await squadService.update(existingSquad.id, {
+                    powerplayMatchNumber: parseInt(ppMatchPending),
+                  });
+                }
               }}
               captainId={captainId}
               viceCaptainId={viceCaptainId}
