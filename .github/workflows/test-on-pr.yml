@@ -32,6 +32,9 @@ jobs:
         run: npm run test:ci
         env:
           CI: true
+
+      - name: Run ESLint
+        run: npm run lint
       
       - name: Type check
         run: npx tsc --noEmit

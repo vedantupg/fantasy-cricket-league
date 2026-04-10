@@ -42,8 +42,8 @@ This directory contains automated CI/CD workflows for the Fantasy Cricket League
 **Purpose**: Continuous Integration for all branches and pull requests
 
 **Triggers**:
-- Push to `main`, `develop`, or any branch
-- Pull requests to `main`, `develop`
+- Push to `main`, `dev`, or `testing/initiator`
+- Pull requests to `main`, `dev`
 
 **Jobs**:
 

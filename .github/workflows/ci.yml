@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop, testing/initiator ]
+    branches: [ main, dev, testing/initiator ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, dev ]
 
 jobs:
   test:
@@ -124,10 +124,11 @@ jobs:
         run: npx tsc --noEmit
       
       - name: Run ESLint
-        run: npm run lint --if-present || echo "No lint script found"
+        run: npm run lint
 
   build:
-    name: Build Application
+    # Single stable name for Vercel Deployment Checks (see Vercel → Deployment checks).
+    name: CI / Build Application
     runs-on: ubuntu-latest
     needs: [test, lint]
     
@@ -162,3 +163,13 @@ jobs:
           name: build
           path: build/
           retention-days: 7
+
+  # One green check that means tests + lint + build all succeeded (for Vercel Deployment Checks).
+  ci-complete:
+    name: CI / All checks passed
+    runs-on: ubuntu-latest
+    needs: [test, lint, build]
+    if: success()
+    steps:
+      - name: Done
+        run: echo "Tests, lint, typecheck, and production build all passed."
