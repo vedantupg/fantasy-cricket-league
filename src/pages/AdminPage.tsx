@@ -1759,6 +1759,12 @@ const AdminPage: React.FC = () => {
           >
             Hidden Player Points
           </Button>
+          <Button
+            variant="outlined"
+            onClick={() => navigate('/admin/global-leaderboard')}
+          >
+            Global Leaderboard
+          </Button>
         </Box>
       </Box>
 

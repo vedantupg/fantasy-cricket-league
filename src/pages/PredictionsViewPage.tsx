@@ -118,7 +118,7 @@ const PredictionsViewPage: React.FC = () => {
       Object.entries(bonusPoints).forEach(([squadId, pointsStr]) => {
         const points = parseInt(pointsStr || '0');
 
-        if (!isNaN(points) && points >= 0) {
+        if (!isNaN(points)) {
           // Create update promise
           updates.push(
             squadService.update(squadId, {
@@ -359,12 +359,12 @@ const PredictionsViewPage: React.FC = () => {
                           value={bonusPoints[squad.id] || ''}
                           onChange={(e) => setBonusPoints({ ...bonusPoints, [squad.id]: e.target.value })}
                           sx={{ width: { xs: 90, sm: 120 } }}
-                          inputProps={{ min: 0, step: 10, style: { fontSize: '0.875rem' } }}
+                          inputProps={{ step: 10, style: { fontSize: '0.875rem' } }}
                           label="Bonus Points"
                         />
-                        {squad.predictionBonusPoints && squad.predictionBonusPoints > 0 && (
+                        {squad.predictionBonusPoints != null && squad.predictionBonusPoints !== 0 && (
                           <Chip
-                            label={`Current: +${squad.predictionBonusPoints}`}
+                            label={`Current: ${squad.predictionBonusPoints > 0 ? '+' : ''}${squad.predictionBonusPoints}`}
                             size="small"
                             color="info"
                             sx={{ mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.7rem' }, height: { xs: 18, sm: 20 } }}

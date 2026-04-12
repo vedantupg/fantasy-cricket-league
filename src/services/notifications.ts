@@ -22,7 +22,8 @@ export async function requestNotificationPermission(userId: string): Promise<voi
     return;
   }
 
-  const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+  const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+  const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
   if (!token) return;
 
   await updateDoc(doc(db, 'users', userId), {
