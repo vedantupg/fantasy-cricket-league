@@ -27,6 +27,7 @@ import LeagueRulesPage from './pages/LeagueRulesPage';
 import PredictionsViewPage from './pages/PredictionsViewPage';
 import PowerplayManagementPage from './pages/PowerplayManagementPage';
 import HiddenPlayerManagementPage from './pages/HiddenPlayerManagementPage';
+import GlobalLeaderboardPage from './pages/GlobalLeaderboardPage';
 import MatchSchedulePage from './pages/MatchSchedulePage';
 import ScheduleUploadPage from './pages/ScheduleUploadPage';
 import ScoringSystemPage from './pages/ScoringSystemPage';
@@ -102,7 +103,6 @@ function App() {
   useEffect(() => {
     const handleNewVersion = () => {
       setShowUpdateSnackbar(true);
-      setTimeout(() => window.location.reload(), 2000);
     };
     window.addEventListener('fcl:new-version', handleNewVersion);
     return () => window.removeEventListener('fcl:new-version', handleNewVersion);
@@ -117,7 +117,7 @@ function App() {
       <PullToRefresh />
       <Snackbar
         open={showUpdateSnackbar}
-        message="New update available — refreshing..."
+        message="App updated to latest version"
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
       <AuthProvider>
@@ -256,6 +256,12 @@ function App() {
             <Route path="/admin/hidden-player" element={
               <ProtectedRoute adminOnly={true}>
                 <HiddenPlayerManagementPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/admin/global-leaderboard" element={
+              <ProtectedRoute adminOnly={true}>
+                <GlobalLeaderboardPage />
               </ProtectedRoute>
             } />
 

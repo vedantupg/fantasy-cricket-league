@@ -30,8 +30,10 @@ import {
   Delete as DeleteIcon,
   CalendarMonth,
   ArrowBack,
-  AdminPanelSettings
+  AdminPanelSettings,
+  SwapHoriz as SwapHorizIcon
 } from '@mui/icons-material';
+import Tooltip from '@mui/material/Tooltip';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { leagueService, userService, squadService } from '../services/firestore';
@@ -394,6 +396,44 @@ const LeagueDashboardPage: React.FC = () => {
               >
                 Manage Squad
               </Button>
+
+              {/* Make Transfer — enabled when any transfer type is active */}
+              {(() => {
+                const now = new Date();
+                const midSeasonCfg = league?.transferTypes?.midSeasonTransfers;
+                const midSeasonOpen = midSeasonCfg?.enabled &&
+                  midSeasonCfg.windowStartDate &&
+                  midSeasonCfg.windowEndDate &&
+                  now >= new Date(midSeasonCfg.windowStartDate) &&
+                  now <= new Date(midSeasonCfg.windowEndDate);
+                const transfersOpen = !!(league?.benchChangesEnabled || league?.flexibleChangesEnabled || midSeasonOpen);
+                return (
+                  <Tooltip title={transfersOpen ? '' : 'Transfers are currently closed'} placement="top">
+                    <span style={{ display: 'block', marginBottom: 12 }}>
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        disabled={!transfersOpen}
+                        startIcon={<SwapHorizIcon />}
+                        sx={{
+                          fontWeight: 600,
+                          borderColor: transfersOpen ? 'rgba(0,229,255,0.5)' : undefined,
+                          color: transfersOpen ? 'rgba(0,229,255,0.9)' : undefined,
+                          '&:hover': {
+                            borderColor: 'rgba(0,229,255,0.8)',
+                            bgcolor: 'rgba(0,229,255,0.08)',
+                            transform: 'translateY(-1px)',
+                          },
+                          transition: 'all 0.2s ease',
+                        }}
+                        onClick={() => navigate(`/leagues/${leagueId}/squad?openTransfer=true`)}
+                      >
+                        Make Transfer
+                      </Button>
+                    </span>
+                  </Tooltip>
+                );
+              })()}
 
               {/* View Leaderboard — high-value branded destination */}
               <Button

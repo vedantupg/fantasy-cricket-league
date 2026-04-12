@@ -232,6 +232,18 @@ export const leagueService = {
     return { removedParticipants, deletedSquads };
   },
 
+  // Get leagues by player pool ID (admin only)
+  async getByPlayerPool(playerPoolId: string): Promise<League[]> {
+    const q = query(
+      collection(db, COLLECTIONS.LEAGUES),
+      where('playerPoolId', '==', playerPoolId)
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc =>
+      convertTimestamps({ id: doc.id, ...doc.data() }) as League
+    );
+  },
+
   // Real-time listener for league updates
   subscribeToLeague(leagueId: string, callback: (league: League | null) => void): () => void {
     const docRef = doc(db, COLLECTIONS.LEAGUES, leagueId);
