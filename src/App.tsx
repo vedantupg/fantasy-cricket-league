@@ -103,7 +103,6 @@ function App() {
   useEffect(() => {
     const handleNewVersion = () => {
       setShowUpdateSnackbar(true);
-      setTimeout(() => window.location.reload(), 2000);
     };
     window.addEventListener('fcl:new-version', handleNewVersion);
     return () => window.removeEventListener('fcl:new-version', handleNewVersion);
@@ -118,7 +117,7 @@ function App() {
       <PullToRefresh />
       <Snackbar
         open={showUpdateSnackbar}
-        message="New update available — refreshing..."
+        message="App updated to latest version"
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
       <AuthProvider>
