@@ -11,6 +11,11 @@ export function register(): void {
       .register('/sw.js')
       .catch(err => console.error('SW registration failed:', err));
 
+    // Register FCM service worker for background push notifications
+    navigator.serviceWorker
+      .register('/firebase-messaging-sw.js')
+      .catch(err => console.error('FCM SW registration failed:', err));
+
     // Listen for NEW_VERSION broadcast from the service worker activate handler
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data?.type === 'NEW_VERSION') {

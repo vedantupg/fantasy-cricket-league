@@ -48,9 +48,12 @@ import {
   InfoOutlined,
   CheckCircleOutline,
   ErrorOutline,
+  History as HistoryIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
   AutoAwesome,
 } from '@mui/icons-material';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AppHeader from '../components/common/AppHeader';
 import LeagueNav from '../components/common/LeagueNav';
@@ -121,6 +124,15 @@ const SquadSelectionPage: React.FC = () => {
 
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Auto-open transfer modal when navigated here with ?openTransfer=true
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('openTransfer') === 'true' && canMakeTransfer) {
+      setTransferModalOpen(true);
+    }
+  }, [location.search, canMakeTransfer]);
 
   const playerNameOptions = useMemo(() => {
     const names = availablePlayers.map(p => p.name);
@@ -2585,6 +2597,7 @@ const CricketPitchFormation: React.FC<{
   const [slotPickerRole, setSlotPickerRole] = useState<string | null>(null);
   const [slotPickerTarget, setSlotPickerTarget] = useState<'regular' | 'bench'>('regular');
   const [slotPickerSearch, setSlotPickerSearch] = useState('');
+  const [transferHistoryOpen, setTransferHistoryOpen] = useState(false);
   const pitchTheme = useTheme();
   const isMobileSlot = useMediaQuery(pitchTheme.breakpoints.down('sm'));
   const [ppDialogStep, setPpDialogStep] = useState<'select' | 'confirm' | 'success'>('select');
@@ -3724,23 +3737,53 @@ const CricketPitchFormation: React.FC<{
                 </Box>
               </Box>
               <Typography variant="caption" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 400, fontSize: '0.75rem', lineHeight: 1.7, display: 'block', color: 'rgba(255,255,255,0.7)' }}>
-                Pick a secret player from the pool. They must not be in your playing XI or bench, and they can never be transferred into your squad. Your peers will see only which <strong>team</strong> this player is from — <strong>their name stays hidden from other participants</strong>. <strong>Only you know who they are</strong>. Their <strong>points are added at the end</strong> of the league. This choice is editable until the squad deadline passes.
+                Pick a secret player from the pool. They must not be in your playing XI or bench, and they can never be transferred into your squad. Your peers will see only which <strong>team</strong> this player is from — <strong>their name stays hidden from other participants</strong>. <strong>Only you know who they are</strong>. Their <strong>points are added at the end</strong> of the league. This choice is editable until the squad deadline passes. <strong>Note:</strong> Hidden player points are not included in your Powerplay match score.
               </Typography>
             </Box>
 
             {existingSquad?.hiddenPlayerId && isDeadlinePassed ? (
-              /* Locked — show read-only card */
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, bgcolor: 'rgba(255,255,255,0.10)', borderRadius: 1.5, border: '1px solid rgba(255,193,7,0.2)' }}>
-                <LockIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                <Box>
-                  <Typography variant="body2" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 600, color: 'warning.main', fontSize: '0.875rem' }}>
-                    {existingSquad.hiddenPlayerName}
-                  </Typography>
-                  <Typography variant="caption" sx={{ fontFamily: "'Satoshi', sans-serif", color: 'rgba(255,255,255,0.6)', fontSize: '0.6875rem' }}>
-                    {existingSquad.hiddenPlayerTeam} · Locked after deadline
-                  </Typography>
+              /* Locked — show read-only card with points */
+              (() => {
+                const livePoints = availablePlayers.find(p => p.id === existingSquad.hiddenPlayerId)?.stats?.T20?.recentForm
+                  ?? existingSquad.hiddenPlayerPoints
+                  ?? null;
+                return (
+              <Box sx={{ p: 1.5, bgcolor: 'rgba(255,255,255,0.10)', borderRadius: 1.5, border: '1px solid rgba(255,193,7,0.2)' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                  <LockIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                  <Box flex={1}>
+                    <Typography variant="body2" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 600, color: 'warning.main', fontSize: '0.875rem' }}>
+                      {existingSquad.hiddenPlayerName}
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontFamily: "'Satoshi', sans-serif", color: 'rgba(255,255,255,0.6)', fontSize: '0.6875rem' }}>
+                      {existingSquad.hiddenPlayerTeam} · Locked after deadline
+                    </Typography>
+                  </Box>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography variant="body2" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 700, color: livePoints != null ? 'success.main' : 'text.secondary', fontSize: '0.875rem' }}>
+                      {livePoints != null ? `${livePoints} pts` : '—'}
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontFamily: "'Satoshi', sans-serif", color: 'rgba(255,255,255,0.5)', fontSize: '0.625rem' }}>
+                      {livePoints != null ? 'pool pts' : 'Pending'}
+                    </Typography>
+                  </Box>
                 </Box>
+                {livePoints != null && livePoints > 0 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 1, borderTop: '1px solid rgba(255,193,7,0.15)' }}>
+                    <Typography variant="caption" sx={{ fontFamily: "'Satoshi', sans-serif", color: 'rgba(255,255,255,0.5)', fontSize: '0.6875rem' }}>
+                      Estimated Total (incl. hidden)
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 700, color: 'warning.main', fontSize: '0.75rem' }}>
+                      {(existingSquad.totalPoints ?? 0) + livePoints} pts
+                    </Typography>
+                  </Box>
+                )}
+                <Typography variant="caption" sx={{ fontFamily: "'Satoshi', sans-serif", display: 'block', mt: 1, color: 'rgba(255,255,255,0.4)', fontSize: '0.625rem', fontStyle: 'italic' }}>
+                  Note: Hidden player points are not included in Powerplay match scores.
+                </Typography>
               </Box>
+                );
+              })()
             ) : hiddenPlayerId ? (
               /* Selected but not yet locked — show with conflict warning if in squad */
               (() => {
@@ -3756,6 +3799,14 @@ const CricketPitchFormation: React.FC<{
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
                           {hp.team} • Will be locked at deadline
+                        </Typography>
+                      </Box>
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography variant="body2" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 700, color: 'rgba(255,255,255,0.8)', fontSize: '0.8125rem' }}>
+                          {hp.stats.T20.recentForm ?? 0} pts
+                        </Typography>
+                        <Typography variant="caption" sx={{ fontFamily: "'Satoshi', sans-serif", color: 'rgba(255,255,255,0.4)', fontSize: '0.6rem' }}>
+                          current
                         </Typography>
                       </Box>
                       {!isDeadlinePassed && (
@@ -3825,6 +3876,121 @@ const CricketPitchFormation: React.FC<{
                     Squad deadline has passed. You can no longer select your Hidden Player.
                   </Alert>
                 )}
+              </Box>
+            )}
+          </Box>
+        )}
+
+        {/* Transfer History */}
+        {existingSquad?.transferHistory && existingSquad.transferHistory.length > 0 && (
+          <Box sx={{ mt: { xs: 2, sm: 2.5, md: 3 }, border: '1px solid rgba(255,255,255,0.18)', borderRadius: 2, bgcolor: 'rgba(255,255,255,0.055)', overflow: 'hidden' }}>
+            {/* Header — clickable to toggle */}
+            <Box
+              onClick={() => setTransferHistoryOpen(o => !o)}
+              sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: { xs: 1.5, sm: 2 }, cursor: 'pointer', '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' } }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <HistoryIcon fontSize="small" sx={{ color: 'rgba(0,229,255,0.7)' }} />
+                <Typography variant="h6" sx={{ fontFamily: "'Satoshi', sans-serif", fontSize: { xs: '1rem', sm: '1.125rem' }, fontWeight: 600 }}>
+                  Transfer History
+                </Typography>
+                <Chip
+                  label={existingSquad.transferHistory.length}
+                  size="small"
+                  sx={{ height: 20, fontSize: '0.6875rem', fontWeight: 700, bgcolor: 'rgba(0,229,255,0.12)', color: 'rgba(0,229,255,0.9)', fontFamily: "'Satoshi', sans-serif" }}
+                />
+              </Box>
+              {transferHistoryOpen ? <ExpandLessIcon fontSize="small" sx={{ color: 'text.secondary' }} /> : <ExpandMoreIcon fontSize="small" sx={{ color: 'text.secondary' }} />}
+            </Box>
+
+            {/* Collapsible content */}
+            {transferHistoryOpen && (
+              <Box sx={{ maxHeight: 360, overflowY: 'auto', px: { xs: 1.5, sm: 2 }, pb: 2 }}>
+                {[...existingSquad.transferHistory]
+                  .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                  .map((entry, idx) => {
+                    const typeLabel = entry.transferType === 'bench' ? 'Bench' : entry.transferType === 'flexible' ? 'Flexible' : 'Mid-Season';
+                    const accentColor: Record<string, string> = { bench: '#00E5FF', flexible: '#CE93D8', midSeason: '#FFB74D' };
+                    const accent = accentColor[entry.transferType] ?? '#ffffff';
+
+                    // Resolve player names from preTransferSnapshot or availablePlayers pool
+                    const resolvePlayerName = (playerId: string | undefined, snapshot?: { players: any[] }): string => {
+                      if (!playerId) return '';
+                      if (snapshot?.players) {
+                        const found = snapshot.players.find((p: any) => p.playerId === playerId || p.id === playerId);
+                        if (found) return found.playerName || found.name || playerId;
+                      }
+                      const poolPlayer = availablePlayers.find(p => p.id === playerId);
+                      return poolPlayer?.name || playerId.slice(0, 8) + '…';
+                    };
+
+                    return (
+                      <Box
+                        key={idx}
+                        sx={{
+                          mb: 1.5,
+                          display: 'flex',
+                          borderRadius: 1.5,
+                          overflow: 'hidden',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          bgcolor: 'rgba(255,255,255,0.04)',
+                        }}
+                      >
+                        {/* Left accent bar */}
+                        <Box sx={{ width: 3, flexShrink: 0, bgcolor: accent, opacity: 0.75 }} />
+
+                        <Box sx={{ flex: 1, p: 1.5 }}>
+                          {/* Top row: type badge + change kind + timestamp */}
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                              <Box sx={{
+                                px: 1, py: 0.25, borderRadius: 0.75,
+                                bgcolor: `${accent}1A`,
+                                border: `1px solid ${accent}40`,
+                              }}>
+                                <Typography sx={{ fontFamily: "'Satoshi', sans-serif", fontSize: '0.6rem', fontWeight: 700, color: accent, letterSpacing: '0.06em', textTransform: 'uppercase', lineHeight: 1 }}>
+                                  {typeLabel}
+                                </Typography>
+                              </Box>
+                              <Box sx={{ px: 1, py: 0.25, borderRadius: 0.75, bgcolor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                <Typography sx={{ fontFamily: "'Satoshi', sans-serif", fontSize: '0.6rem', fontWeight: 600, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em', textTransform: 'uppercase', lineHeight: 1 }}>
+                                  {entry.changeType === 'playerSubstitution' ? 'Substitution' : 'Role Change'}
+                                </Typography>
+                              </Box>
+                            </Box>
+                            <Typography sx={{ fontFamily: "'Satoshi', sans-serif", fontSize: '0.6875rem', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.01em', flexShrink: 0 }}>
+                              {new Date(entry.timestamp).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </Typography>
+                          </Box>
+
+                          {/* Player substitution row */}
+                          {entry.changeType === 'playerSubstitution' && entry.playerOut && entry.playerIn && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                              <Typography sx={{ fontFamily: "'Satoshi', sans-serif", fontSize: '0.9375rem', fontWeight: 700, color: 'rgba(255,120,100,0.95)', lineHeight: 1.2 }}>
+                                {resolvePlayerName(entry.playerOut, entry.preTransferSnapshot)}
+                              </Typography>
+                              <Box sx={{ display: 'flex', alignItems: 'center', px: 0.75, py: 0.25, borderRadius: 0.5, bgcolor: 'rgba(255,255,255,0.06)' }}>
+                                <Typography sx={{ fontFamily: "'Satoshi', sans-serif", fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', lineHeight: 1 }}>→</Typography>
+                              </Box>
+                              <Typography sx={{ fontFamily: "'Satoshi', sans-serif", fontSize: '0.9375rem', fontWeight: 700, color: 'rgba(100,220,160,0.95)', lineHeight: 1.2 }}>
+                                {resolvePlayerName(entry.playerIn)}
+                              </Typography>
+                            </Box>
+                          )}
+
+                          {/* Role reassignment row */}
+                          {entry.changeType === 'roleReassignment' && (
+                            <Typography sx={{ fontFamily: "'Satoshi', sans-serif", fontSize: '0.875rem', fontWeight: 600, color: 'rgba(255,255,255,0.75)', lineHeight: 1.4 }}>
+                              {[
+                                entry.newViceCaptainId && `VC → ${resolvePlayerName(entry.newViceCaptainId)}`,
+                                entry.newXFactorId && `XF → ${resolvePlayerName(entry.newXFactorId)}`,
+                              ].filter(Boolean).join('  ·  ') || 'Role reassignment'}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+                    );
+                  })}
               </Box>
             )}
           </Box>
