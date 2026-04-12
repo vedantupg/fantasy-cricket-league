@@ -117,6 +117,8 @@ function App() {
       <PullToRefresh />
       <Snackbar
         open={showUpdateSnackbar}
+        autoHideDuration={3000}
+        onClose={() => setShowUpdateSnackbar(false)}
         message="App updated to latest version"
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
