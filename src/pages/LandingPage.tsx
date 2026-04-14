@@ -555,7 +555,7 @@ const LandingPage: React.FC = () => {
                   <Typography
                     variant="caption"
                     sx={{
-                      color: alpha(colors.text.secondary, 0.5),
+                      color: alpha(colors.text.secondary, 0.8),
                       letterSpacing: '0.12em',
                       textTransform: 'uppercase',
                       fontWeight: 600,

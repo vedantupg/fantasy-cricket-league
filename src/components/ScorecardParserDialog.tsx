@@ -255,8 +255,8 @@ const ScorecardParserDialog: React.FC<ScorecardParserDialogProps> = ({
       let fielderName = catchMatch[1].trim();
       const bowlerName = catchMatch[2].trim();
 
-      // Handle "c & b" (caught and bowled) - bowler gets the catch
-      if (fielderName === '&') {
+      // Handle "c & b" or "c and b" (caught and bowled) - bowler gets the catch
+      if (fielderName === '&' || fielderName.toLowerCase() === 'and') {
         fielderName = bowlerName;
       } else {
         // Handle substitutes or multiple fielders (take first name)

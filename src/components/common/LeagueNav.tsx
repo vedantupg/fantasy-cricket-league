@@ -87,9 +87,9 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
     whiteSpace: 'nowrap',
     borderRadius: 0,
     borderBottom: isActive(index) ? '2px solid #FF9800' : '2px solid transparent',
-    color: isActive(index) ? '#FF9800' : 'rgba(255,255,255,0.55)',
+    color: isActive(index) ? '#FF9800' : 'rgba(255,255,255,0.75)',
     '& .MuiButton-startIcon': {
-      color: isActive(index) ? '#FF9800' : 'rgba(255,255,255,0.55)',
+      color: isActive(index) ? '#FF9800' : 'rgba(255,255,255,0.75)',
     },
     '&:hover': {
       bgcolor: 'rgba(255,152,0,0.06)',
