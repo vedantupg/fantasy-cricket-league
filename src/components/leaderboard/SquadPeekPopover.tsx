@@ -197,7 +197,7 @@ const SquadPeekContent: React.FC<{
               {squad?.squadName || standing.displayName}
             </Typography>
             {squad?.squadName && squad.squadName !== standing.displayName && (
-              <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)', mt: 0.15, lineHeight: 1 }}>
+              <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.65)', mt: 0.15, lineHeight: 1 }}>
                 {standing.displayName}
               </Typography>
             )}
@@ -233,7 +233,7 @@ const SquadPeekContent: React.FC<{
             size="small"
             onClick={onClose}
             sx={{
-              color: 'rgba(255,255,255,0.3)',
+              color: 'rgba(255,255,255,0.6)',
               mt: -0.5,
               mr: -0.5,
               '&:hover': { color: 'rgba(255,255,255,0.7)', bgcolor: 'rgba(255,255,255,0.06)' },
@@ -250,7 +250,7 @@ const SquadPeekContent: React.FC<{
       {error && !loading && (
         <Box sx={{ px: 2.5, py: 3, textAlign: 'center' }}>
           <Typography sx={{ fontSize: '1.5rem', mb: 0.5 }}>😕</Typography>
-          <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)' }}>{error}</Typography>
+          <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.65)' }}>{error}</Typography>
         </Box>
       )}
 
@@ -320,7 +320,7 @@ const SquadPeekContent: React.FC<{
                     }}>
                       {player.playerName}
                     </Typography>
-                    <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.35)', lineHeight: 1, mt: 0.15 }}>
+                    <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1, mt: 0.15 }}>
                       {title}
                     </Typography>
                   </Box>
@@ -354,7 +354,7 @@ const SquadPeekContent: React.FC<{
               fontWeight: 700,
               letterSpacing: '2px',
               textTransform: 'uppercase',
-              color: 'rgba(255,255,255,0.2)',
+              color: 'rgba(255,255,255,0.5)',
             }}>
               Playing XI
             </Typography>
@@ -390,7 +390,7 @@ const SquadPeekContent: React.FC<{
                     </Typography>
                     <Typography sx={{
                       fontSize: '0.58rem',
-                      color: 'rgba(255,255,255,0.25)',
+                      color: 'rgba(255,255,255,0.5)',
                       ml: 0.25,
                     }}>
                       {players.length}
@@ -443,7 +443,7 @@ const SquadPeekContent: React.FC<{
                   fontWeight: 700,
                   letterSpacing: '2px',
                   textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,0.15)',
+                  color: 'rgba(255,255,255,0.5)',
                 }}>
                   Bench
                 </Typography>
@@ -479,7 +479,7 @@ const SquadPeekContent: React.FC<{
                         </Typography>
                         <Typography sx={{
                           fontSize: '0.58rem',
-                          color: 'rgba(255,255,255,0.18)',
+                          color: 'rgba(255,255,255,0.5)',
                           ml: 0.25,
                         }}>
                           {players.length}
@@ -497,7 +497,7 @@ const SquadPeekContent: React.FC<{
                               fontWeight: 500,
                               fontFamily: "'Satoshi', sans-serif",
                               bgcolor: 'rgba(255,255,255,0.02)',
-                              color: 'rgba(255,255,255,0.4)',
+                              color: 'rgba(255,255,255,0.65)',
                               border: `1px solid rgba(255,255,255,0.06)`,
                               borderRadius: 99,
                               opacity: 0.65,
@@ -555,7 +555,7 @@ const SquadPeekContent: React.FC<{
                   fontWeight: 700,
                   letterSpacing: '1px',
                   textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,0.25)',
+                  color: 'rgba(255,255,255,0.55)',
                   mt: 0.4,
                 }}>
                   {label}
@@ -660,7 +660,7 @@ const SquadPeekPopover: React.FC<SquadPeekPopoverProps> = ({
               width: 36,
               height: 4,
               borderRadius: 99,
-              bgcolor: 'rgba(255,255,255,0.15)',
+              bgcolor: 'rgba(255,255,255,0.3)',
               mx: 'auto',
               mt: 1.5,
               mb: -1,
