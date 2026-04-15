@@ -1524,7 +1524,7 @@ const SquadSelectionPage: React.FC = () => {
         // Check overseas player limit if enabled
         if (league.squadRules.overseasPlayersEnabled) {
           const maxOverseas = league.squadRules.maxOverseasPlayers || 4;
-          const overseasCount = countOverseasInMainSquad(mainSquad, availablePlayers.map(p => ({ id: p.id, isOverseas: p.isOverseas })));
+          const overseasCount = countOverseasInMainSquad(mainSquad, availablePlayers.map(p => ({ id: p.id, isOverseas: p.isOverseas ?? false })));
           if (overseasCount > maxOverseas) {
             violations.push(`This transfer would give you ${overseasCount} overseas players (maximum ${maxOverseas} allowed)`);
           }
