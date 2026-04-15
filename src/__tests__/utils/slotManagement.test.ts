@@ -13,6 +13,7 @@ import {
   insertPlayer,
   performAutoSlot,
   validateFormation,
+  countOverseasInMainSquad,
 } from '../../utils/slotManagement';
 import type { League, SquadPlayer } from '../../types/database';
 
@@ -290,6 +291,80 @@ describe('Slot Management', () => {
         performAutoSlot(currentPlayers, 'nonexistent', newPlayer, league);
       }).toThrow('Player to remove not found');
     });
+
+    it('should throw error if given more than squadSize players (bench included)', () => {
+      const mainSquad: SquadPlayer[] = [
+        createPlayer('bat1', 'batsman'),
+        createPlayer('bat2', 'batsman'),
+        createPlayer('bat3', 'batsman'),
+        createPlayer('bowl1', 'bowler'),
+        createPlayer('bowl2', 'bowler'),
+        createPlayer('bowl3', 'bowler'),
+        createPlayer('ar1', 'allrounder'),
+        createPlayer('wk1', 'wicketkeeper'),
+        createPlayer('bat4', 'batsman'),
+        createPlayer('bowl4', 'bowler'),
+        createPlayer('ar2', 'allrounder'),
+      ];
+      const bench: SquadPlayer[] = [
+        createPlayer('bench1', 'batsman'),
+        createPlayer('bench2', 'bowler'),
+        createPlayer('bench3', 'allrounder'),
+        createPlayer('bench4', 'wicketkeeper'),
+      ];
+      const fullSquad = [...mainSquad, ...bench];
+      const newPlayer = createPlayer('new_bat', 'batsman', 150);
+
+      expect(() => {
+        performAutoSlot(fullSquad, 'bat1', newPlayer, league);
+      }).toThrow('performAutoSlot must only receive main squad players');
+    });
+
+    it('regression: pool player transfer keeps bench at indices 11-14', () => {
+      // This simulates the correct usage: main squad only passed to performAutoSlot,
+      // then recombined with bench — same pattern as SquadSelectionPage.tsx pool path.
+      const mainSquad: SquadPlayer[] = [
+        createPlayer('bat1', 'batsman'),
+        createPlayer('bat2', 'batsman'),
+        createPlayer('bat3', 'batsman'),
+        createPlayer('bowl1', 'bowler'),
+        createPlayer('bowl2', 'bowler'),
+        createPlayer('bowl3', 'bowler'),
+        createPlayer('ar1', 'allrounder'),
+        createPlayer('wk1', 'wicketkeeper'),
+        createPlayer('bat4', 'batsman'),
+        createPlayer('bowl4', 'bowler'),
+        createPlayer('ar2', 'allrounder'),
+      ];
+      const bench: SquadPlayer[] = [
+        createPlayer('bench1', 'batsman'),
+        createPlayer('bench2', 'bowler'),
+        createPlayer('bench3', 'allrounder'),
+        createPlayer('bench4', 'wicketkeeper'),
+      ];
+
+      const newPlayer = createPlayer('new_bat', 'batsman', 150);
+
+      // Simulate the fixed pool-player path: pass only mainSquad, recombine after
+      const updatedMainSquad = performAutoSlot(mainSquad, 'bat1', newPlayer, league);
+      const result = [...updatedMainSquad, ...bench];
+
+      expect(result).toHaveLength(15);
+
+      // Incoming player must be within playing XI (indices 0-10)
+      const newPlayerIndex = result.findIndex(p => p.playerId === 'new_bat');
+      expect(newPlayerIndex).toBeGreaterThanOrEqual(0);
+      expect(newPlayerIndex).toBeLessThanOrEqual(10);
+
+      // Bench players must remain at indices 11-14
+      expect(result[11].playerId).toBe('bench1');
+      expect(result[12].playerId).toBe('bench2');
+      expect(result[13].playerId).toBe('bench3');
+      expect(result[14].playerId).toBe('bench4');
+
+      // Out player must be gone
+      expect(result.find(p => p.playerId === 'bat1')).toBeUndefined();
+    });
   });
 
   describe('validateFormation', () => {
@@ -403,6 +478,106 @@ describe('Slot Management', () => {
 
       expect(result.isValid).toBe(true);
     });
+  });
+});
+
+describe('countOverseasInMainSquad', () => {
+  const makeSquadPlayer = (id: string, isOverseas?: boolean): SquadPlayer => ({
+    playerId: id,
+    playerName: `Player ${id}`,
+    role: 'batsman',
+    team: 'Team A',
+    points: 100,
+    pointsAtJoining: 100,
+    matchPerformances: {},
+    ...(isOverseas !== undefined ? { isOverseas } : {}),
+  });
+
+  const makePoolPlayer = (id: string, isOverseas: boolean) => ({ id, isOverseas });
+
+  it('counts overseas players using pool as authoritative source', () => {
+    const squad = [
+      makeSquadPlayer('p1', false),
+      makeSquadPlayer('p2', false),
+      makeSquadPlayer('p3', false),
+      makeSquadPlayer('p4', false),
+    ];
+    const pool = [
+      makePoolPlayer('p1', true),
+      makePoolPlayer('p2', true),
+      makePoolPlayer('p3', true),
+      makePoolPlayer('p4', true),
+    ];
+    expect(countOverseasInMainSquad(squad, pool)).toBe(4);
+  });
+
+  it('falls back to stored isOverseas when player not in pool (legacy records)', () => {
+    const squad = [
+      makeSquadPlayer('p1', true),  // stored: true, not in pool
+      makeSquadPlayer('p2', false),
+    ];
+    const pool = [makePoolPlayer('p2', false)];
+    expect(countOverseasInMainSquad(squad, pool)).toBe(1);
+  });
+
+  it('treats missing isOverseas on stored SquadPlayer as false (legacy records without field)', () => {
+    // p1 has no isOverseas field and is not in pool → should be treated as domestic
+    const squad = [makeSquadPlayer('p1'), makeSquadPlayer('p2')];
+    const pool: { id: string; isOverseas: boolean }[] = [];
+    expect(countOverseasInMainSquad(squad, pool)).toBe(0);
+  });
+
+  it('pool overrides stored isOverseas=undefined — overseas player correctly detected', () => {
+    // p1's stored record has no isOverseas (legacy), but pool says true → must be caught
+    const squad = [makeSquadPlayer('p1'), makeSquadPlayer('p2')];
+    const pool = [
+      makePoolPlayer('p1', true),
+      makePoolPlayer('p2', false),
+    ];
+    expect(countOverseasInMainSquad(squad, pool)).toBe(1);
+  });
+
+  it('bench transfer: 4 overseas in main + overseas bench player → count becomes 5 (exceeds limit)', () => {
+    const main = [
+      makeSquadPlayer('o1'), makeSquadPlayer('o2'), makeSquadPlayer('o3'), makeSquadPlayer('o4'),
+      makeSquadPlayer('d1'), makeSquadPlayer('d2'), makeSquadPlayer('d3'), makeSquadPlayer('d4'),
+      makeSquadPlayer('d5'), makeSquadPlayer('d6'), makeSquadPlayer('d7'),
+    ];
+    // After swapping d7 out for bench overseas player ob1:
+    const afterSwap = [
+      makeSquadPlayer('o1'), makeSquadPlayer('o2'), makeSquadPlayer('o3'), makeSquadPlayer('o4'),
+      makeSquadPlayer('d1'), makeSquadPlayer('d2'), makeSquadPlayer('d3'), makeSquadPlayer('d4'),
+      makeSquadPlayer('d5'), makeSquadPlayer('d6'), makeSquadPlayer('ob1'),
+    ];
+    const pool = [
+      makePoolPlayer('o1', true), makePoolPlayer('o2', true),
+      makePoolPlayer('o3', true), makePoolPlayer('o4', true),
+      makePoolPlayer('d1', false), makePoolPlayer('d2', false),
+      makePoolPlayer('d3', false), makePoolPlayer('d4', false),
+      makePoolPlayer('d5', false), makePoolPlayer('d6', false),
+      makePoolPlayer('d7', false), makePoolPlayer('ob1', true),
+    ];
+    const count = countOverseasInMainSquad(afterSwap, pool);
+    expect(count).toBe(5);
+    expect(count).toBeGreaterThan(4); // would violate maxOverseasPlayers=4
+  });
+
+  it('bench transfer: 3 overseas in main + overseas bench player → count is 4 (within limit)', () => {
+    const afterSwap = [
+      makeSquadPlayer('o1'), makeSquadPlayer('o2'), makeSquadPlayer('o3'),
+      makeSquadPlayer('d1'), makeSquadPlayer('d2'), makeSquadPlayer('d3'),
+      makeSquadPlayer('d4'), makeSquadPlayer('d5'), makeSquadPlayer('d6'),
+      makeSquadPlayer('d7'), makeSquadPlayer('ob1'),
+    ];
+    const pool = [
+      makePoolPlayer('o1', true), makePoolPlayer('o2', true), makePoolPlayer('o3', true),
+      makePoolPlayer('d1', false), makePoolPlayer('d2', false), makePoolPlayer('d3', false),
+      makePoolPlayer('d4', false), makePoolPlayer('d5', false), makePoolPlayer('d6', false),
+      makePoolPlayer('d7', false), makePoolPlayer('ob1', true),
+    ];
+    const count = countOverseasInMainSquad(afterSwap, pool);
+    expect(count).toBe(4);
+    expect(count).not.toBeGreaterThan(4); // within limit
   });
 });
 
