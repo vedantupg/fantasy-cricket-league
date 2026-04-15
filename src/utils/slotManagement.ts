@@ -14,6 +14,12 @@
 
 import type { League, SquadPlayer } from '../types/database';
 
+/** Minimal shape of a pool player needed for overseas resolution. */
+export interface PoolPlayerOverseas {
+  id: string;
+  isOverseas: boolean;
+}
+
 export type PlayerRole = 'batsman' | 'bowler' | 'allrounder' | 'wicketkeeper';
 
 export interface SlotRanges {
@@ -155,8 +161,8 @@ export function findBestInsertionPosition(
     }
   }
 
-  // Fallback: append at the end (shouldn't happen if squad size is correct)
-  return players.length;
+  // Fallback: use last flexible slot (prevents inserting beyond squad size)
+  return slotRanges.flexible.end;
 }
 
 /**
@@ -221,6 +227,10 @@ export function performAutoSlot(
   // Calculate slot ranges based on league rules
   const slotRanges = calculateSlotRanges(league);
 
+  if (currentPlayers.length > league.squadSize) {
+    throw new Error('performAutoSlot must only receive main squad players, not the full squad+bench array');
+  }
+
   // STEP 1: Remove the outgoing player
   const playerOutIndex = currentPlayers.findIndex(p => p.playerId === playerOutId);
   if (playerOutIndex === -1) {
@@ -277,4 +287,23 @@ export function validateFormation(players: SquadPlayer[], league: League): {
     isValid: errors.length === 0,
     errors
   };
+}
+
+/**
+ * Count overseas players in a main squad array, resolving `isOverseas` from the
+ * live player pool as the authoritative source. Falls back to the stored
+ * `SquadPlayer.isOverseas` if the player is not found in the pool (e.g. legacy records).
+ *
+ * @param mainSquad - Array of SquadPlayer objects representing the playing XI
+ * @param pool - Live player pool entries with authoritative `isOverseas` values
+ * @returns Number of overseas players in the main squad
+ */
+export function countOverseasInMainSquad(
+  mainSquad: SquadPlayer[],
+  pool: PoolPlayerOverseas[]
+): number {
+  return mainSquad.filter(p => {
+    const poolPlayer = pool.find(ap => ap.id === p.playerId);
+    return poolPlayer ? poolPlayer.isOverseas : (p.isOverseas ?? false);
+  }).length;
 }

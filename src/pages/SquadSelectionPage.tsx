@@ -62,7 +62,7 @@ import TransferModal, { TransferData } from '../components/squad/TransferModal';
 import { playerPoolService, leagueService, squadService, squadPlayerUtils, leaderboardSnapshotService } from '../services/firestore';
 import type { League, Player, SquadPlayer, LeagueSquad } from '../types/database';
 import { deleteField } from 'firebase/firestore';
-import { performAutoSlot } from '../utils/slotManagement';
+import { performAutoSlot, countOverseasInMainSquad } from '../utils/slotManagement';
 import { calculatePlayerContribution as calculatePlayerContributionUtil, calculateSquadPoints as calculateSquadPointsUtil } from '../utils/pointsCalculation';
 import themeColors from '../theme/colors';
 import { formatMatchForDropdown } from '../utils/scheduleParser';
@@ -942,10 +942,13 @@ const SquadSelectionPage: React.FC = () => {
       // CRITICAL: Create a DEEP copy of players array to avoid mutating original objects
       // Shallow copy [...array] only copies the array, not the objects inside!
       let updatedPlayers: SquadPlayer[] = existingSquad.players.map(player => {
+        const poolPlayer = availablePlayers.find(ap => ap.id === player.playerId);
         const playerCopy: SquadPlayer = {
           ...player,
           // Preserve all fields including optional ones
           pointsAtJoining: player.pointsAtJoining ?? 0,
+          // Resolve isOverseas from live player pool as authoritative source
+          isOverseas: poolPlayer ? poolPlayer.isOverseas : (player.isOverseas ?? false),
         };
 
         // CRITICAL: Always preserve pointsWhenRoleAssigned if it exists
@@ -1188,13 +1191,18 @@ const SquadSelectionPage: React.FC = () => {
               isOverseas: incomingPlayer.isOverseas,
             });
 
-            // Use auto-slotting algorithm to intelligently place the new player
-            updatedPlayers = performAutoSlot(
-              updatedPlayers,
+            // Use auto-slotting algorithm on main squad only (bench players must not be passed in)
+            const mainSquad = updatedPlayers.slice(0, league.squadSize);
+            const benchSection = updatedPlayers.slice(league.squadSize);
+
+            const updatedMainSquad = performAutoSlot(
+              mainSquad,
               transferData.playerOut,
               newSquadPlayer,
               league
             );
+
+            updatedPlayers = [...updatedMainSquad, ...benchSection];
 
             // AUTO-ASSIGN roles if the outgoing player had C/VC/X
             if (playerRole === 'captain') {
@@ -1515,8 +1523,8 @@ const SquadSelectionPage: React.FC = () => {
 
         // Check overseas player limit if enabled
         if (league.squadRules.overseasPlayersEnabled) {
-          const overseasCount = mainSquad.filter((p: any) => p.isOverseas).length;
           const maxOverseas = league.squadRules.maxOverseasPlayers || 4;
+          const overseasCount = countOverseasInMainSquad(mainSquad, availablePlayers.map(p => ({ id: p.id, isOverseas: p.isOverseas })));
           if (overseasCount > maxOverseas) {
             violations.push(`This transfer would give you ${overseasCount} overseas players (maximum ${maxOverseas} allowed)`);
           }
@@ -1673,10 +1681,8 @@ const SquadSelectionPage: React.FC = () => {
           cleanPlayer.pointsWhenRoleAssigned = player.pointsWhenRoleAssigned;
         }
 
-        // Include isOverseas property if defined
-        if (player.isOverseas !== undefined) {
-          cleanPlayer.isOverseas = player.isOverseas;
-        }
+        // Always persist isOverseas as a boolean (never undefined)
+        cleanPlayer.isOverseas = player.isOverseas ?? false;
 
         return cleanPlayer;
       });
