@@ -89,7 +89,6 @@ const SquadSelectionPage: React.FC = () => {
   const [xFactorId, setXFactorId] = useState<string | null>(null);
   const [powerplayMatch, setPowerplayMatch] = useState('');
   const [ppActivatedAt, setPpActivatedAt] = useState<Date | null>(null);
-  const [ppDescOpen, setPpDescOpen] = useState(false);
   const [squadSummaryOpen, setSquadSummaryOpen] = useState(true);
   const [ppMatchConfirmOpen, setPpMatchConfirmOpen] = useState(false);
   const [ppMatchPending, setPpMatchPending] = useState('');
