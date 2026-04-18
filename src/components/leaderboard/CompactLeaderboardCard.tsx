@@ -106,26 +106,26 @@ const CompactLeaderboardCard: React.FC<CompactLeaderboardCardProps> = ({ standin
 
     const dots = [];
 
-    // Add flexible transfer dots (purple)
+    // Add flexible transfer dots (blue)
     if (flexibleTransfers?.enabled) {
       const flexUsed = standing.flexibleTransfersUsed || 0;
       for (let i = 0; i < flexibleTransfers.maxAllowed; i++) {
         dots.push({
           type: 'flexible',
           available: i >= flexUsed, // available (remaining) = filled
-          color: '#9333ea',
+          color: '#06b6d4',
         });
       }
     }
 
-    // Add bench transfer dots (cyan)
+    // Add bench transfer dots (purple)
     if (benchTransfers?.enabled) {
       const benchUsed = standing.benchTransfersUsed || 0;
       for (let i = 0; i < benchTransfers.maxAllowed; i++) {
         dots.push({
           type: 'bench',
           available: i >= benchUsed, // available (remaining) = filled
-          color: '#06b6d4',
+          color: '#9333ea',
         });
       }
     }
