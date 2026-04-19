@@ -32,6 +32,8 @@ import {
   ListItemText,
   ListItemButton,
   Divider,
+  Collapse,
+  Link,
 } from '@mui/material';
 import {
   PersonAdd,
@@ -87,6 +89,7 @@ const SquadSelectionPage: React.FC = () => {
   const [xFactorId, setXFactorId] = useState<string | null>(null);
   const [powerplayMatch, setPowerplayMatch] = useState('');
   const [ppActivatedAt, setPpActivatedAt] = useState<Date | null>(null);
+  const [squadSummaryOpen, setSquadSummaryOpen] = useState(true);
   const [ppMatchConfirmOpen, setPpMatchConfirmOpen] = useState(false);
   const [ppMatchPending, setPpMatchPending] = useState('');
   const [hiddenPlayerId, setHiddenPlayerId] = useState<string | null>(null);
@@ -167,6 +170,7 @@ const SquadSelectionPage: React.FC = () => {
         // Check if deadline has passed
         const deadlinePassed = new Date() > new Date(league.squadDeadline);
         setIsDeadlinePassed(deadlinePassed);
+        if (deadlinePassed) setSquadSummaryOpen(false);
 
         // Check if league has started
         const now = new Date();
@@ -2197,16 +2201,59 @@ const SquadSelectionPage: React.FC = () => {
               },
             }}>
               <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
-                {/* Header */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 600, fontSize: { xs: '0.9375rem', sm: '1.0625rem' }, letterSpacing: '0.01em' }}>
-                    Squad Summary
-                  </Typography>
-                  {existingSquad && (
-                    <StatusChip status={existingSquad.isSubmitted ? 'submitted' : 'draft'} />
-                  )}
+                {/* Header — always visible, clickable to expand/collapse */}
+                <Box
+                  onClick={() => setSquadSummaryOpen((o: boolean) => !o)}
+                  sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: squadSummaryOpen ? 2 : 0, cursor: 'pointer', userSelect: 'none' }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Typography variant="h6" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 600, fontSize: { xs: '0.9375rem', sm: '1.0625rem' }, letterSpacing: '0.01em' }}>
+                      Squad Summary
+                    </Typography>
+                    {!squadSummaryOpen && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        {/* Quick-glance: player count */}
+                        <Box sx={{ px: 1, py: 0.25, borderRadius: 1, bgcolor: isPlayersValid ? alpha(elBlue, 0.12) : alpha('#F44336', 0.12), border: `1px solid ${isPlayersValid ? alpha(elBlue, 0.3) : alpha('#F44336', 0.3)}` }}>
+                          <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: isPlayersValid ? elBlue : 'error.main', letterSpacing: '0.05em', fontFamily: "'Satoshi', sans-serif", lineHeight: 1 }}>
+                            {regularCount}/{squadMax}{isPlayersValid ? ' ✓' : ''}
+                          </Typography>
+                        </Box>
+                        {/* Overseas count */}
+                        {league?.squadRules?.overseasPlayersEnabled && (
+                          <Box sx={{ px: 1, py: 0.25, borderRadius: 1, bgcolor: alpha('#2196F3', 0.08), border: `1px solid ${alpha('#2196F3', 0.2)}` }}>
+                            <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: '#2196F3', letterSpacing: '0.05em', fontFamily: "'Satoshi', sans-serif", lineHeight: 1 }}>
+                              {overseasCount} OS
+                            </Typography>
+                          </Box>
+                        )}
+                        {/* C / VC / XF last names */}
+                        {[
+                          { label: 'C', id: captainId, color: '#FFB300' },
+                          { label: 'VC', id: viceCaptainId, color: '#9C27B0' },
+                          { label: 'XF', id: xFactorId, color: themeColors.blue.light },
+                        ].map(({ label, id, color }) => {
+                          const p = id ? availablePlayers.find(pl => pl.id === id) : null;
+                          if (!p) return null;
+                          return (
+                            <Box key={label} sx={{ px: 1, py: 0.25, borderRadius: 1, bgcolor: alpha(color, 0.1), border: `1px solid ${alpha(color, 0.3)}` }}>
+                              <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color, letterSpacing: '0.05em', fontFamily: "'Satoshi', sans-serif", lineHeight: 1 }}>
+                                {label}: {p.name.split(' ').slice(-1)[0]}
+                              </Typography>
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    )}
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {existingSquad && (
+                      <StatusChip status={existingSquad.isSubmitted ? 'submitted' : 'draft'} />
+                    )}
+                    {squadSummaryOpen ? <ExpandLessIcon fontSize="small" sx={{ color: 'text.secondary' }} /> : <ExpandMoreIcon fontSize="small" sx={{ color: 'text.secondary' }} />}
+                  </Box>
                 </Box>
 
+                <Collapse in={squadSummaryOpen}>
                 {/* Stats + Role assignments — two columns on desktop */}
                 <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, alignItems: { sm: 'stretch' } }}>
                   {/* Section 1 — Stats row */}
@@ -2337,6 +2384,7 @@ const SquadSelectionPage: React.FC = () => {
                     ) : null;
                   })()}
                 </Box>
+                </Collapse>
               </CardContent>
             </Card>
           );
@@ -2603,6 +2651,7 @@ const CricketPitchFormation: React.FC<{
   const [slotPickerTarget, setSlotPickerTarget] = useState<'regular' | 'bench'>('regular');
   const [slotPickerSearch, setSlotPickerSearch] = useState('');
   const [transferHistoryOpen, setTransferHistoryOpen] = useState(false);
+  const [ppDescOpen, setPpDescOpen] = useState(false);
   const pitchTheme = useTheme();
   const isMobileSlot = useMediaQuery(pitchTheme.breakpoints.down('sm'));
   const [ppDialogStep, setPpDialogStep] = useState<'select' | 'confirm' | 'success'>('select');
@@ -3138,9 +3187,17 @@ const CricketPitchFormation: React.FC<{
                       <Typography variant="body2" fontWeight="600" color="warning.main" sx={{ mb: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <BoltIcon fontSize="inherit" />On-Demand Powerplay
                       </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.6, display: 'block' }}>
-                        You can use this anytime during the league, just like transfers. After activation, pick any upcoming match as your Powerplay match. Only matches scheduled after your activation time will appear. This is a one-time action and cannot be undone once activated.
+                      <Typography variant="body2" color="warning.main" sx={{ fontWeight: 800, lineHeight: 1.3, mb: 0.5 }}>
+                        Score 2× points. Select the match where you double your score.
                       </Typography>
+                      <Collapse in={ppDescOpen}>
+                        <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.6, display: 'block', mb: 0.5 }}>
+                          You can use this anytime during the league, just like transfers. After activation, pick any upcoming match as your Powerplay match. Only matches scheduled after your activation time will appear. This is a one-time action and cannot be undone once activated.
+                        </Typography>
+                      </Collapse>
+                      <Link component="button" variant="caption" onClick={() => setPpDescOpen((o: boolean) => !o)} sx={{ color: 'warning.main', opacity: 0.75, fontWeight: 600, cursor: 'pointer' }}>
+                        {ppDescOpen ? 'Show less' : 'Read more'}
+                      </Link>
                       {isDeadlinePassed && !ppActivationEnabled && (
                         <Typography variant="caption" color="error.main" sx={{ display: 'block', mt: 0.5 }}>
                           The admin needs to enable PP activation before you can proceed.
@@ -3801,20 +3858,26 @@ const CricketPitchFormation: React.FC<{
                 <Typography variant="caption" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 600, fontSize: '0.6875rem', color: 'rgba(255,193,7,0.75)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                   How it works
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                <Box sx={{
+                  display: 'flex', alignItems: 'center', gap: 0.6,
+                  px: 1, py: 0.35, borderRadius: '100px',
+                  background: 'linear-gradient(135deg, rgba(156,39,176,0.35), rgba(186,104,200,0.2))',
+                  border: '1px solid rgba(186,104,200,0.55)',
+                  boxShadow: '0 0 8px rgba(156,39,176,0.35)',
+                }}>
                   <Box sx={{
-                    width: 6,
-                    height: 6,
+                    width: 5,
+                    height: 5,
                     borderRadius: '50%',
-                    bgcolor: '#9C27B0',
-                    boxShadow: '0 0 6px rgba(156,39,176,0.8)',
+                    bgcolor: '#CE93D8',
+                    boxShadow: '0 0 5px rgba(206,147,216,0.9)',
                     animation: 'pulse-dot 2s ease-in-out infinite',
                     '@keyframes pulse-dot': {
-                      '0%, 100%': { opacity: 1, boxShadow: '0 0 6px rgba(156,39,176,0.8)' },
-                      '50%': { opacity: 0.6, boxShadow: '0 0 10px rgba(156,39,176,1)' }
+                      '0%, 100%': { opacity: 1, boxShadow: '0 0 5px rgba(206,147,216,0.9)' },
+                      '50%': { opacity: 0.6, boxShadow: '0 0 9px rgba(206,147,216,1)' }
                     }
                   }} />
-                  <Typography variant="caption" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 600, fontSize: '0.6rem', color: 'rgba(156,39,176,0.85)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                  <Typography variant="caption" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 700, fontSize: '0.6rem', color: '#E1BEE7', letterSpacing: '0.1em', textTransform: 'uppercase', lineHeight: 1 }}>
                     New Feature
                   </Typography>
                 </Box>
@@ -4026,17 +4089,25 @@ const CricketPitchFormation: React.FC<{
                           {/* Top row: type badge + change kind + timestamp */}
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                              {/* Transfer type pill — soft gradient tinted to accent */}
                               <Box sx={{
-                                px: 1, py: 0.25, borderRadius: 0.75,
-                                bgcolor: `${accent}1A`,
-                                border: `1px solid ${accent}40`,
+                                px: 1.25, py: 0.3, borderRadius: '100px',
+                                background: `linear-gradient(135deg, ${accent}22, ${accent}0A)`,
+                                border: `1px solid ${accent}55`,
+                                boxShadow: `0 0 8px ${accent}33 inset`,
                               }}>
                                 <Typography sx={{ fontFamily: "'Satoshi', sans-serif", fontSize: '0.6rem', fontWeight: 700, color: accent, letterSpacing: '0.06em', textTransform: 'uppercase', lineHeight: 1 }}>
                                   {typeLabel}
                                 </Typography>
                               </Box>
-                              <Box sx={{ px: 1, py: 0.25, borderRadius: 0.75, bgcolor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                <Typography sx={{ fontFamily: "'Satoshi', sans-serif", fontSize: '0.6rem', fontWeight: 600, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em', textTransform: 'uppercase', lineHeight: 1 }}>
+                              {/* Substitution / Role Change chip — glassmorphism dark */}
+                              <Box sx={{
+                                px: 1, py: 0.25, borderRadius: 0.75,
+                                background: 'linear-gradient(145deg, rgba(26,58,92,0.95), rgba(6,13,23,0.98))',
+                                border: '1px solid rgba(30,136,229,0.25)',
+                                boxShadow: '-2px 0 8px rgba(30,136,229,0.12)',
+                              }}>
+                                <Typography sx={{ fontFamily: "'Satoshi', sans-serif", fontSize: '0.6rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.04em', textTransform: 'uppercase', lineHeight: 1 }}>
                                   {entry.changeType === 'playerSubstitution' ? 'Substitution' : 'Role Change'}
                                 </Typography>
                               </Box>

@@ -114,19 +114,19 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league, onPlayer
         dots.push({
           type: 'flexible',
           available: i >= flexUsed, // REVERSED: available (unused) = filled
-          color: '#9333ea',
+          color: '#06b6d4',
         });
       }
     }
 
-    // Add bench transfer dots (cyan)
+    // Add bench transfer dots (purple)
     if (benchTransfers?.enabled) {
       const benchUsed = standing.benchTransfersUsed || 0;
       for (let i = 0; i < benchTransfers.maxAllowed; i++) {
         dots.push({
           type: 'bench',
           available: i >= benchUsed, // REVERSED: available (unused) = filled
-          color: '#06b6d4',
+          color: '#9333ea',
         });
       }
     }
