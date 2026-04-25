@@ -119,6 +119,11 @@ const CreateLeaguePage: React.FC = () => {
       enabled: false,
       maxAllowed: 1,
       description: 'Strategic transfers that can be saved'
+    },
+    wildcardTransfers: {
+      enabled: false,
+      maxAllowed: 1,
+      description: 'Replace any player (including Captain) from the full pool, or reassign any role (C/VC/X).'
     }
   });
 
@@ -167,7 +172,8 @@ const CreateLeaguePage: React.FC = () => {
         squadDeadline: leagueData.squadDeadline,
         maxTransfers: (transferTypes.benchTransfers.enabled ? transferTypes.benchTransfers.maxAllowed : 0) +
                      (transferTypes.midSeasonTransfers.enabled ? transferTypes.midSeasonTransfers.maxAllowed : 0) +
-                     (transferTypes.flexibleTransfers.enabled ? transferTypes.flexibleTransfers.maxAllowed : 0),
+                     (transferTypes.flexibleTransfers.enabled ? transferTypes.flexibleTransfers.maxAllowed : 0) +
+                     (transferTypes.wildcardTransfers?.enabled ? transferTypes.wildcardTransfers.maxAllowed : 0),
         transfersUsed: {},
         transferDeadline: leagueData.endDate,
         transferWindow: {
@@ -768,6 +774,53 @@ const CreateLeaguePage: React.FC = () => {
                   flexibleTransfers: { ...prev.flexibleTransfers, maxAllowed: parseInt(e.target.value) }
                 }))}
                 inputProps={{ min: 0, max: 5 }}
+                size="small"
+                sx={{ width: 150 }}
+              />
+            </Box>
+          )}
+        </Card>
+      </Grid>
+
+      {/* Wildcard Transfers */}
+      <Grid size={12}>
+        <Card variant="outlined" sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={transferTypes.wildcardTransfers?.enabled ?? false}
+                  onChange={(e) => setTransferTypes(prev => ({
+                    ...prev,
+                    wildcardTransfers: {
+                      enabled: e.target.checked,
+                      maxAllowed: prev.wildcardTransfers?.maxAllowed ?? 1,
+                      description: prev.wildcardTransfers?.description ?? 'Replace any player (including Captain) from the full pool, or reassign any role (C/VC/X).'
+                    }
+                  }))}
+                />
+              }
+              label={
+                <Box>
+                  <Typography variant="subtitle1" fontWeight="bold">Wildcard Transfers</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {transferTypes.wildcardTransfers?.description ?? 'Replace any player (including Captain) from the full pool, or reassign any role (C/VC/X).'}
+                  </Typography>
+                </Box>
+              }
+            />
+          </Box>
+          {transferTypes.wildcardTransfers?.enabled && (
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+              <TextField
+                type="number"
+                label="Number of Wildcards"
+                value={transferTypes.wildcardTransfers.maxAllowed}
+                onChange={(e) => setTransferTypes(prev => ({
+                  ...prev,
+                  wildcardTransfers: { ...prev.wildcardTransfers!, maxAllowed: parseInt(e.target.value) }
+                }))}
+                inputProps={{ min: 1, max: 5 }}
                 size="small"
                 sx={{ width: 150 }}
               />

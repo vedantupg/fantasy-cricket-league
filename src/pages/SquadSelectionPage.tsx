@@ -187,6 +187,7 @@ const SquadSelectionPage: React.FC = () => {
         const transfersEnabled = !!(leagueStarted && (
           league.flexibleChangesEnabled === true ||
           league.benchChangesEnabled === true ||
+          league.wildcardChangesEnabled === true ||
           isMidSeasonWindowOpen
         ));
         setCanMakeTransfer(transfersEnabled);
@@ -671,6 +672,7 @@ const SquadSelectionPage: React.FC = () => {
           benchTransfersUsed: 0,
           flexibleTransfersUsed: 0,
           midSeasonTransfersUsed: 0,
+          wildcardTransfersUsed: 0,
           transferHistory: [],
           bankedPoints: 0, // Initialize banked points to 0
           isValid: true,
@@ -907,6 +909,7 @@ const SquadSelectionPage: React.FC = () => {
           benchTransfersUsed: 0,
           flexibleTransfersUsed: 0,
           midSeasonTransfersUsed: 0,
+          wildcardTransfersUsed: 0,
           transferHistory: [],
           bankedPoints: 0,
           isValid: false, // Draft may not be valid yet
@@ -1710,6 +1713,9 @@ const SquadSelectionPage: React.FC = () => {
         midSeasonTransfersUsed: transferData.transferType === 'midSeason'
           ? (existingSquad.midSeasonTransfersUsed || 0) + 1
           : (existingSquad.midSeasonTransfersUsed || 0),
+        wildcardTransfersUsed: transferData.transferType === 'wildcard'
+          ? (existingSquad.wildcardTransfersUsed ?? 0) + 1
+          : (existingSquad.wildcardTransfersUsed ?? 0),
         transferHistory: [...(existingSquad.transferHistory || []), transferHistoryEntry],
         lastUpdated: new Date()
       };
@@ -2010,6 +2016,27 @@ const SquadSelectionPage: React.FC = () => {
             return (
               <Chip
                 label="Mid-Season"
+                size="small"
+                variant="outlined"
+                sx={{
+                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                  height: { xs: 24, sm: 26 },
+                  borderRadius: '12px',
+                  borderColor: color,
+                  color: color,
+                  bgcolor: alpha(color, 0.08),
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                }}
+              />
+            );
+          })()}
+          {league.transferTypes.wildcardTransfers?.enabled && (() => {
+            const n = (league.transferTypes!.wildcardTransfers!.maxAllowed) - (existingSquad?.wildcardTransfersUsed ?? 0);
+            const color = '#FFD700';
+            return (
+              <Chip
+                label={` ${n} Wildcard`}
                 size="small"
                 variant="outlined"
                 sx={{

@@ -406,7 +406,7 @@ const LeagueDashboardPage: React.FC = () => {
                   midSeasonCfg.windowEndDate &&
                   now >= new Date(midSeasonCfg.windowStartDate) &&
                   now <= new Date(midSeasonCfg.windowEndDate);
-                const transfersOpen = !!(league?.benchChangesEnabled || league?.flexibleChangesEnabled || midSeasonOpen);
+                const transfersOpen = !!(league?.benchChangesEnabled || league?.flexibleChangesEnabled || league?.wildcardChangesEnabled || midSeasonOpen);
                 return (
                   <Tooltip title={transfersOpen ? '' : 'Transfers are currently closed'} placement="top">
                     <span style={{ display: 'block', marginBottom: 12 }}>

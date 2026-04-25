@@ -30,7 +30,8 @@ import {
   SwapHoriz,
   ArrowDownward,
   ArrowUpward,
-  TrendingFlat
+  TrendingFlat,
+  AutoAwesome,
 } from '@mui/icons-material';
 import type { League, Player, LeagueSquad, SquadPlayer } from '../../types/database';
 
@@ -44,7 +45,7 @@ interface TransferModalProps {
 }
 
 export interface TransferData {
-  transferType: 'bench' | 'flexible' | 'midSeason';
+  transferType: 'bench' | 'flexible' | 'midSeason' | 'wildcard';
   changeType: 'playerSubstitution' | 'roleReassignment';
 
   // Player Substitution fields
@@ -66,7 +67,7 @@ const TransferModal: React.FC<TransferModalProps> = ({
   onSubmitTransfer
 }) => {
   const [activeStep, setActiveStep] = useState(0);
-  const [selectedTransferType, setSelectedTransferType] = useState<'bench' | 'flexible' | 'midSeason' | null>(null);
+  const [selectedTransferType, setSelectedTransferType] = useState<'bench' | 'flexible' | 'midSeason' | 'wildcard' | null>(null);
   const [selectedChangeType, setSelectedChangeType] = useState<'playerSubstitution' | 'roleReassignment' | null>(null);
   const [playerOut, setPlayerOut] = useState<string>('');
   const [playerIn, setPlayerIn] = useState<string>('');
@@ -81,17 +82,19 @@ const TransferModal: React.FC<TransferModalProps> = ({
   // Calculate remaining transfers for each type
   const getAvailableTransfers = () => {
     const transfers = league.transferTypes;
-    if (!transfers) return { bench: 0, flexible: 0, midSeason: 0 };
+    if (!transfers) return { bench: 0, flexible: 0, midSeason: 0, wildcard: 0 };
 
     // Track each transfer type separately
     const benchUsed = existingSquad.benchTransfersUsed || 0;
     const flexibleUsed = existingSquad.flexibleTransfersUsed || 0;
     const midSeasonUsed = existingSquad.midSeasonTransfersUsed || 0;
+    const wildcardUsed = existingSquad.wildcardTransfersUsed || 0;
 
     return {
       bench: transfers.benchTransfers.enabled ? Math.max(0, transfers.benchTransfers.maxAllowed - benchUsed) : 0,
       flexible: transfers.flexibleTransfers.enabled ? Math.max(0, transfers.flexibleTransfers.maxAllowed - flexibleUsed) : 0,
-      midSeason: transfers.midSeasonTransfers.enabled ? Math.max(0, transfers.midSeasonTransfers.maxAllowed - midSeasonUsed) : 0
+      midSeason: transfers.midSeasonTransfers.enabled ? Math.max(0, transfers.midSeasonTransfers.maxAllowed - midSeasonUsed) : 0,
+      wildcard: (transfers.wildcardTransfers?.enabled) ? Math.max(0, transfers.wildcardTransfers.maxAllowed - wildcardUsed) : 0,
     };
   };
 
@@ -146,13 +149,13 @@ const TransferModal: React.FC<TransferModalProps> = ({
           return;
         }
 
-        // NEW RULES: Flexible/Mid-Season cannot reassign Captain
+        // Flexible/Mid-Season cannot reassign Captain; Bench and Wildcard can
         if ((selectedTransferType === 'flexible' || selectedTransferType === 'midSeason') && newCaptain) {
-          setError(`Captain can only be changed with a Bench transfer. You have ${availableTransfers.bench} bench transfer${availableTransfers.bench !== 1 ? 's' : ''} available.`);
+          setError(`Captain can only be changed with a Bench or Wildcard transfer. You have ${availableTransfers.bench} bench and ${availableTransfers.wildcard} wildcard transfer${availableTransfers.wildcard !== 1 ? 's' : ''} available.`);
           return;
         }
 
-        // Bench transfers can reassign any role (C/VC/X), but still only ONE at a time
+        // Bench and Wildcard can reassign any role (C/VC/X), but still only ONE at a time
       }
     }
 
@@ -180,22 +183,31 @@ const TransferModal: React.FC<TransferModalProps> = ({
     const playerOutData = existingSquad.players.find(p => p.playerId === playerOut);
     if (!playerOutData) return 'Player not found in your squad';
 
-    // NEW RULES - FLEXIBLE & MID-SEASON: CANNOT remove Captain (but CAN remove VC or X-Factor)
+    // FLEXIBLE & MID-SEASON: CANNOT remove Captain (but CAN remove VC or X-Factor)
+    // WILDCARD: CAN remove Captain (no restriction)
     if (selectedTransferType === 'flexible' || selectedTransferType === 'midSeason') {
       if (playerOut === existingSquad.captainId) {
         const playerName = playerOutData.playerName;
-        return `${playerName} is your Captain. Captain cannot be removed with this transfer type. Use a Bench transfer or change Captain first.`;
+        return `${playerName} is your Captain. Captain cannot be removed with this transfer type. Use a Bench or Wildcard transfer, or change Captain first.`;
       }
       // VC and X-Factor CAN be removed with flexible/mid-season transfers
     }
 
-    // NEW RULES - BENCH TRANSFER: Can replace any player including C/VC/X
+    // BENCH TRANSFER: Can replace any player including C/VC/X, but must use bench player
     if (selectedTransferType === 'bench') {
       // For bench transfers, must use one of the bench players as the incoming player
       const benchPlayers = existingSquad.players.filter((p, index) => index >= league.squadSize);
       const benchPlayerIds = benchPlayers.map(p => p.playerId);
       if (!benchPlayerIds.includes(playerIn)) {
         return 'Bench transfers can only bring in players from your bench. Choose a bench player.';
+      }
+    }
+
+    // WILDCARD: Can replace any player from pool only (no bench interaction)
+    if (selectedTransferType === 'wildcard') {
+      const squadPlayerIds = existingSquad.players.map(p => p.playerId);
+      if (squadPlayerIds.includes(playerIn)) {
+        return 'Wildcard transfers can only bring in players from the pool (not current squad members).';
       }
     }
 
@@ -243,6 +255,12 @@ const TransferModal: React.FC<TransferModalProps> = ({
       return benchPlayers;
     }
 
+    if (selectedTransferType === 'wildcard') {
+      // Wildcard: pool-only (players not in squad at all, bench included in exclusion)
+      const squadPlayerIds = existingSquad.players.map(p => p.playerId);
+      return availablePlayers.filter(p => !squadPlayerIds.includes(p.id));
+    }
+
     // For flexible/mid-season, return available players not in squad + bench players
     const squadPlayerIds = existingSquad.players.map(p => p.playerId);
 
@@ -264,12 +282,13 @@ const TransferModal: React.FC<TransferModalProps> = ({
     const mainSquadPlayers = existingSquad.players.slice(0, league.squadSize);
 
     if (selectedTransferType === 'flexible' || selectedTransferType === 'midSeason') {
-      // NEW RULES - FLEXIBLE/MID-SEASON: Cannot remove Captain (but CAN remove VC/X-Factor)
+      // FLEXIBLE/MID-SEASON: Cannot remove Captain (but CAN remove VC/X-Factor)
       return mainSquadPlayers.filter(p =>
         p.playerId !== existingSquad.captainId
       );
-    } else if (selectedTransferType === 'bench') {
-      // NEW RULES - BENCH: Can replace any player including C/VC/X
+    } else if (selectedTransferType === 'bench' || selectedTransferType === 'wildcard') {
+      // BENCH: Can replace any player including C/VC/X (from bench)
+      // WILDCARD: Can replace any player including C/VC/X (from pool)
       return mainSquadPlayers;
     }
 
@@ -307,6 +326,7 @@ const TransferModal: React.FC<TransferModalProps> = ({
               label={
                 selectedTransferType === 'bench' ? 'Bench' :
                 selectedTransferType === 'flexible' ? 'Flexible' :
+                selectedTransferType === 'wildcard' ? 'Wildcard' :
                 'Mid-Season'
               }
               sx={{
@@ -465,6 +485,99 @@ const TransferModal: React.FC<TransferModalProps> = ({
                           </Box>
                           <Typography variant="body2" color="text.secondary">
                             Replace any player (except C) OR reassign VC/X. Cannot change Captain.
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {league.transferTypes?.wildcardTransfers?.enabled && league.wildcardChangesEnabled && (
+                  <Card
+                    sx={{
+                      mb: 2,
+                      cursor: availableTransfers.wildcard > 0 ? 'pointer' : 'not-allowed',
+                      border: selectedTransferType === 'wildcard'
+                        ? '1.5px solid #FFD700'
+                        : '1px solid rgba(255,215,0,0.28)',
+                      background: 'linear-gradient(145deg, rgba(15,12,5,0.95) 0%, rgba(30,24,8,0.98) 100%)',
+                      boxShadow: selectedTransferType === 'wildcard'
+                        ? '0 0 0 1px rgba(255,215,0,0.15), 0 4px 20px rgba(255,215,0,0.18)'
+                        : 'none',
+                      transition: 'all 0.3s ease',
+                      opacity: availableTransfers.wildcard === 0 ? 0.5 : 1,
+                      borderRadius: 3,
+                      position: 'relative',
+                      overflow: 'hidden',
+                      '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: '1px',
+                        background: 'linear-gradient(90deg, transparent, rgba(255,215,0,0.45), transparent)',
+                      },
+                      '&:hover': availableTransfers.wildcard > 0 ? {
+                        boxShadow: '0 0 0 1px rgba(255,215,0,0.2), 0 6px 24px rgba(255,215,0,0.22)',
+                        borderColor: 'rgba(255,215,0,0.55)',
+                      } : {}
+                    }}
+                    onClick={() => availableTransfers.wildcard > 0 && setSelectedTransferType('wildcard')}
+                  >
+                    <CardContent sx={{ p: 2.5 }}>
+                      <Box display="flex" alignItems="start" gap={2}>
+                        <FormControlLabel
+                          value="wildcard"
+                          control={<Radio sx={{
+                            color: 'text.secondary',
+                            '&.Mui-checked': { color: '#FFD700' }
+                          }} />}
+                          label=""
+                          disabled={availableTransfers.wildcard === 0}
+                          sx={{ m: 0 }}
+                        />
+                        <Box flex={1}>
+                          <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+                            <Box display="flex" alignItems="center" gap={0.75}>
+                              <AutoAwesome sx={{ fontSize: 16, color: '#FFD700', filter: 'drop-shadow(0 0 3px rgba(255,215,0,0.7))' }} />
+                              <Typography variant="h6" fontWeight={800} sx={{
+                                background: 'linear-gradient(135deg, #FFD700 0%, #FF8C00 60%, #FFD700 100%)',
+                                backgroundSize: '200% auto',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                letterSpacing: '0.01em',
+                              }}>
+                                Wildcard
+                              </Typography>
+                            </Box>
+                            <Chip
+                              label={`${availableTransfers.wildcard} left`}
+                              size="small"
+                              sx={{
+                                background: availableTransfers.wildcard > 0
+                                  ? 'linear-gradient(135deg, #FFD700, #FF8C00)'
+                                  : 'rgba(255,255,255,0.08)',
+                                color: availableTransfers.wildcard > 0 ? '#000' : 'rgba(255,255,255,0.35)',
+                                fontWeight: 700,
+                                fontSize: '0.7rem',
+                                height: 22,
+                                border: 'none',
+                              }}
+                            />
+                          </Box>
+                          <Typography sx={{
+                            fontSize: '0.6rem',
+                            fontWeight: 800,
+                            letterSpacing: '0.12em',
+                            color: alpha('#FFD700', 0.7),
+                            mb: 0.5,
+                            textTransform: 'uppercase',
+                          }}>
+                            ✦ Most Powerful Transfer
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: alpha('#FFFFFF', 0.6) }}>
+                            Replace any player (incl. Captain) from the full pool, or reassign any role (C/VC/X). Most powerful transfer — no Captain restrictions.
                           </Typography>
                         </Box>
                       </Box>
@@ -690,15 +803,15 @@ const TransferModal: React.FC<TransferModalProps> = ({
                       />
                       <Box flex={1}>
                         <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: 'text.primary' }}>
-                          {selectedTransferType === 'bench'
+                          {(selectedTransferType === 'bench' || selectedTransferType === 'wildcard')
                             ? 'Reassign Captain, Vice-Captain, or X-Factor'
                             : 'Reassign Vice-Captain or X-Factor'
                           }
                         </Typography>
                         <Typography variant="body2" color="text.secondary" mb={1.5}>
-                          {selectedTransferType === 'bench'
+                          {(selectedTransferType === 'bench' || selectedTransferType === 'wildcard')
                             ? 'Change any role (Captain, VC, or X-Factor)'
-                            : 'Change VC or X-Factor (Captain changes require Bench transfer)'
+                            : 'Change VC or X-Factor (Captain changes require Bench or Wildcard transfer)'
                           }
                         </Typography>
                       </Box>
@@ -709,15 +822,15 @@ const TransferModal: React.FC<TransferModalProps> = ({
                       <Divider sx={{ mb: 3 }} />
                       <Alert severity="info" sx={{ mb: 3 }}>
                         <Typography variant="body2">
-                          {selectedTransferType === 'bench'
+                          {(selectedTransferType === 'bench' || selectedTransferType === 'wildcard')
                             ? 'Select ONE role to reassign (Captain, VC, or X-Factor). Each role change consumes one transfer.'
-                            : 'Select ONE role to reassign (VC or X-Factor only). Captain changes require a Bench transfer.'
+                            : 'Select ONE role to reassign (VC or X-Factor only). Captain changes require a Bench or Wildcard transfer.'
                           }
                         </Typography>
                       </Alert>
                         <Box display="flex" gap={2.5} flexDirection="column">
-                          {/* NEW: Captain selection (only for bench transfers) */}
-                          {selectedTransferType === 'bench' && (
+                          {/* Captain selection (for bench and wildcard transfers) */}
+                          {(selectedTransferType === 'bench' || selectedTransferType === 'wildcard') && (
                             <Box>
                               <Typography variant="body2" gutterBottom fontWeight="600" color="text.secondary">
                                 New Captain (Optional)
@@ -787,7 +900,7 @@ const TransferModal: React.FC<TransferModalProps> = ({
                                   value={player.playerId}
                                   disabled={
                                     player.playerId === existingSquad.viceCaptainId ||
-                                    (selectedTransferType !== 'bench' && player.playerId === existingSquad.captainId)
+                                    (selectedTransferType !== 'bench' && selectedTransferType !== 'wildcard' && player.playerId === existingSquad.captainId)
                                   }
                                 >
                                   <Box display="flex" alignItems="center" gap={1}>
@@ -834,7 +947,7 @@ const TransferModal: React.FC<TransferModalProps> = ({
                                   value={player.playerId}
                                   disabled={
                                     player.playerId === existingSquad.xFactorId ||
-                                    (selectedTransferType !== 'bench' && player.playerId === existingSquad.captainId)
+                                    (selectedTransferType !== 'bench' && selectedTransferType !== 'wildcard' && player.playerId === existingSquad.captainId)
                                   }
                                 >
                                   <Box display="flex" alignItems="center" gap={1}>
@@ -879,16 +992,22 @@ const TransferModal: React.FC<TransferModalProps> = ({
                 label={
                   selectedTransferType === 'bench' ? 'Bench Change' :
                   selectedTransferType === 'flexible' ? 'Flexible Change' :
+                  selectedTransferType === 'wildcard' ? 'Wildcard' :
                   'Mid-Season Change'
                 }
                 size="small"
                 sx={{
-                  bgcolor: '#1E88E5', // Electric Blue
-                  color: 'white',
+                  background: selectedTransferType === 'wildcard'
+                    ? 'linear-gradient(135deg, #FFD700, #FF8C00)'
+                    : '#1E88E5',
+                  color: selectedTransferType === 'wildcard' ? '#000' : 'white',
                   fontWeight: 'bold',
                   fontSize: '0.75rem',
                   px: 1.5,
                   height: 28,
+                  boxShadow: selectedTransferType === 'wildcard'
+                    ? '0 2px 12px rgba(255,215,0,0.4)'
+                    : 'none',
                 }}
               />
             </Box>

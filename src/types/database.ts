@@ -79,6 +79,7 @@ export interface League {
   // Admin Controls for Squad Changes
   flexibleChangesEnabled?: boolean; // Admin toggle for allowing flexible changes
   benchChangesEnabled?: boolean; // Admin toggle for allowing bench changes
+  wildcardChangesEnabled?: boolean; // Admin toggle for allowing wildcard transfers
   ppActivationEnabled?: boolean; // Admin toggle: allow PP activation after squad deadline (activation mode only)
   
   // Transfer Window Automation
@@ -155,6 +156,15 @@ export interface TransferTypeConfig {
     maxAllowed: number;
     description: string;
   };
+
+  // Wildcard transfers - Most powerful: pool-wide sourcing + full role assignment (incl. Captain)
+  // Option 1: Player Substitution - Replace any player including Captain from full pool
+  // Option 2: Role Assignment - Change any role (C/VC/X), same as Bench
+  wildcardTransfers?: {
+    enabled: boolean;
+    maxAllowed: number;
+    description: string;
+  };
 }
 
 export interface LeagueSquad {
@@ -189,6 +199,7 @@ export interface LeagueSquad {
   benchTransfersUsed: number; // Bench transfers used
   flexibleTransfersUsed: number; // Flexible transfers used
   midSeasonTransfersUsed: number; // Mid-season transfers used
+  wildcardTransfersUsed: number; // Wildcard transfers used
   transferHistory: TransferHistoryEntry[];
   bankedPoints: number; // Points accumulated from removed players or role changes
 
@@ -224,7 +235,7 @@ export interface LeagueSquad {
 
 export interface TransferHistoryEntry {
   timestamp: Date;
-  transferType: 'bench' | 'flexible' | 'midSeason';
+  transferType: 'bench' | 'flexible' | 'midSeason' | 'wildcard';
   changeType: 'playerSubstitution' | 'roleReassignment';
 
   // Player Substitution fields

@@ -25,6 +25,7 @@ import {
   Bolt,
   SwapHoriz,
   CompareArrows,
+  AutoAwesome,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useRef } from 'react';
@@ -531,7 +532,8 @@ const LeagueListPage: React.FC = () => {
                           league.powerplayEnabled && { icon: <Bolt sx={{ fontSize: 13 }} />, label: 'PP', enabled: !!league.ppActivationEnabled, color: '#F59E0B' },
                           league.transferTypes?.flexibleTransfers?.enabled && { icon: <SwapHoriz sx={{ fontSize: 13 }} />, label: 'Flex', enabled: !!league.flexibleChangesEnabled, color: '#a855f7' },
                           league.transferTypes?.benchTransfers?.enabled && { icon: <CompareArrows sx={{ fontSize: 13 }} />, label: 'Bench', enabled: !!league.benchChangesEnabled, color: '#22d3ee' },
-                        ].filter(Boolean) as { icon: React.ReactNode; label: string; enabled: boolean; color: string }[];
+                          league.transferTypes?.wildcardTransfers?.enabled && { icon: <AutoAwesome sx={{ fontSize: 13 }} />, label: 'Wild', enabled: !!league.wildcardChangesEnabled, color: '#f43f5e', premium: true },
+                        ].filter(Boolean) as { icon: React.ReactNode; label: string; enabled: boolean; color: string; premium?: boolean }[];
                         if (features.length === 0) return null;
                         return (
                           <Box
@@ -557,14 +559,26 @@ const LeagueListPage: React.FC = () => {
                                   display="flex"
                                   alignItems="center"
                                   gap={0.5}
-                                  sx={{
+                                  sx={f.premium && f.enabled ? {
+                                    filter: 'drop-shadow(0 0 4px rgba(255,215,0,0.55))',
+                                  } : {
                                     color: f.enabled ? f.color : alpha(colors.text.primary, 0.22),
                                     opacity: f.enabled ? 1 : 0.55,
                                     filter: f.enabled ? 'none' : 'grayscale(1)',
                                   }}
                                 >
-                                  {f.icon}
-                                  <Typography sx={{
+                                  <Box sx={f.premium && f.enabled ? { color: '#FFD700', display: 'flex' } : { display: 'flex' }}>
+                                    {f.icon}
+                                  </Box>
+                                  <Typography sx={f.premium && f.enabled ? {
+                                    fontSize: '0.6875rem',
+                                    fontWeight: 700,
+                                    letterSpacing: '0.02em',
+                                    lineHeight: 1,
+                                    background: 'linear-gradient(135deg, #FFD700, #FF8C00)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                  } : {
                                     fontSize: '0.6875rem',
                                     fontWeight: f.enabled ? 600 : 400,
                                     color: 'inherit',

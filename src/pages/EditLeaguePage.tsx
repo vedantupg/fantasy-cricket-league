@@ -113,6 +113,7 @@ const EditLeaguePage: React.FC = () => {
   // Admin controls for squad changes
   const [flexibleChangesEnabled, setFlexibleChangesEnabled] = useState(false);
   const [benchChangesEnabled, setBenchChangesEnabled] = useState(false);
+  const [wildcardChangesEnabled, setWildcardChangesEnabled] = useState(false);
   const [autoToggleEnabled, setAutoToggleEnabled] = useState(true);
   const [ppActivationEnabled, setPpActivationEnabled] = useState(false);
 
@@ -180,6 +181,7 @@ const EditLeaguePage: React.FC = () => {
         // Load admin control values
         setFlexibleChangesEnabled(leagueData.flexibleChangesEnabled || false);
         setBenchChangesEnabled(leagueData.benchChangesEnabled || false);
+        setWildcardChangesEnabled(leagueData.wildcardChangesEnabled || false);
         setAutoToggleEnabled(leagueData.autoToggleEnabled !== false); // Default to true
         setPpActivationEnabled(leagueData.ppActivationEnabled || false);
 
@@ -210,7 +212,8 @@ const EditLeaguePage: React.FC = () => {
         squadDeadline: leagueData.squadDeadline,
         maxTransfers: (transferTypes.benchTransfers.enabled ? transferTypes.benchTransfers.maxAllowed : 0) +
                      (transferTypes.midSeasonTransfers.enabled ? transferTypes.midSeasonTransfers.maxAllowed : 0) +
-                     (transferTypes.flexibleTransfers.enabled ? transferTypes.flexibleTransfers.maxAllowed : 0),
+                     (transferTypes.flexibleTransfers.enabled ? transferTypes.flexibleTransfers.maxAllowed : 0) +
+                     (transferTypes.wildcardTransfers?.enabled ? transferTypes.wildcardTransfers.maxAllowed : 0),
         transferDeadline: leagueData.endDate,
         transferWindow: {
           startDate: leagueData.startDate,
@@ -226,6 +229,7 @@ const EditLeaguePage: React.FC = () => {
         transferTypes,
         flexibleChangesEnabled,
         benchChangesEnabled,
+        wildcardChangesEnabled,
         autoToggleEnabled,
         ppActivationEnabled,
       };
@@ -711,6 +715,42 @@ const EditLeaguePage: React.FC = () => {
                   </Box>
                 )}
               </Grid>
+
+              {/* Wildcard Transfers */}
+              <Grid size={12}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={transferTypes.wildcardTransfers?.enabled ?? false}
+                      onChange={(e) => setTransferTypes(prev => ({
+                        ...prev,
+                        wildcardTransfers: {
+                          enabled: e.target.checked,
+                          maxAllowed: prev.wildcardTransfers?.maxAllowed ?? 1,
+                          description: prev.wildcardTransfers?.description ?? 'Replace any player (including Captain) from the full pool, or reassign any role (C/VC/X).'
+                        }
+                      }))}
+                    />
+                  }
+                  label="Enable Wildcard Transfers"
+                />
+                {transferTypes.wildcardTransfers?.enabled && (
+                  <Box sx={{ ml: 4, mt: 1 }}>
+                    <TextField
+                      type="number"
+                      label="Max Allowed"
+                      value={transferTypes.wildcardTransfers.maxAllowed}
+                      onChange={(e) => setTransferTypes(prev => ({
+                        ...prev,
+                        wildcardTransfers: { ...prev.wildcardTransfers!, maxAllowed: parseInt(e.target.value) }
+                      }))}
+                      size="small"
+                      inputProps={{ min: 1, max: 5 }}
+                      sx={{ width: 120 }}
+                    />
+                  </Box>
+                )}
+              </Grid>
             </Grid>
           </CardContent>
         </Card>
@@ -907,6 +947,31 @@ const EditLeaguePage: React.FC = () => {
                   }
                 />
               </Grid>
+
+              {/* Wildcard Changes Toggle — only shown if wildcard transfers are configured */}
+              {transferTypes.wildcardTransfers?.enabled && (
+                <Grid size={12}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={wildcardChangesEnabled}
+                        onChange={(e) => setWildcardChangesEnabled(e.target.checked)}
+                        color="primary"
+                      />
+                    }
+                    label={
+                      <Box sx={{ opacity: autoToggleEnabled ? 0.6 : 1 }}>
+                        <Typography variant="body1" fontWeight="medium">
+                          Enable Wildcard Transfers
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Allow users to use their wildcard — replace any player from the full pool or reassign roles (C/VC/X)
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                </Grid>
+              )}
 
               <Grid size={12}>
                 <Alert severity={autoToggleEnabled ? "info" : "warning"}>

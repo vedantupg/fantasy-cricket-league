@@ -570,6 +570,7 @@ const AdminPage: React.FC = () => {
     let updatedBenchTransfersUsed = squad.benchTransfersUsed || 0;
     let updatedFlexibleTransfersUsed = squad.flexibleTransfersUsed || 0;
     let updatedMidSeasonTransfersUsed = squad.midSeasonTransfersUsed || 0;
+    let updatedWildcardTransfersUsed = squad.wildcardTransfersUsed ?? 0;
 
     if (transfer.transferType === 'bench') {
       updatedBenchTransfersUsed = Math.max(0, updatedBenchTransfersUsed - 1);
@@ -577,6 +578,8 @@ const AdminPage: React.FC = () => {
       updatedFlexibleTransfersUsed = Math.max(0, updatedFlexibleTransfersUsed - 1);
     } else if (transfer.transferType === 'midSeason') {
       updatedMidSeasonTransfersUsed = Math.max(0, updatedMidSeasonTransfersUsed - 1);
+    } else if (transfer.transferType === 'wildcard') {
+      updatedWildcardTransfersUsed = Math.max(0, updatedWildcardTransfersUsed - 1);
     }
 
     // Calculate points (simplified - actual implementation would need the full calculateSquadPoints function)
@@ -612,6 +615,7 @@ const AdminPage: React.FC = () => {
       benchTransfersUsed: updatedBenchTransfersUsed,
       flexibleTransfersUsed: updatedFlexibleTransfersUsed,
       midSeasonTransfersUsed: updatedMidSeasonTransfersUsed,
+      wildcardTransfersUsed: updatedWildcardTransfersUsed,
       transferHistory: updatedHistory,
       totalPoints: calculatedPoints.totalPoints,
       captainPoints: calculatedPoints.captainPoints,
@@ -2047,6 +2051,8 @@ const AdminPage: React.FC = () => {
                                         ? 'info'
                                         : transfer.transferType === 'flexible'
                                         ? 'warning'
+                                        : transfer.transferType === 'wildcard'
+                                        ? 'error'
                                         : 'secondary'
                                     }
                                   />
@@ -2664,6 +2670,10 @@ const AdminPage: React.FC = () => {
                           <Typography variant="caption" color="text.secondary">Mid-Season Transfers</Typography>
                           <Typography variant="h6">{squad.midSeasonTransfersUsed || 0}</Typography>
                         </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">Wildcard Transfers</Typography>
+                          <Typography variant="h6">{squad.wildcardTransfersUsed ?? 0}</Typography>
+                        </Box>
                       </Box>
                     </CardContent>
                   </Card>
@@ -2743,8 +2753,10 @@ const AdminPage: React.FC = () => {
                                   color={
                                     transfer.transferType === 'bench' ? 'info' :
                                     transfer.transferType === 'flexible' ? 'warning' :
-                                    transfer.transferType === 'midSeason' ? 'secondary' : 'default'
+                                    transfer.transferType === 'midSeason' ? 'secondary' :
+                                    'default'
                                   }
+                                  sx={transfer.transferType === 'wildcard' ? { bgcolor: '#FFD700', color: '#000' } : {}}
                                 />
                                 <Chip
                                   label={transfer.changeType === 'playerSubstitution' ? 'Player Swap' : 'Role Change'}
@@ -3177,14 +3189,17 @@ const AdminPage: React.FC = () => {
                                                 label={
                                                   transfer.transferType === 'bench' ? 'Bench' :
                                                   transfer.transferType === 'flexible' ? 'Flexible' :
-                                                  transfer.transferType === 'midSeason' ? 'Mid-Season' : 'Unknown'
+                                                  transfer.transferType === 'midSeason' ? 'Mid-Season' :
+                                                  transfer.transferType === 'wildcard' ? 'Wildcard' : 'Unknown'
                                                 }
                                                 size="small"
                                                 color={
                                                   transfer.transferType === 'bench' ? 'info' :
                                                   transfer.transferType === 'flexible' ? 'warning' :
-                                                  transfer.transferType === 'midSeason' ? 'success' : 'default'
+                                                  transfer.transferType === 'midSeason' ? 'success' :
+                                                  'default'
                                                 }
+                                                sx={transfer.transferType === 'wildcard' ? { bgcolor: '#FFD700', color: '#000' } : {}}
                                               />
                                             </TableCell>
                                             <TableCell>
