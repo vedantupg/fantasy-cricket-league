@@ -43,6 +43,7 @@ import { leagueService, squadService, playerPoolService, playerPoolSnapshotServi
 import type { League, LeagueSquad, LeaderboardSnapshot, PlayerPool, PlayerPoolSnapshot } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 import TransferDataAuditTool from '../components/admin/TransferDataAuditTool';
+import { calculateSquadPoints } from '../utils/pointsCalculation';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -184,6 +185,15 @@ const AdminPage: React.FC = () => {
     removedContestants: number;
     deletedSquads: number;
   }>({ open: false, removedContestants: 0, deletedSquads: 0 });
+
+  // Reset Squad Baselines State
+  const [resetBaselineLeagueId, setResetBaselineLeagueId] = useState<string>('');
+  const [resettingBaselines, setResettingBaselines] = useState(false);
+  const [resetBaselineResult, setResetBaselineResult] = useState<{
+    success: boolean;
+    message: string;
+    squadsUpdated?: number;
+  } | null>(null);
 
   // Load leagues on mount
   useEffect(() => {
@@ -686,6 +696,78 @@ const AdminPage: React.FC = () => {
       setErrorMessage(error.message || 'Failed to remove selected contestants');
     } finally {
       setRemovingContestantsFromLeague(false);
+    }
+  };
+
+  const handleResetSquadBaselines = async () => {
+    if (!resetBaselineLeagueId) return;
+
+    try {
+      setResettingBaselines(true);
+      setResetBaselineResult(null);
+
+      const league = await leagueService.getById(resetBaselineLeagueId);
+      if (!league) throw new Error('League not found');
+      if (!league.playerPoolId) throw new Error('League has no player pool');
+
+      const playerPool = await playerPoolService.getById(league.playerPoolId);
+      if (!playerPool) throw new Error('Player pool not found');
+
+      // Build a map of current player points from the pool
+      const playerPointsMap = new Map<string, number>();
+      playerPool.players.forEach((p) => {
+        playerPointsMap.set(p.playerId, p.points);
+      });
+
+      const allSquads = await squadService.getByLeague(resetBaselineLeagueId);
+      const submittedSquads = allSquads.filter((s) => s.isSubmitted);
+
+      for (const squad of submittedSquads) {
+        // Reset pointsAtJoining and pointsWhenRoleAssigned for every player to current pool points
+        const updatedPlayers = squad.players.map((p) => {
+          const currentPoints = playerPointsMap.get(p.playerId) ?? p.points;
+          return {
+            ...p,
+            points: currentPoints,
+            pointsAtJoining: currentPoints,
+            pointsWhenRoleAssigned: currentPoints,
+          };
+        });
+
+        const { totalPoints, captainPoints, viceCaptainPoints, xFactorPoints } = calculateSquadPoints(
+          updatedPlayers,
+          league.squadSize,
+          squad.captainId,
+          squad.viceCaptainId,
+          squad.xFactorId,
+          0
+        );
+
+        await squadService.update(squad.id, {
+          players: updatedPlayers,
+          totalPoints,
+          captainPoints,
+          viceCaptainPoints,
+          xFactorPoints,
+          bankedPoints: 0,
+        });
+      }
+
+      await leaderboardSnapshotService.create(resetBaselineLeagueId);
+
+      setResetBaselineResult({
+        success: true,
+        message: `Reset baselines for ${submittedSquads.length} squad(s) and rebuilt leaderboard.`,
+        squadsUpdated: submittedSquads.length,
+      });
+    } catch (error: any) {
+      console.error('Error resetting squad baselines:', error);
+      setResetBaselineResult({
+        success: false,
+        message: error.message || 'Failed to reset squad baselines',
+      });
+    } finally {
+      setResettingBaselines(false);
     }
   };
 
@@ -3262,6 +3344,50 @@ const AdminPage: React.FC = () => {
           {/* Data Audit & Repair Tab */}
           <TabPanel value={tabValue} index={5}>
             <TransferDataAuditTool />
+
+            {/* Reset Squad Baselines */}
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+                Reset Squad Baselines
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                For a league where squads were created before the fix (i.e. <code>pointsAtJoining = 0</code>), this will snapshot
+                each player's current pool points as the new baseline, recalculate all squad totals to 0, and rebuild the leaderboard.
+                All historical pool points will be excluded — only future pool updates will count.
+              </Typography>
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                This resets all standings in the selected league to 0 pts. It cannot be undone.
+              </Alert>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>League</InputLabel>
+                <Select
+                  value={resetBaselineLeagueId}
+                  label="League"
+                  onChange={(e) => {
+                    setResetBaselineLeagueId(e.target.value as string);
+                    setResetBaselineResult(null);
+                  }}
+                >
+                  <MenuItem value=""><em>Select a league</em></MenuItem>
+                  {leagues.map((l) => (
+                    <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Button
+                variant="contained"
+                color="warning"
+                disabled={!resetBaselineLeagueId || resettingBaselines}
+                onClick={handleResetSquadBaselines}
+              >
+                {resettingBaselines ? <><CircularProgress size={16} sx={{ mr: 1 }} />Resetting...</> : 'Reset Squad Baselines'}
+              </Button>
+              {resetBaselineResult && (
+                <Alert severity={resetBaselineResult.success ? 'success' : 'error'} sx={{ mt: 2 }}>
+                  {resetBaselineResult.message}
+                </Alert>
+              )}
+            </Box>
           </TabPanel>
 
           {/* Squad Copy Tab */}

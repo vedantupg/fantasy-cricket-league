@@ -102,12 +102,12 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league, onPlayer
   const renderTransferDots = (standing: StandingEntry) => {
     if (!league?.transferTypes) return null;
 
-    const { flexibleTransfers, benchTransfers } = league.transferTypes;
-    if (!flexibleTransfers?.enabled && !benchTransfers?.enabled) return null;
+    const { flexibleTransfers, benchTransfers, wildcardTransfers } = league.transferTypes;
+    if (!flexibleTransfers?.enabled && !benchTransfers?.enabled && !wildcardTransfers?.enabled) return null;
 
     const dots = [];
 
-    // Add flexible transfer dots (purple)
+    // Add flexible transfer dots (blue)
     if (flexibleTransfers?.enabled) {
       const flexUsed = standing.flexibleTransfersUsed || 0;
       for (let i = 0; i < flexibleTransfers.maxAllowed; i++) {
@@ -131,12 +131,26 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league, onPlayer
       }
     }
 
+    // Add wildcard transfer dots (muted gold)
+    if (wildcardTransfers?.enabled) {
+      const wildcardUsed = standing.wildcardTransfersUsed || 0;
+      for (let i = 0; i < wildcardTransfers.maxAllowed; i++) {
+        dots.push({
+          type: 'wildcard',
+          available: i >= wildcardUsed,
+          color: '#C9A84C',
+        });
+      }
+    }
+
     if (dots.length === 0) return null;
 
     const flexUsed = standing.flexibleTransfersUsed || 0;
     const benchUsed = standing.benchTransfersUsed || 0;
+    const wildcardUsed = standing.wildcardTransfersUsed || 0;
     const flexRemaining = (flexibleTransfers?.maxAllowed || 0) - flexUsed;
     const benchRemaining = (benchTransfers?.maxAllowed || 0) - benchUsed;
+    const wildcardRemaining = (wildcardTransfers?.maxAllowed || 0) - wildcardUsed;
 
     return (
       <Tooltip
@@ -147,6 +161,9 @@ const CompactPodium: React.FC<CompactPodiumProps> = ({ topFive, league, onPlayer
             )}
             {benchTransfers?.enabled && (
               <Box>Bench: {benchRemaining}/{benchTransfers.maxAllowed} left</Box>
+            )}
+            {wildcardTransfers?.enabled && (
+              <Box>Wildcard{wildcardRemaining !== 1 ? 's' : ''}: {wildcardRemaining}/{wildcardTransfers.maxAllowed} left</Box>
             )}
           </Box>
         }

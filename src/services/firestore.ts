@@ -1083,6 +1083,7 @@ export const leaderboardSnapshotService = {
       if (squad.benchTransfersUsed !== undefined) standing.benchTransfersUsed = squad.benchTransfersUsed;
       if (squad.flexibleTransfersUsed !== undefined) standing.flexibleTransfersUsed = squad.flexibleTransfersUsed;
       if (squad.midSeasonTransfersUsed !== undefined) standing.midSeasonTransfersUsed = squad.midSeasonTransfersUsed;
+      if (squad.wildcardTransfersUsed !== undefined) standing.wildcardTransfersUsed = squad.wildcardTransfersUsed;
 
       return standing as StandingEntry;
     });
@@ -1504,7 +1505,7 @@ export const batchService = {
 export const squadPlayerUtils = {
   /**
    * Create a SquadPlayer for initial squad creation
-   * All current points count from the start (pointsAtJoining = 0)
+   * Snapshots current points so only future pool gains count toward this squad's score
    */
   createInitialSquadPlayer(
     player: {
@@ -1525,7 +1526,7 @@ export const squadPlayerUtils = {
       points: player.points,
       matchPerformances: {},
       addedAt: new Date(),
-      pointsAtJoining: 0, // Set to 0 so ALL current points count - robust for testing & flexible deadlines
+      pointsAtJoining: player.points, // Snapshot at squad creation — only future gains count
     };
 
     // Only include price if it's defined

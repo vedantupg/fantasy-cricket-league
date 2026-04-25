@@ -618,6 +618,7 @@ export interface StandingEntry {
   benchTransfersUsed?: number; // Bench transfers used
   flexibleTransfersUsed?: number; // Flexible transfers used
   midSeasonTransfersUsed?: number; // Mid-season transfers used
+  wildcardTransfersUsed?: number; // Wildcard transfers used
 
   // Team Composition
   captainId?: string;
