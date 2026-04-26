@@ -204,7 +204,8 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
               Total transfers allowed: {' '}
               {(league.transferTypes.benchTransfers.enabled ? league.transferTypes.benchTransfers.maxAllowed : 0) +
                (league.transferTypes.midSeasonTransfers.enabled ? league.transferTypes.midSeasonTransfers.maxAllowed : 0) +
-               (league.transferTypes.flexibleTransfers.enabled ? league.transferTypes.flexibleTransfers.maxAllowed : 0)}
+               (league.transferTypes.flexibleTransfers.enabled ? league.transferTypes.flexibleTransfers.maxAllowed : 0) +
+               (league.transferTypes.wildcardTransfers?.enabled ? league.transferTypes.wildcardTransfers.maxAllowed : 0)}
             </Typography>
 
             <Box display="flex" flexWrap="wrap" gap={{ xs: 0.75, sm: 1 }} mb={{ xs: 1.5, sm: 2 }}>
@@ -230,6 +231,17 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
                   color="success"
                   variant="outlined"
                   sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
+                />
+              )}
+              {league.transferTypes.wildcardTransfers?.enabled && (
+                <Chip
+                  label={`Wildcard: ${league.transferTypes.wildcardTransfers.maxAllowed} allowed`}
+                  variant="outlined"
+                  sx={{
+                    fontSize: { xs: '0.7rem', sm: '0.8125rem' },
+                    borderColor: '#F59E0B',
+                    color: '#F59E0B',
+                  }}
                 />
               )}
             </Box>
@@ -330,6 +342,36 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
                     </Typography>
                     <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
                       Points multipliers apply only to future points earned after reassignment
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            )}
+
+            {/* Wildcard Transfers Details */}
+            {league.transferTypes.wildcardTransfers?.enabled && (
+              <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+                <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, mb: 1 }}>
+                  Wildcard Change
+                </Typography>
+                <Grid container spacing={{ xs: 1.5, sm: 2 }} sx={{ mb: 1 }}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Max Allowed</Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                      {league.transferTypes.wildcardTransfers.maxAllowed}
+                    </Typography>
+                  </Grid>
+                </Grid>
+                <Box sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 1, border: '1px solid', borderColor: '#F59E0B' }}>
+                  <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 3 }}>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
+                      Replace any player (including Captain) with any player from the full pool
+                    </Typography>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
+                      <strong>Reassign any role</strong> (C / VC / X) to any player
+                    </Typography>
+                    <Typography component="li" variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mb: 0.5, lineHeight: 1.6, color: 'white' }}>
+                      Most powerful transfer — no restrictions on who can be changed
                     </Typography>
                   </Box>
                 </Box>

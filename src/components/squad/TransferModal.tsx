@@ -552,7 +552,7 @@ const TransferModal: React.FC<TransferModalProps> = ({
                               </Typography>
                             </Box>
                             <Chip
-                              label={`${availableTransfers.wildcard} left`}
+                              label={`${availableTransfers.wildcard} wildcard${availableTransfers.wildcard !== 1 ? 's' : ''} left`}
                               size="small"
                               sx={{
                                 background: availableTransfers.wildcard > 0
