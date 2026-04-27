@@ -57,7 +57,7 @@ const LeagueRulesDisplay: React.FC<LeagueRulesDisplayProps> = ({ league }) => {
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Correct Prediction</Typography>
               <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                80 points
+                {league.predictionWinningPoints ?? 80} points
               </Typography>
             </Grid>
             <Grid size={12}>

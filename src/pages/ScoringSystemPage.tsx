@@ -38,7 +38,8 @@ const cardSx = {
 // Scoring Configuration Content - Display scoring rules
 const ScoringConfigContent: React.FC<{
   pool: PlayerPool;
-}> = ({ pool }) => {
+  league: League | null;
+}> = ({ pool, league }) => {
   const battingConfig = pool.battingConfig || DEFAULT_BATTING_CONFIG;
   const bowlingConfig = pool.bowlingConfig || DEFAULT_BOWLING_CONFIG;
   const fieldingConfig = pool.fieldingConfig || DEFAULT_FIELDING_CONFIG;
@@ -564,15 +565,15 @@ const ScoringConfigContent: React.FC<{
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
                   <Box>
                     <Typography variant="body2" color="text.secondary">Highest Run Scorer</Typography>
-                    <Typography variant="body1" fontWeight="bold">80 pts</Typography>
+                    <Typography variant="body1" fontWeight="bold">{league?.predictionWinningPoints ?? 80} pts</Typography>
                   </Box>
                   <Box>
                     <Typography variant="body2" color="text.secondary">Highest Wicket Taker</Typography>
-                    <Typography variant="body1" fontWeight="bold">80 pts</Typography>
+                    <Typography variant="body1" fontWeight="bold">{league?.predictionWinningPoints ?? 80} pts</Typography>
                   </Box>
                   <Box>
                     <Typography variant="body2" color="text.secondary">Winning Team</Typography>
-                    <Typography variant="body1" fontWeight="bold">80 pts</Typography>
+                    <Typography variant="body1" fontWeight="bold">{league?.predictionWinningPoints ?? 80} pts</Typography>
                   </Box>
                 </Box>
               </Box>
@@ -700,7 +701,7 @@ const ScoringSystemPage: React.FC = () => {
         </Box>
         <Card sx={cardSx}>
           <CardContent sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: { xs: 1.5, sm: 2, md: 2.5 } }}>
-            <ScoringConfigContent pool={playerPool} />
+            <ScoringConfigContent pool={playerPool} league={league} />
           </CardContent>
         </Card>
       </Container>

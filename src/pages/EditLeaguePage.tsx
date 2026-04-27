@@ -64,6 +64,7 @@ const EditLeaguePage: React.FC = () => {
     endDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000),
     powerplayEnabled: true,
     maxPowerplayMatches: 20,
+    predictionWinningPoints: 80,
   });
 
   const availableTournaments = [
@@ -160,6 +161,7 @@ const EditLeaguePage: React.FC = () => {
           endDate: new Date(leagueData.endDate),
           powerplayEnabled: leagueData.powerplayEnabled || false,
           maxPowerplayMatches: leagueData.maxPowerplayMatches || 20,
+          predictionWinningPoints: leagueData.predictionWinningPoints ?? 80,
         });
 
         setSelectedPlayerPoolId(leagueData.playerPoolId || '');
@@ -226,6 +228,7 @@ const EditLeaguePage: React.FC = () => {
         squadRules,
         powerplayEnabled: leagueData.powerplayEnabled,
         maxPowerplayMatches: leagueData.maxPowerplayMatches,
+        predictionWinningPoints: leagueData.predictionWinningPoints,
         transferTypes,
         flexibleChangesEnabled,
         benchChangesEnabled,
@@ -448,6 +451,28 @@ const EditLeaguePage: React.FC = () => {
                   />
                 </Grid>
               )}
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {/* Prediction Settings */}
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Prediction Settings
+            </Typography>
+            <Grid container spacing={3}>
+              <Grid size={12}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Prediction Winning Points"
+                  value={leagueData.predictionWinningPoints}
+                  onChange={(e) => setLeagueData(prev => ({ ...prev, predictionWinningPoints: parseInt(e.target.value) || 80 }))}
+                  inputProps={{ min: 0 }}
+                  helperText="Points awarded per correct prediction (top run scorer, top wicket taker, winning team)"
+                />
+              </Grid>
             </Grid>
           </CardContent>
         </Card>

@@ -58,6 +58,9 @@ export interface League {
   maxPowerplayMatches?: number; // Number of matches for powerplay dropdown (default 20)
   ppMatchMode?: 'fixed' | 'activation'; // 'fixed': existing behavior; 'activation': player activates on-demand
 
+  // Prediction Settings
+  predictionWinningPoints?: number; // Points awarded per correct prediction (default: 80)
+
   // Hidden Player Feature
   hiddenPlayerEnabled?: boolean; // Allow each participant to secretly pick one extra hidden player
   matchSchedule?: ScheduleMatch[]; // Tournament match schedule
