@@ -52,26 +52,26 @@ const LandingPage: React.FC = () => {
   const features = [
     {
       icon: <Shield sx={{ fontSize: 40 }} />,
-      title: "Set & Forget",
-      description: "Pick your squad once and chill for the entire tournament. No more daily grind - just vibes and wins!",
+      title: "One squad. One season.",
+      description: "Pick once, follow scores from the first ball to the final.",
       color: theme.palette.primary.main
     },
     {
       icon: <People sx={{ fontSize: 40 }} />,
-      title: "Squad Goals",
-      description: "Create private leagues with your crew. Time to prove who's the real cricket genius and flex those bragging rights!",
+      title: "Private leagues, lasting rivalries.",
+      description: "Run your group. Track who actually called it.",
       color: theme.palette.secondary.main
     },
     {
       icon: <Star sx={{ fontSize: 40 }} />,
-      title: "Real Cricket Knowledge",
-      description: "Connect with cricket fans who actually get it. No fake hype, just real cricket lovers building genuine connections.",
+      title: "For fans, by fans.",
+      description: "A community of people who follow form, not fads.",
       color: theme.palette.primary.main
     },
     {
       icon: <Timeline sx={{ fontSize: 40 }} />,
-      title: "Pro Tips, No Cap",
-      description: "Get insights from actual cricket experts. Real game knowledge, not just random stats. Level up while you play!",
+      title: "Read the season, not the day.",
+      description: "Long-form analysis from people who watch the cricket, not just the odds.",
       color: theme.palette.secondary.main
     }
   ];
