@@ -228,35 +228,26 @@ const LandingPage: React.FC = () => {
         <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, py: 8 }}>
           <Fade in timeout={1000}>
             <Box sx={{ textAlign: 'center' }}>
-              {/* FCL Logo Badge */}
-              <Box
-                component="img"
-                src="/logo192.png"
-                sx={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: '50%',
-                  mb: 3,
-                  mx: 'auto',
-                  display: 'block',
-                  boxShadow: `0 0 24px ${alpha(colors.blue.electric, 0.4)}`
-                }}
-              />
               <Slide direction="down" in timeout={800}>
                 <Typography
                   variant="h1"
                   sx={{
-                    fontFamily: '"Montserrat", sans-serif',
-                    fontWeight: 900,
+                    fontFamily: '"Fraunces", "Georgia", serif',
+                    fontWeight: 500,
+                    fontOpticalSizing: 'auto',
+                    fontVariationSettings: '"opsz" 144, "SOFT" 50',
+                    letterSpacing: '-0.02em',
                     mb: 5,
-                    fontSize: { xs: '2.5rem', md: '3.5rem', lg: '4rem' },
-                    background: colors.gradients.title, // Electric Blue → Cyan gradient
+                    pb: '0.15em',
+                    fontSize: { xs: '2.75rem', md: '4rem', lg: '4.75rem' },
+                    lineHeight: 1.15,
+                    background: colors.gradients.orange, // Orange gradient
                     backgroundSize: '200% 200%',
                     backgroundClip: 'text',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
                     animation: 'gradientFlow 8s ease infinite',
-                    textShadow: `0 0 80px ${alpha(colors.blue.electric, 0.5)}`,
+                    textShadow: `0 0 80px ${alpha(colors.orange.primary, 0.5)}`,
                     '@keyframes gradientFlow': {
                       '0%, 100%': { backgroundPosition: '0% 50%' },
                       '50%': { backgroundPosition: '100% 50%' }
@@ -277,13 +268,18 @@ const LandingPage: React.FC = () => {
                   </Box>
                   <Typography
                     sx={{
-                      fontFamily: '"Georgia", "Playfair Display", serif',
-                      fontStyle: 'italic',
-                      fontWeight: 400,
+                      fontFamily: '"Fraunces", "Georgia", serif',
+                      fontWeight: 500,
+                      fontOpticalSizing: 'auto',
+                      fontVariationSettings: '"opsz" 72, "SOFT" 50',
                       fontSize: { xs: '1.35rem', md: '1.65rem' },
-                      color: colors.orange.primary,
-                      letterSpacing: '0.02em',
+                      background: colors.gradients.title, // Electric Blue → Cyan gradient
+                      backgroundClip: 'text',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      letterSpacing: '0.01em',
                       lineHeight: 1.4,
+                      pb: '0.1em',
                     }}
                   >
                     Pick once. Vibe all season.
