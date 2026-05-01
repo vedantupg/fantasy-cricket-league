@@ -26,6 +26,9 @@ import {
   SwapHoriz,
   CompareArrows,
   AutoAwesome,
+  TrendingUp,
+  TrendingDown,
+  Remove,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useRef } from 'react';
@@ -116,21 +119,19 @@ const LeagueListPage: React.FC = () => {
 
     // League is completed (ended)
     if (leagueEnded) {
-      const rank = squad?.rank || '-';
       return {
-        label: `🏁 Completed - Rank #${rank}`,
+        label: 'Completed',
         color: 'default' as const,
-        icon: '🏁'
+        icon: ''
       };
     }
 
     // League is in progress (started but not ended)
     if (leagueStarted && !leagueEnded) {
-      const rank = squad?.rank || '-';
       return {
-        label: `📊 In Progress - Rank #${rank}`,
+        label: 'In Progress',
         color: 'success' as const,
-        icon: '📊'
+        icon: ''
       };
     }
 
@@ -504,26 +505,18 @@ const LeagueListPage: React.FC = () => {
                         </Box>
                       </Box>
 
-                      {/* Tournament name */}
-                      <Typography variant="caption" sx={{ color: alpha(colors.text.secondary, 0.5), display: 'block', mb: 1 }}>
-                        {league.tournamentName}
-                      </Typography>
-
-                      {/* Format pill */}
-                      <Box
-                        sx={{
-                          display: 'inline-flex',
-                          px: 1,
-                          py: 0.25,
-                          mb: 1.5,
-                          borderRadius: 1,
-                          border: `1px solid ${alpha(colors.orange.primary, 0.5)}`,
-                          bgcolor: alpha(colors.orange.primary, 0.08),
-                        }}
-                      >
-                        <Typography variant="caption" sx={{ color: colors.orange.light, fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.06em' }}>
-                          {league.format}
-                        </Typography>
+                      {/* Tournament + Format — side by side chips */}
+                      <Box display="flex" gap={0.75} mb={1.5} flexWrap="wrap" alignItems="center">
+                        <Box sx={{ display: 'inline-flex', px: 1, py: 0.2, borderRadius: 1, border: `1px solid ${alpha(colors.text.secondary, 0.15)}`, bgcolor: alpha(colors.text.secondary, 0.04) }}>
+                          <Typography sx={{ fontSize: '0.63rem', fontWeight: 600, color: alpha(colors.text.secondary, 0.5), letterSpacing: '0.03em' }}>
+                            {league.tournamentName}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'inline-flex', px: 1, py: 0.2, borderRadius: 1, border: `1px solid ${alpha(colors.orange.primary, 0.5)}`, bgcolor: alpha(colors.orange.primary, 0.08) }}>
+                          <Typography sx={{ fontSize: '0.63rem', fontWeight: 700, color: colors.orange.light, letterSpacing: '0.06em' }}>
+                            {league.format}
+                          </Typography>
+                        </Box>
                       </Box>
 
                       {/* Premium Features */}
@@ -594,168 +587,161 @@ const LeagueListPage: React.FC = () => {
                         );
                       })()}
 
-                      {/* League stats row */}
-                      <Box display="flex" alignItems="center" gap={2} mb={1.5} sx={{ opacity: 0.65 }}>
-                        <Box display="flex" alignItems="center" gap={0.5}>
-                          <People sx={{ fontSize: 13, color: colors.blue.light }} />
-                          <Typography fontSize="0.7rem" sx={{ color: colors.text.secondary, fontVariantNumeric: 'tabular-nums' }}>
-                            {league.participants.length}<span style={{ opacity: 0.5 }}>/{league.maxParticipants}</span>
-                          </Typography>
-                        </Box>
-                        <Box sx={{ width: '1px', height: 12, bgcolor: colors.border.subtle }} />
-                        <Box display="flex" alignItems="center" gap={0.5}>
-                          <Schedule sx={{ fontSize: 13, color: colors.blue.light }} />
-                          <Typography fontSize="0.7rem" sx={{ color: colors.text.secondary }}>
-                            {new Date(league.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ width: '1px', height: 12, bgcolor: colors.border.subtle }} />
-                        <Box display="flex" alignItems="center" gap={0.5}>
-                          <SwapHoriz sx={{ fontSize: 13, color: colors.blue.light }} />
-                          <Typography fontSize="0.7rem" sx={{ color: colors.text.secondary }}>
-                            {league.maxTransfers}
-                          </Typography>
-                        </Box>
-                      </Box>
-
-                      {/* League Code + Invite Link */}
-                      <Box display="flex" gap={1} alignItems="center">
-                        <Box
-                          display="flex"
-                          alignItems="center"
-                          gap={1}
-                          flex={1}
-                          sx={{
-                            border: `1px solid ${colors.border.subtle}`,
-                            borderRadius: 1.5,
-                            p: '6px 10px',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                            '&:hover': { bgcolor: alpha(colors.blue.electric, 0.05), borderColor: colors.border.default }
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCopyCode(league.code);
-                          }}
-                        >
-                          <Box>
-                            <Typography variant="caption" sx={{ color: alpha(colors.text.secondary, 0.4), fontSize: '0.65rem', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block' }}>
-                              Code
-                            </Typography>
-                            <Typography variant="body2" fontWeight={600} sx={{ letterSpacing: '0.08em', color: colors.text.primary }}>
-                              {league.code}
-                            </Typography>
+                      {/* Stats row — rank+points when squad exists, else league meta */}
+                      {(() => {
+                        const sq = squad;
+                        if (sq?.rank) {
+                          const rankChange = sq.rankChange ?? (sq.previousRank && sq.rank ? sq.previousRank - sq.rank : null);
+                          const RankArrow = rankChange == null ? null
+                            : rankChange > 0 ? <TrendingUp sx={{ fontSize: 12, color: '#22c55e' }} />
+                            : rankChange < 0 ? <TrendingDown sx={{ fontSize: 12, color: '#ef4444' }} />
+                            : <Remove sx={{ fontSize: 12, color: alpha('#fff', 0.3) }} />;
+                          return (
+                            <Box display="flex" alignItems="center" gap={1.5} mb={1.5}>
+                              {/* Rank badge */}
+                              <Box display="flex" alignItems="center" gap={0.5} sx={{
+                                bgcolor: alpha(colors.orange.primary, 0.1),
+                                border: `1px solid ${alpha(colors.orange.primary, 0.3)}`,
+                                borderRadius: 1,
+                                px: 0.75,
+                                py: 0.2,
+                              }}>
+                                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: colors.orange.primary, fontVariantNumeric: 'tabular-nums' }}>
+                                  #{sq.rank}
+                                </Typography>
+                                {RankArrow}
+                              </Box>
+                              <Box sx={{ width: '1px', height: 12, bgcolor: colors.border.subtle }} />
+                              {/* Points */}
+                              <Box display="flex" alignItems="center" gap={0.5}>
+                                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: colors.text.primary, fontVariantNumeric: 'tabular-nums' }}>
+                                  {sq.totalPoints ?? 0}
+                                </Typography>
+                                <Typography sx={{ fontSize: '0.65rem', color: alpha(colors.text.secondary, 0.45) }}>pts</Typography>
+                              </Box>
+                              <Box sx={{ width: '1px', height: 12, bgcolor: colors.border.subtle }} />
+                              {/* Participants */}
+                              <Box display="flex" alignItems="center" gap={0.5} sx={{ opacity: 0.55 }}>
+                                <People sx={{ fontSize: 13, color: colors.blue.light }} />
+                                <Typography fontSize="0.7rem" sx={{ color: colors.text.secondary, fontVariantNumeric: 'tabular-nums' }}>
+                                  {league.participants.length}<span style={{ opacity: 0.5 }}>/{league.maxParticipants}</span>
+                                </Typography>
+                              </Box>
+                            </Box>
+                          );
+                        }
+                        return (
+                          <Box display="flex" alignItems="center" gap={2} mb={1.5} sx={{ opacity: 0.65 }}>
+                            <Box display="flex" alignItems="center" gap={0.5}>
+                              <People sx={{ fontSize: 13, color: colors.blue.light }} />
+                              <Typography fontSize="0.7rem" sx={{ color: colors.text.secondary, fontVariantNumeric: 'tabular-nums' }}>
+                                {league.participants.length}<span style={{ opacity: 0.5 }}>/{league.maxParticipants}</span>
+                              </Typography>
+                            </Box>
+                            <Box sx={{ width: '1px', height: 12, bgcolor: colors.border.subtle }} />
+                            <Box display="flex" alignItems="center" gap={0.5}>
+                              <Schedule sx={{ fontSize: 13, color: colors.blue.light }} />
+                              <Typography fontSize="0.7rem" sx={{ color: colors.text.secondary }}>
+                                {new Date(league.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              </Typography>
+                            </Box>
+                            <Box sx={{ width: '1px', height: 12, bgcolor: colors.border.subtle }} />
+                            <Box display="flex" alignItems="center" gap={0.5}>
+                              <SwapHoriz sx={{ fontSize: 13, color: colors.blue.light }} />
+                              <Typography fontSize="0.7rem" sx={{ color: colors.text.secondary }}>
+                                {league.maxTransfers}
+                              </Typography>
+                            </Box>
                           </Box>
-                          <ContentCopy
-                            sx={{ ml: 'auto', fontSize: 15, color: copiedCode === league.code ? colors.success.primary : alpha(colors.text.secondary, 0.4) }}
-                          />
+                        );
+                      })()}
+
+                      {/* League Code + Invite — compact secondary row */}
+                      <Box display="flex" gap={0.75} alignItems="center" mt={0.5}>
+                        <Box display="flex" alignItems="center" gap={0.75} flex={1} sx={{
+                          border: `1px solid ${colors.border.subtle}`,
+                          borderRadius: 1,
+                          px: 1, py: '3px',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          '&:hover': { bgcolor: alpha(colors.blue.electric, 0.05) },
+                        }} onClick={(e) => { e.stopPropagation(); handleCopyCode(league.code); }}>
+                          <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.1em', color: alpha(colors.text.primary, 0.55), fontFamily: 'monospace' }}>
+                            {league.code}
+                          </Typography>
+                          <ContentCopy sx={{ ml: 'auto', fontSize: 12, color: copiedCode === league.code ? colors.success.primary : alpha(colors.text.secondary, 0.3) }} />
                           {copiedCode === league.code && (
-                            <Typography variant="caption" sx={{ color: colors.success.primary, whiteSpace: 'nowrap', fontSize: '0.7rem' }}>
-                              Copied!
-                            </Typography>
+                            <Typography sx={{ fontSize: '0.62rem', color: colors.success.primary, whiteSpace: 'nowrap' }}>Copied!</Typography>
                           )}
                         </Box>
-                        <Box
-                          display="flex"
-                          alignItems="center"
-                          gap={0.5}
-                          sx={{
-                            border: `1px solid ${colors.border.subtle}`,
-                            borderRadius: 1.5,
-                            p: '6px 10px',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                            '&:hover': { bgcolor: alpha(colors.blue.electric, 0.05), borderColor: colors.border.default }
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCopyInviteLink(league.code);
-                          }}
-                          title="Copy invite link"
-                        >
-                          <Share sx={{ fontSize: 15, color: copiedInvite === league.code ? colors.success.primary : alpha(colors.text.secondary, 0.4) }} />
+                        <Box display="flex" alignItems="center" gap={0.5} sx={{
+                          border: `1px solid ${colors.border.subtle}`,
+                          borderRadius: 1,
+                          px: 1, py: '3px',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          '&:hover': { bgcolor: alpha(colors.blue.electric, 0.05) },
+                        }} onClick={(e) => { e.stopPropagation(); handleCopyInviteLink(league.code); }} title="Copy invite link">
+                          <Share sx={{ fontSize: 13, color: copiedInvite === league.code ? colors.success.primary : alpha(colors.text.secondary, 0.3) }} />
                           {copiedInvite === league.code && (
-                            <Typography variant="caption" sx={{ color: colors.success.primary, whiteSpace: 'nowrap', fontSize: '0.7rem' }}>
-                              Copied!
-                            </Typography>
+                            <Typography sx={{ fontSize: '0.62rem', color: colors.success.primary, whiteSpace: 'nowrap' }}>Copied!</Typography>
                           )}
                         </Box>
                       </Box>
                     </CardContent>
 
-                    <CardActions sx={{ px: 2.5, pb: 2.5, pt: 0, gap: 1, borderTop: `1px solid ${colors.border.subtle}` }}>
+                    <CardActions sx={{ px: 2, pb: 2, pt: 1, gap: 0.75, borderTop: `1px solid ${colors.border.subtle}` }}>
                       {/* Manage Squad — primary CTA */}
                       <Button
                         variant="contained"
                         size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/leagues/${league.id}/squad`);
-                        }}
+                        onClick={(e) => { e.stopPropagation(); navigate(`/leagues/${league.id}/squad`); }}
                         sx={{
                           bgcolor: colors.blue.electric,
                           fontWeight: 600,
-                          px: 2,
-                          py: 0.75,
-                          fontSize: '0.8rem',
+                          px: 1.75,
+                          py: 0.5,
+                          fontSize: '0.75rem',
                           whiteSpace: 'nowrap',
-                          boxShadow: `0 3px 10px ${alpha(colors.blue.electric, 0.3)}`,
-                          '&:hover': {
-                            bgcolor: colors.blue.deep,
-                            boxShadow: `0 4px 14px ${alpha(colors.blue.electric, 0.45)}`,
-                            transform: 'translateY(-1px)',
-                          },
+                          boxShadow: `0 2px 8px ${alpha(colors.blue.electric, 0.3)}`,
+                          '&:hover': { bgcolor: colors.blue.deep, boxShadow: `0 4px 12px ${alpha(colors.blue.electric, 0.45)}`, transform: 'translateY(-1px)' },
                           transition: 'all 0.2s ease',
                         }}
                       >
                         Manage Squad
                       </Button>
-                      {/* Leaderboard — orange outlined, high-value branded destination */}
+                      {/* Leaderboard */}
                       <Button
                         variant="outlined"
                         size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/leagues/${league.id}/leaderboard`);
-                        }}
+                        onClick={(e) => { e.stopPropagation(); navigate(`/leagues/${league.id}/leaderboard`); }}
                         sx={{
-                          borderColor: colors.orange.primary,
+                          borderColor: alpha(colors.orange.primary, 0.6),
                           color: colors.orange.primary,
                           fontWeight: 600,
-                          px: 1.5,
-                          py: 0.75,
-                          fontSize: '0.8rem',
-                          '&:hover': {
-                            borderColor: colors.orange.light,
-                            bgcolor: alpha(colors.orange.primary, 0.08),
-                            transform: 'translateY(-1px)',
-                          },
+                          px: 1.25,
+                          py: 0.5,
+                          fontSize: '0.75rem',
+                          '&:hover': { borderColor: colors.orange.light, bgcolor: alpha(colors.orange.primary, 0.08), transform: 'translateY(-1px)' },
                           transition: 'all 0.2s ease',
                         }}
                       >
-                        Leaderboard
+                        Standings
                       </Button>
-                      {/* Teams — blue outlined, utility */}
+                      {/* Teams */}
                       {hasLeagueStarted(league.startDate) && (
                         <Button
                           variant="outlined"
                           size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/leagues/${league.id}/teams`);
-                          }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/leagues/${league.id}/teams`); }}
                           sx={{
-                            borderColor: alpha(colors.blue.electric, 0.5),
-                            color: colors.blue.light,
+                            borderColor: alpha(colors.blue.electric, 0.35),
+                            color: alpha(colors.blue.light, 0.8),
                             fontWeight: 600,
-                            px: 1.5,
-                            py: 0.75,
-                            fontSize: '0.8rem',
-                            '&:hover': {
-                              borderColor: colors.blue.electric,
-                              bgcolor: alpha(colors.blue.electric, 0.08),
-                              transform: 'translateY(-1px)',
-                            },
+                            px: 1.25,
+                            py: 0.5,
+                            fontSize: '0.75rem',
+                            '&:hover': { borderColor: colors.blue.electric, bgcolor: alpha(colors.blue.electric, 0.08), transform: 'translateY(-1px)' },
                             transition: 'all 0.2s ease',
                           }}
                         >

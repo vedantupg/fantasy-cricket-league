@@ -70,12 +70,12 @@ const LeagueNav: React.FC<LeagueNavProps> = ({
     { label: 'Squad', page: 'Squad', icon: <People />, path: `/leagues/${leagueId}/squad` },
     { label: 'Standings', page: 'Standings', icon: <EmojiEvents />, path: `/leagues/${leagueId}/leaderboard` },
     { label: 'Teams', page: 'Teams', icon: <Groups />, path: `/leagues/${leagueId}/teams` },
+    { label: 'Analytics', page: 'Analytics', icon: <BarChart />, path: `/leagues/${leagueId}/analytics` },
   ];
 
   const secondaryTabs = [
     { label: 'Schedule', page: 'Schedule', icon: <CalendarMonth />, path: `/leagues/${leagueId}/schedule` },
     { label: 'Rules', page: 'Rules', icon: <MenuBook />, path: `/leagues/${leagueId}/rules` },
-    { label: 'Analytics', page: 'Analytics', icon: <BarChart />, path: `/leagues/${leagueId}/analytics` },
     { label: 'Scoring', page: 'Scoring System', icon: <SportsScore />, path: `/leagues/${leagueId}/scoring` },
   ];
 

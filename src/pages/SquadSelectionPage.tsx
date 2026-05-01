@@ -39,7 +39,6 @@ import {
   PersonAdd,
   Close,
   SwapHoriz,
-  SwapVert,
   Star,
   Search,
   CheckCircle,
@@ -1994,77 +1993,6 @@ const SquadSelectionPage: React.FC = () => {
 
   const quickActions = (
     <Box display="flex" gap={{ xs: 1, sm: 2 }} alignItems="center" flexWrap="wrap">
-      {/* Transfer Info if deadline passed */}
-      {isDeadlinePassed && league && league.transferTypes && (
-        <Box display="flex" gap={{ xs: 0.5, sm: 1 }} flexWrap="wrap">
-          {league.transferTypes.benchTransfers.enabled && (() => {
-            const n = league.transferTypes.benchTransfers.maxAllowed - (existingSquad?.benchTransfersUsed || 0);
-            const color = '#9C27B0';
-            return (
-              <Chip
-                icon={<SwapVert fontSize="small" />}
-                label={` ${n} Bench`}
-                size="small"
-                variant="outlined"
-                sx={{
-                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                  height: { xs: 24, sm: 26 },
-                  borderRadius: '12px',
-                  borderColor: color,
-                  color: color,
-                  bgcolor: alpha(color, 0.08),
-                  '& .MuiChip-icon': { color: color, fontSize: 14 },
-                  fontWeight: 600,
-                  letterSpacing: '0.02em',
-                }}
-              />
-            );
-          })()}
-          {league.transferTypes.flexibleTransfers.enabled && (() => {
-            const n = league.transferTypes.flexibleTransfers.maxAllowed - (existingSquad?.flexibleTransfersUsed || 0);
-            const color = '#2196F3';
-            return (
-              <Chip
-                icon={<SwapHoriz fontSize="small" />}
-                label={` ${n} Flex`}
-                size="small"
-                variant="outlined"
-                sx={{
-                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                  height: { xs: 24, sm: 26 },
-                  borderRadius: '12px',
-                  borderColor: color,
-                  color: color,
-                  bgcolor: alpha(color, 0.08),
-                  '& .MuiChip-icon': { color: color, fontSize: 14 },
-                  fontWeight: 600,
-                  letterSpacing: '0.02em',
-                }}
-              />
-            );
-          })()}
-          {league.transferTypes.midSeasonTransfers.enabled && (() => {
-            const color = '#7B1FA2';
-            return (
-              <Chip
-                label="Mid-Season"
-                size="small"
-                variant="outlined"
-                sx={{
-                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                  height: { xs: 24, sm: 26 },
-                  borderRadius: '12px',
-                  borderColor: color,
-                  color: color,
-                  bgcolor: alpha(color, 0.08),
-                  fontWeight: 600,
-                  letterSpacing: '0.02em',
-                }}
-              />
-            );
-          })()}
-        </Box>
-      )}
       {/* ⚡ PP quick-activate button — compact, beside Make Transfer */}
       {isDeadlinePassed && league?.powerplayEnabled && (league.ppMatchMode ?? 'fixed') === 'activation' && !ppActivatedAt && !existingSquad?.ppActivatedAt && (
         <Button
@@ -2283,21 +2211,28 @@ const SquadSelectionPage: React.FC = () => {
                 >
                   {/* Row 1: compact status line + submitted chip + arrow */}
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    {!squadSummaryOpen && (
-                      <Typography sx={{
-                        fontSize: '0.8rem', fontWeight: 600, lineHeight: 1,
-                        color: isPlayersValid ? alpha('#fff', 0.5) : 'error.main',
-                        letterSpacing: '0.01em',
-                      }}>
-                        {regularCount}/{squadMax}{isPlayersValid ? ' ✓' : ''}
-                        {league?.squadRules?.overseasPlayersEnabled ? ` • ${overseasCount} OS` : ''}
-                        {(() => {
-                          if (!league?.transferTypes?.wildcardTransfers?.enabled) return '';
-                          const n = (league.transferTypes!.wildcardTransfers!.maxAllowed) - (existingSquad?.wildcardTransfersUsed ?? 0);
-                          return n > 0 ? ` • ${n}W ⚡` : '';
-                        })()}
-                      </Typography>
-                    )}
+                    {!squadSummaryOpen && (() => {
+                        const benchN = league?.transferTypes?.benchTransfers?.enabled
+                          ? (league.transferTypes!.benchTransfers!.maxAllowed) - (existingSquad?.benchTransfersUsed ?? 0) : 0;
+                        const flexN = league?.transferTypes?.flexibleTransfers?.enabled
+                          ? (league.transferTypes!.flexibleTransfers!.maxAllowed) - (existingSquad?.flexibleTransfersUsed ?? 0) : 0;
+                        const wildcardN = league?.transferTypes?.wildcardTransfers?.enabled
+                          ? (league.transferTypes!.wildcardTransfers!.maxAllowed) - (existingSquad?.wildcardTransfersUsed ?? 0) : 0;
+                        return (
+                          <Typography component="div" sx={{
+                            fontSize: '0.8rem', fontWeight: 600, lineHeight: 1,
+                            color: isPlayersValid ? alpha('#fff', 0.5) : 'error.main',
+                            letterSpacing: '0.01em',
+                            display: 'flex', alignItems: 'center', flexWrap: 'wrap',
+                          }}>
+                            <span>{regularCount}/{squadMax}{isPlayersValid ? ' ✓' : ''}</span>
+                            {league?.squadRules?.overseasPlayersEnabled && <><Box component="span" sx={{ mx: '3px', opacity: 0.3 }}>•</Box><span>{overseasCount} OS</span></>}
+                            {benchN > 0 && <><Box component="span" sx={{ mx: '3px', opacity: 0.3 }}>•</Box><Box component="span" sx={{ color: '#9C27B0' }}>{benchN} bench</Box></>}
+                            {flexN > 0 && <><Box component="span" sx={{ mx: '3px', opacity: 0.3 }}>•</Box><Box component="span" sx={{ color: '#2196F3' }}>{flexN} flex</Box></>}
+                            {wildcardN > 0 && <><Box component="span" sx={{ mx: '3px', opacity: 0.3 }}>•</Box><span>{wildcardN}W ⚡</span></>}
+                          </Typography>
+                        );
+                      })()}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto' }}>
                       {existingSquad && (
                         <StatusChip status={existingSquad.isSubmitted ? 'submitted' : 'draft'} />
@@ -2440,6 +2375,58 @@ const SquadSelectionPage: React.FC = () => {
                       }}
                     />
                   )}
+                  {/* Bench / Flex / Wildcard remaining transfers */}
+                  {league?.transferTypes?.benchTransfers?.enabled && (() => {
+                    const n = league.transferTypes!.benchTransfers!.maxAllowed - (existingSquad?.benchTransfersUsed ?? 0);
+                    if (n <= 0) return null;
+                    return (
+                      <Chip
+                        label={`${n} Bench left`}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          fontFamily: "'Satoshi', sans-serif", fontWeight: 500,
+                          fontSize: { xs: '0.6875rem', sm: '0.75rem' },
+                          height: { xs: 26, sm: 28 },
+                          bgcolor: 'rgba(156,39,176,0.08)', borderColor: 'rgba(156,39,176,0.35)', color: '#9C27B0',
+                        }}
+                      />
+                    );
+                  })()}
+                  {league?.transferTypes?.flexibleTransfers?.enabled && (() => {
+                    const n = league.transferTypes!.flexibleTransfers!.maxAllowed - (existingSquad?.flexibleTransfersUsed ?? 0);
+                    if (n <= 0) return null;
+                    return (
+                      <Chip
+                        label={`${n} Flex left`}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          fontFamily: "'Satoshi', sans-serif", fontWeight: 500,
+                          fontSize: { xs: '0.6875rem', sm: '0.75rem' },
+                          height: { xs: 26, sm: 28 },
+                          bgcolor: 'rgba(33,150,243,0.08)', borderColor: 'rgba(33,150,243,0.25)', color: '#2196F3',
+                        }}
+                      />
+                    );
+                  })()}
+                  {league?.transferTypes?.wildcardTransfers?.enabled && (() => {
+                    const n = league.transferTypes!.wildcardTransfers!.maxAllowed - (existingSquad?.wildcardTransfersUsed ?? 0);
+                    if (n <= 0) return null;
+                    return (
+                      <Chip
+                        label={`${n} Wildcard left`}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          fontFamily: "'Satoshi', sans-serif", fontWeight: 500,
+                          fontSize: { xs: '0.6875rem', sm: '0.75rem' },
+                          height: { xs: 26, sm: 28 },
+                          bgcolor: 'rgba(255,215,0,0.06)', borderColor: 'rgba(255,215,0,0.3)', color: '#FFD700',
+                        }}
+                      />
+                    );
+                  })()}
                   {league?.hiddenPlayerEnabled && hiddenPlayerId && (() => {
                     const hp = availablePlayers.find(p => p.id === hiddenPlayerId);
                     return hp ? (
@@ -3263,7 +3250,7 @@ const CricketPitchFormation: React.FC<{
                   <>
                   <Box sx={{ p: 1.5, bgcolor: 'rgba(255,193,7,0.06)', border: '1px solid rgba(255,193,7,0.2)', borderRadius: 1.5 }}>
                     <Typography variant="body2" color="warning.main" sx={{ fontWeight: 800, lineHeight: 1.3, mb: 0.5 }}>
-                      Score 2× points. Select the match where you double your score.
+                      Score 2x points for a match you select.
                     </Typography>
                     <Collapse in={ppDescOpen}>
                       <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.6, display: 'block', mb: 0.5 }}>
