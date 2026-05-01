@@ -95,7 +95,7 @@ const ViewTeamsPage: React.FC = () => {
         setLoading(true);
         setError('');
 
-        const [leagueData, squadsData] = await Promise.all([
+        const [leagueData, allSquadsData] = await Promise.all([
           leagueService.getById(leagueId),
           squadService.getByLeague(leagueId)
         ]);
@@ -103,15 +103,18 @@ const ViewTeamsPage: React.FC = () => {
         if (leagueData) {
           setLeague(leagueData);
 
+          // Only work with submitted squads
+          const squadsData = allSquadsData.filter(s => s.isSubmitted);
+
           // Check if current user has submitted their squad
           const currentUserSquad = squadsData.find(squad => squad.userId === user?.uid);
 
-          if (!currentUserSquad || !currentUserSquad.isSubmitted) {
+          if (!currentUserSquad) {
             setError('You must submit your squad before viewing other participants.');
             return;
           }
 
-          // Fetch user data for each squad
+          // Fetch user data for each submitted squad
           const squadsWithUsers = await Promise.all(
             squadsData.map(async (squad) => {
               try {

@@ -36,7 +36,7 @@ import {
 import Tooltip from '@mui/material/Tooltip';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { leagueService, userService, squadService } from '../services/firestore';
+import { leagueService, userService, squadService, leaderboardSnapshotService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
 import LeagueAssistant from '../components/LeagueAssistant';
 import type { League, User } from '../types/database';
@@ -46,6 +46,7 @@ interface ParticipantInfo {
   userId: string;
   userData: User | null;
   hasSubmittedSquad: boolean;
+  squadId?: string;
 }
 
 const LeagueDashboardPage: React.FC = () => {
@@ -57,6 +58,7 @@ const LeagueDashboardPage: React.FC = () => {
   const [deleting, setDeleting] = useState(false);
   const [participants, setParticipants] = useState<ParticipantInfo[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [forcingSubmit, setForcingSubmit] = useState<Set<string>>(new Set());
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -107,11 +109,12 @@ const LeagueDashboardPage: React.FC = () => {
           league.participants.map(async (userId) => {
             try {
               const userData = await userService.getById(userId);
-              const hasSubmittedSquad = squads.some(squad => squad.userId === userId && squad.isSubmitted);
+              const userSquad = squads.find(squad => squad.userId === userId);
               return {
                 userId,
                 userData,
-                hasSubmittedSquad
+                hasSubmittedSquad: userSquad?.isSubmitted ?? false,
+                squadId: userSquad?.id,
               };
             } catch (err) {
               console.error(`Error fetching user ${userId}:`, err);
@@ -134,6 +137,22 @@ const LeagueDashboardPage: React.FC = () => {
 
     loadParticipants();
   }, [league, isAdmin, leagueId]);
+
+  const handleForceSubmit = async (userId: string, squadId: string) => {
+    if (!leagueId) return;
+    setForcingSubmit(prev => new Set(prev).add(userId));
+    try {
+      await squadService.update(squadId, { isSubmitted: true, submittedAt: new Date() });
+      await leaderboardSnapshotService.create(leagueId);
+      setParticipants(prev =>
+        prev.map(p => p.userId === userId ? { ...p, hasSubmittedSquad: true } : p)
+      );
+    } catch (err) {
+      console.error('Error force submitting squad:', err);
+    } finally {
+      setForcingSubmit(prev => { const next = new Set(prev); next.delete(userId); return next; });
+    }
+  };
 
   const handleEditLeague = () => {
     navigate(`/leagues/${leagueId}/edit`);
@@ -607,17 +626,41 @@ const LeagueDashboardPage: React.FC = () => {
                         }}
                       />
                     ) : (
-                      <Chip
-                        label="Not Submitted"
-                        size="small"
-                        sx={{
-                          bgcolor: alpha(colors.text.secondary, 0.06),
-                          color: alpha(colors.text.secondary, 0.45),
-                          border: `1px solid ${alpha(colors.text.secondary, 0.12)}`,
-                          fontWeight: 500,
-                          fontSize: '0.7rem',
-                        }}
-                      />
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Chip
+                          label="Not Submitted"
+                          size="small"
+                          sx={{
+                            bgcolor: alpha(colors.text.secondary, 0.06),
+                            color: alpha(colors.text.secondary, 0.45),
+                            border: `1px solid ${alpha(colors.text.secondary, 0.12)}`,
+                            fontWeight: 500,
+                            fontSize: '0.7rem',
+                          }}
+                        />
+                        {participant.squadId && (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            disabled={forcingSubmit.has(participant.userId)}
+                            onClick={() => handleForceSubmit(participant.userId, participant.squadId!)}
+                            sx={{
+                              fontSize: '0.65rem',
+                              py: 0.25,
+                              px: 1,
+                              minWidth: 0,
+                              borderColor: alpha(colors.warning.primary, 0.5),
+                              color: colors.warning.light,
+                              '&:hover': {
+                                borderColor: colors.warning.primary,
+                                bgcolor: alpha(colors.warning.primary, 0.08),
+                              },
+                            }}
+                          >
+                            {forcingSubmit.has(participant.userId) ? 'Submitting…' : 'Force Submit'}
+                          </Button>
+                        )}
+                      </Box>
                     )}
                   </ListItem>
                 ))}
