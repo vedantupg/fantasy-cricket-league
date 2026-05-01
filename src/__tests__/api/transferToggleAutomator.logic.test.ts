@@ -20,6 +20,156 @@ function createSchedule(matches: RawMatch[]) {
   }));
 }
 
+// IST is UTC+5:30. Helper to format a UTC Date as IST for human-readable assertions.
+function toIST(d: Date): string {
+  const ist = new Date(d.getTime() + 5.5 * 60 * 60 * 1000);
+  const hh = String(ist.getUTCHours()).padStart(2, '0');
+  const mm = String(ist.getUTCMinutes()).padStart(2, '0');
+  return `${hh}:${mm} IST`;
+}
+
+describe('BUSINESS RULES: when does the automator disable transfers?', () => {
+  it('Rule 1: when a day has 2+ matches, disable at 09:55 UTC = 3:25 PM IST (10:00 UTC fallback - 5min buffer)', () => {
+    const schedule = createSchedule([
+      { matchNumber: 1, date: '2026-04-29T00:00:00.000Z', timeGMT: '' },
+      { matchNumber: 2, date: '2026-04-29T00:00:00.000Z', timeGMT: '' },
+    ]);
+
+    const boundary = getDisableBoundaries(schedule)[0];
+    const utcStr = boundary.toISOString();
+    const istStr = toIST(boundary);
+
+    // eslint-disable-next-line no-console
+    console.log(`\n  [Rule 1] 2-match day -> disable at: ${utcStr} (${istStr})`);
+
+    expect(utcStr).toBe('2026-04-29T09:55:00.000Z');
+    expect(istStr).toBe('15:25 IST'); // 3:25 PM IST
+  });
+
+  it('Rule 2: when a day has 1 match, disable at 13:55 UTC = 7:25 PM IST (14:00 UTC fallback - 5min buffer)', () => {
+    const schedule = createSchedule([
+      { matchNumber: 1, date: '2026-04-29T00:00:00.000Z', timeGMT: '' },
+    ]);
+
+    const boundary = getDisableBoundaries(schedule)[0];
+    const utcStr = boundary.toISOString();
+    const istStr = toIST(boundary);
+
+    // eslint-disable-next-line no-console
+    console.log(`  [Rule 2] 1-match day -> disable at: ${utcStr} (${istStr})`);
+
+    expect(utcStr).toBe('2026-04-29T13:55:00.000Z');
+    expect(istStr).toBe('19:25 IST'); // 7:25 PM IST
+  });
+
+  it('Rule 3: when timeGMT is provided, disable at parsed time minus 5min buffer (overrides fallback)', () => {
+    // Real IPL match: 7:30 PM IST = 14:00 UTC. Buffer takes us to 13:55 UTC = 7:25 PM IST.
+    const schedule = createSchedule([
+      { matchNumber: 1, date: '2026-04-29T00:00:00.000Z', timeGMT: '14:00' },
+    ]);
+
+    const boundary = getDisableBoundaries(schedule)[0];
+    // eslint-disable-next-line no-console
+    console.log(`  [Rule 3] parsed timeGMT=14:00 -> disable at: ${boundary.toISOString()} (${toIST(boundary)})`);
+    expect(boundary.toISOString()).toBe('2026-04-29T13:55:00.000Z');
+    expect(toIST(boundary)).toBe('19:25 IST');
+  });
+
+  it('Rule 4: parsed timeGMT prefers the EARLIEST match if multiple are parsable (e.g., 3:30 PM IST first match)', () => {
+    // Two matches on same day: first at 3:30 PM IST (10:00 UTC), second at 7:30 PM IST (14:00 UTC).
+    // Boundary = earliest (10:00 UTC) - 5min = 09:55 UTC = 3:25 PM IST.
+    const schedule = createSchedule([
+      { matchNumber: 1, date: '2026-04-29T00:00:00.000Z', timeGMT: '10:00' },
+      { matchNumber: 2, date: '2026-04-29T00:00:00.000Z', timeGMT: '14:00' },
+    ]);
+
+    const boundary = getDisableBoundaries(schedule)[0];
+    // eslint-disable-next-line no-console
+    console.log(`  [Rule 4] 2 parsable matches (10:00 + 14:00 UTC) -> disable at: ${boundary.toISOString()} (${toIST(boundary)})`);
+    expect(boundary.toISOString()).toBe('2026-04-29T09:55:00.000Z');
+    expect(toIST(boundary)).toBe('15:25 IST');
+  });
+
+  it('Rule 5: each match day in a tournament gets its own boundary, in chronological order', () => {
+    const schedule = createSchedule([
+      { matchNumber: 1, date: '2026-04-29T00:00:00.000Z', timeGMT: '' }, // 1 match -> 13:55 UTC
+      { matchNumber: 2, date: '2026-04-30T00:00:00.000Z', timeGMT: '' }, // 1 match -> 13:55 UTC
+      { matchNumber: 3, date: '2026-05-01T00:00:00.000Z', timeGMT: '' }, // 2 matches -> 09:55 UTC
+      { matchNumber: 4, date: '2026-05-01T00:00:00.000Z', timeGMT: '' },
+    ]);
+
+    const boundaries = getDisableBoundaries(schedule);
+    // eslint-disable-next-line no-console
+    console.log('  [Rule 5] tournament boundaries:');
+    boundaries.forEach((b) => {
+      // eslint-disable-next-line no-console
+      console.log(`           ${b.toISOString()} (${toIST(b)})`);
+    });
+
+    expect(boundaries.map((b) => b.toISOString())).toEqual([
+      '2026-04-29T13:55:00.000Z', // day 1: 1 match
+      '2026-04-30T13:55:00.000Z', // day 2: 1 match
+      '2026-05-01T09:55:00.000Z', // day 3: 2 matches
+    ]);
+  });
+
+  it('Rule 6: cron skips when no boundary has been reached yet (before today\'s deadline)', () => {
+    const schedule = createSchedule([
+      { matchNumber: 1, date: '2026-04-29T00:00:00.000Z', timeGMT: '' },
+    ]);
+
+    // 1 minute before deadline (13:54 UTC = 7:24 PM IST)
+    const oneMinBefore = new Date('2026-04-29T13:54:00.000Z');
+    const decision = evaluateDisableDecision(schedule, oneMinBefore, null, null, false);
+
+    // eslint-disable-next-line no-console
+    console.log(`  [Rule 6] at ${oneMinBefore.toISOString()} (${toIST(oneMinBefore)}) -> shouldDisable=${decision.shouldDisable} (${decision.reason})`);
+    expect(decision.shouldDisable).toBe(false);
+    expect(decision.reason).toBe('no_boundary_reached_yet');
+  });
+
+  it('Rule 7: cron disables EXACTLY at the deadline (boundary time)', () => {
+    const schedule = createSchedule([
+      { matchNumber: 1, date: '2026-04-29T00:00:00.000Z', timeGMT: '' },
+    ]);
+
+    const exactlyAt = new Date('2026-04-29T13:55:00.000Z');
+    const decision = evaluateDisableDecision(schedule, exactlyAt, null, null, true);
+
+    // eslint-disable-next-line no-console
+    console.log(`  [Rule 7] at ${exactlyAt.toISOString()} (${toIST(exactlyAt)}) -> shouldDisable=${decision.shouldDisable} (${decision.reason})`);
+    expect(decision.shouldDisable).toBe(true);
+  });
+
+  it('Rule 8: once disabled, stays disabled (no flapping) — but re-enabling toggles WILL trigger re-disable', () => {
+    const schedule = createSchedule([
+      { matchNumber: 1, date: '2026-04-29T00:00:00.000Z', timeGMT: '' },
+    ]);
+
+    // First cron at boundary disables
+    const t1 = new Date('2026-04-29T13:55:00.000Z');
+    const after1 = evaluateDisableDecision(schedule, t1, null, null, true);
+    // eslint-disable-next-line no-console
+    console.log(`  [Rule 8a] cron @ ${toIST(t1)}: shouldDisable=${after1.shouldDisable} (${after1.reason})`);
+    expect(after1.shouldDisable).toBe(true);
+
+    // Cron at 14:30, toggles already off -> SKIP
+    const t2 = new Date('2026-04-29T14:30:00.000Z');
+    const after2 = evaluateDisableDecision(schedule, t2, t1, 'disabled', false);
+    // eslint-disable-next-line no-console
+    console.log(`  [Rule 8b] cron @ ${toIST(t2)} (toggles off): shouldDisable=${after2.shouldDisable} (${after2.reason})`);
+    expect(after2.shouldDisable).toBe(false);
+
+    // Admin re-enables; cron at 16:00 -> SELF-HEAL re-disable
+    const t3 = new Date('2026-04-29T16:00:00.000Z');
+    const after3 = evaluateDisableDecision(schedule, t3, t1, 'disabled', true);
+    // eslint-disable-next-line no-console
+    console.log(`  [Rule 8c] cron @ ${toIST(t3)} (toggles ON again): shouldDisable=${after3.shouldDisable} (${after3.reason})`);
+    expect(after3.shouldDisable).toBe(true);
+    expect(after3.reason).toBe('reopened_after_boundary_self_heal');
+  });
+});
+
 describe('transfer-toggle-automator boundary calculation', () => {
   it('parses 12-hour and 24-hour GMT time strings', () => {
     const matchDate = new Date('2026-06-02T00:00:00.000Z');
