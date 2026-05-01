@@ -23,21 +23,18 @@ import {
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import {
-  People,
-  Schedule,
-  EmojiEvents,
   Edit as EditIcon,
   Delete as DeleteIcon,
   CalendarMonth,
-  ArrowBack,
   AdminPanelSettings,
-  SwapHoriz as SwapHorizIcon
+  SwapHoriz as SwapHorizIcon,
+  Bolt as BoltIcon,
 } from '@mui/icons-material';
-import Tooltip from '@mui/material/Tooltip';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { leagueService, userService, squadService, leaderboardSnapshotService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
+import LeagueNav from '../components/common/LeagueNav';
 import LeagueAssistant from '../components/LeagueAssistant';
 import type { League, User } from '../types/database';
 import colors from '../theme/colors';
@@ -230,30 +227,73 @@ const LeagueDashboardPage: React.FC = () => {
     }
   };
 
+  const now2 = new Date();
+  const midSeasonCfg = league?.transferTypes?.midSeasonTransfers;
+  const midSeasonOpen = midSeasonCfg?.enabled &&
+    midSeasonCfg.windowStartDate && midSeasonCfg.windowEndDate &&
+    now2 >= new Date(midSeasonCfg.windowStartDate) &&
+    now2 <= new Date(midSeasonCfg.windowEndDate);
+  const transfersOpen = !!(league?.benchChangesEnabled || league?.flexibleChangesEnabled || league?.wildcardChangesEnabled || midSeasonOpen);
+
+  const navActions = (
+    <>
+      {league?.powerplayEnabled && (
+        <Button
+          variant="contained"
+          size="small"
+          onClick={() => navigate(`/leagues/${leagueId}/squad`)}
+          sx={{
+            background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+            color: '#000',
+            fontWeight: 700,
+            fontSize: '0.85rem',
+            px: 1.5,
+            py: { xs: 0.5, sm: 0.75 },
+            borderRadius: 2,
+            minWidth: 'auto',
+            boxShadow: '0 4px 14px rgba(245,158,11,0.4)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)',
+              transform: 'translateY(-1px)',
+            },
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <BoltIcon sx={{ mr: 0.25, color: '#000', fontSize: '1rem' }} /> PP
+        </Button>
+      )}
+      <Button
+        variant="outlined"
+        size="small"
+        disabled={!transfersOpen}
+        startIcon={<SwapHorizIcon />}
+        onClick={() => navigate(`/leagues/${leagueId}/squad?openTransfer=true`)}
+        sx={{
+          fontWeight: 600,
+          fontSize: '0.8rem',
+          px: 1.5,
+          py: 0.5,
+          borderColor: transfersOpen ? 'rgba(0,229,255,0.5)' : undefined,
+          color: transfersOpen ? 'rgba(0,229,255,0.9)' : undefined,
+          '&:hover': { borderColor: 'rgba(0,229,255,0.8)', bgcolor: 'rgba(0,229,255,0.08)' },
+        }}
+      >
+        Transfers
+      </Button>
+    </>
+  );
+
   return (
     <Box>
       <AppHeader />
-      <Container maxWidth="lg" sx={{ py: 4, pb: { xs: '88px', md: 4 } }}>
-
-      {/* Back navigation */}
-      <Button
-        variant="text"
-        startIcon={<ArrowBack fontSize="small" />}
-        onClick={() => navigate('/dashboard')}
-        sx={{
-          mb: 2,
-          color: alpha(colors.text.secondary, 0.7),
-          fontWeight: 500,
-          fontSize: '0.85rem',
-          pl: 0,
-          '&:hover': {
-            color: colors.text.secondary,
-            bgcolor: 'transparent',
-          },
-        }}
-      >
-        Back to Leagues
-      </Button>
+      <LeagueNav
+        leagueName={league.name}
+        leagueId={leagueId!}
+        currentPage="Overview"
+        backPath="/dashboard"
+        actions={navActions}
+      />
+      <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3, md: 4 }, px: { xs: 2, sm: 3 }, pb: { xs: '88px', md: 4 } }}>
 
       {/* Header */}
       <Box
@@ -330,40 +370,37 @@ const LeagueDashboardPage: React.FC = () => {
 
       <Grid container spacing={3}>
         {/* League Info */}
-        <Grid size={{ xs: 12, md: 8 }}>
+        <Grid size={{ xs: 12 }}>
           <Card sx={cardSx}>
             <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom fontWeight={600} sx={{ mb: 3 }}>
+              <Typography variant="h6" fontWeight={600} sx={{ mb: 2.5 }}>
                 League Information
               </Typography>
 
-              <Box display="flex" alignItems="center" gap={1.5} mb={2.5}>
-                <People fontSize="small" sx={{ color: colors.blue.light }} />
-                <Typography variant="body2" sx={{ color: colors.text.secondary }}>
-                  <Box component="span" sx={{ color: colors.text.primary, fontWeight: 600 }}>
-                    {league.participants.length}/{league.maxParticipants}
-                  </Box>{' '}participants
-                </Typography>
-              </Box>
-
-              <Box display="flex" alignItems="center" gap={1.5} mb={2.5}>
-                <Schedule fontSize="small" sx={{ color: colors.blue.light }} />
-                <Typography variant="body2" sx={{ color: colors.text.secondary }}>
-                  Tournament:{' '}
-                  <Box component="span" sx={{ color: colors.text.primary, fontWeight: 500 }}>
-                    {new Date(league.startDate).toLocaleDateString()} – {new Date(league.endDate).toLocaleDateString()}
-                  </Box>
-                </Typography>
-              </Box>
-
-              <Box display="flex" alignItems="center" gap={1.5} mb={2.5}>
-                <EmojiEvents fontSize="small" sx={{ color: colors.blue.light }} />
-                <Typography variant="body2" sx={{ color: colors.text.secondary }}>
-                  <Box component="span" sx={{ color: colors.text.primary, fontWeight: 600 }}>
-                    {league.maxTransfers}
-                  </Box>{' '}transfers allowed
-                </Typography>
-              </Box>
+              <Grid container spacing={1.5} sx={{ mb: 2 }}>
+                {[
+                  { label: 'PARTICIPANTS', value: `${league.participants.length} / ${league.maxParticipants}` },
+                  { label: 'TOURNAMENT', value: `${new Date(league.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(league.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` },
+                  { label: 'TRANSFERS', value: `${league.maxTransfers} allowed` },
+                  { label: 'FORMAT', value: league.format },
+                ].map(({ label, value }) => (
+                  <Grid key={label} size={{ xs: 6, sm: 3 }}>
+                    <Box sx={{
+                      bgcolor: alpha(colors.blue.electric, 0.04),
+                      border: `1px solid ${colors.border.subtle}`,
+                      borderRadius: 2,
+                      p: 1.5,
+                    }}>
+                      <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.08em', color: alpha(colors.text.secondary, 0.45), textTransform: 'uppercase', mb: 0.5 }}>
+                        {label}
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: colors.text.primary, lineHeight: 1.3 }}>
+                        {value}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
 
               <Box
                 sx={{
@@ -386,126 +423,12 @@ const LeagueDashboardPage: React.FC = () => {
           </Card>
         </Grid>
 
-        {/* Quick Actions */}
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Card sx={cardSx}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom fontWeight={600} sx={{ mb: 2.5 }}>
-                Quick Actions
-              </Typography>
-
-              {/* Manage Squad — primary CTA */}
-              <Button
-                fullWidth
-                variant="contained"
-                sx={{
-                  mb: 1.5,
-                  fontWeight: 600,
-                  fontSize: '0.8rem',
-                  bgcolor: colors.blue.electric,
-                  boxShadow: `0 4px 14px ${alpha(colors.blue.electric, 0.35)}`,
-                  '&:hover': {
-                    bgcolor: colors.blue.deep,
-                    boxShadow: `0 6px 18px ${alpha(colors.blue.electric, 0.5)}`,
-                    transform: 'translateY(-1px)',
-                  },
-                  transition: 'all 0.2s ease',
-                }}
-                onClick={() => navigate(`/leagues/${leagueId}/squad`)}
-              >
-                Manage Squad
-              </Button>
-
-              {/* Make Transfer — enabled when any transfer type is active */}
-              {(() => {
-                const now = new Date();
-                const midSeasonCfg = league?.transferTypes?.midSeasonTransfers;
-                const midSeasonOpen = midSeasonCfg?.enabled &&
-                  midSeasonCfg.windowStartDate &&
-                  midSeasonCfg.windowEndDate &&
-                  now >= new Date(midSeasonCfg.windowStartDate) &&
-                  now <= new Date(midSeasonCfg.windowEndDate);
-                const transfersOpen = !!(league?.benchChangesEnabled || league?.flexibleChangesEnabled || league?.wildcardChangesEnabled || midSeasonOpen);
-                return (
-                  <Tooltip title={transfersOpen ? '' : 'Transfers are currently closed'} placement="top">
-                    <span style={{ display: 'block', marginBottom: 12 }}>
-                      <Button
-                        fullWidth
-                        variant="outlined"
-                        disabled={!transfersOpen}
-                        startIcon={<SwapHorizIcon />}
-                        sx={{
-                          fontWeight: 600,
-                          borderColor: transfersOpen ? 'rgba(0,229,255,0.5)' : undefined,
-                          color: transfersOpen ? 'rgba(0,229,255,0.9)' : undefined,
-                          '&:hover': {
-                            borderColor: 'rgba(0,229,255,0.8)',
-                            bgcolor: 'rgba(0,229,255,0.08)',
-                            transform: 'translateY(-1px)',
-                          },
-                          transition: 'all 0.2s ease',
-                        }}
-                        onClick={() => navigate(`/leagues/${leagueId}/squad?openTransfer=true`)}
-                      >
-                        Make Transfer
-                      </Button>
-                    </span>
-                  </Tooltip>
-                );
-              })()}
-
-              {/* View Leaderboard — high-value branded destination */}
-              <Button
-                fullWidth
-                variant="outlined"
-                sx={{
-                  mb: 1.5,
-                  fontWeight: 600,
-                  borderColor: colors.orange.primary,
-                  color: colors.orange.primary,
-                  '&:hover': {
-                    borderColor: colors.orange.light,
-                    bgcolor: alpha(colors.orange.primary, 0.08),
-                    transform: 'translateY(-1px)',
-                  },
-                  transition: 'all 0.2s ease',
-                }}
-                onClick={() => navigate(`/leagues/${leagueId}/leaderboard`)}
-              >
-                View Leaderboard
-              </Button>
-
-              {/* Match Schedule — informational utility, blue */}
-              <Button
-                fullWidth
-                variant="outlined"
-                sx={{
-                  mb: 1.5,
-                  fontWeight: 600,
-                  borderColor: alpha(colors.blue.electric, 0.5),
-                  color: colors.blue.light,
-                  '&:hover': {
-                    borderColor: colors.blue.electric,
-                    bgcolor: alpha(colors.blue.electric, 0.08),
-                    transform: 'translateY(-1px)',
-                  },
-                  transition: 'all 0.2s ease',
-                }}
-                startIcon={<CalendarMonth />}
-                onClick={() => navigate(`/leagues/${leagueId}/schedule`)}
-              >
-                Match Schedule
-              </Button>
-
-            </CardContent>
-          </Card>
-
-          {/* Admin Actions - Only visible to league admins */}
-          {isAdmin && (
+        {/* Admin Actions - Only visible to league admins */}
+        {isAdmin && (
+          <Grid size={{ xs: 12, md: 6, lg: 4 }}>
             <Card
               sx={{
                 ...cardSx,
-                mt: 3,
                 borderTop: `2px solid ${alpha(colors.warning.primary, 0.4)}`,
                 '&::before': {
                   ...cardSx['&::before'],
@@ -561,8 +484,8 @@ const LeagueDashboardPage: React.FC = () => {
                 </Button>
               </CardContent>
             </Card>
-          )}
-        </Grid>
+          </Grid>
+        )}
       </Grid>
 
       {/* Participants List - Admin Only */}
