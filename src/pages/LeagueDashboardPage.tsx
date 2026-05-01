@@ -233,7 +233,7 @@ const LeagueDashboardPage: React.FC = () => {
   return (
     <Box>
       <AppHeader />
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ py: 4, pb: { xs: '88px', md: 4 } }}>
 
       {/* Back navigation */}
       <Button

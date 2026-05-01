@@ -318,7 +318,7 @@ const LeaderboardPage: React.FC = () => {
         />
       )}
 
-      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3, md: 4 } }}>
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3, md: 4 }, pb: { xs: '88px', md: 4 } }}>
         {/* League Info */}
         {/* 🎨 CUSTOMIZATION ZONE - LEAGUE INFO CARD */}
         <Card sx={{

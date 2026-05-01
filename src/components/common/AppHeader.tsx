@@ -10,6 +10,7 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
+import colors from '../../theme/colors';
 import { Home, Dashboard, NotificationsOutlined, NotificationsOff } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -103,12 +104,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
             sx={{
               minHeight: 'auto',
               '& .MuiTabs-indicator': {
-                backgroundColor: '#FF9800',
+                backgroundColor: colors.blue.electric,
                 height: 3,
                 borderRadius: '3px 3px 0 0'
               },
               '& .MuiTab-root': {
-                minHeight: 'auto',
+                minHeight: 44,
                 py: { xs: 1, sm: 1.5 },
                 px: { xs: 1.5, sm: 3 },
                 minWidth: { xs: 'auto', sm: 90 },
@@ -117,11 +118,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
                 fontSize: { xs: '0.75rem', sm: '0.95rem' },
                 color: alpha(theme.palette.text.primary, 0.6),
                 '&.Mui-selected': {
-                  color: '#FF9800',
+                  color: colors.blue.electric,
                 },
                 '&:hover': {
-                  color: '#FF9800',
-                  backgroundColor: 'rgba(255,152,0,0.06)',
+                  color: colors.blue.electric,
+                  backgroundColor: alpha(colors.blue.electric, 0.06),
                 }
               }
             }}
@@ -146,10 +147,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({ hideNavigation = false }) => {
           <>
             <Tooltip title={notificationsEnabled ? 'Notifications on' : 'Notifications off'}>
               <IconButton
-                size="small"
                 onClick={handleBellToggle}
                 aria-label="Toggle notifications"
                 sx={{
+                  width: 44,
+                  height: 44,
                   color: notificationsEnabled
                     ? theme.palette.primary.main
                     : alpha(theme.palette.text.primary, 0.35),

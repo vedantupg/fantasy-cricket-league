@@ -239,7 +239,7 @@ const ViewTeamsPage: React.FC = () => {
         />
       )}
 
-      <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3, md: 4 }, px: { xs: 2, sm: 3 } }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3, md: 4 }, px: { xs: 2, sm: 3 }, pb: { xs: '88px', md: 4 } }}>
         {/* Page Header */}
         <Box sx={{
           position: 'relative', pl: 3, py: 2, mb: 4,
