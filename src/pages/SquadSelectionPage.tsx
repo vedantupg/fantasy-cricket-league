@@ -2740,12 +2740,6 @@ const CricketPitchFormation: React.FC<{
   const pitchTheme = useTheme();
   const isMobileSlot = useMediaQuery(pitchTheme.breakpoints.down('sm'));
 
-  const handleOpenPpDialog = () => {
-    setPpDialogStep('select');
-    setPpMatchPending('');
-    setPpDialogOpen(true);
-  };
-
   const handlePpDialogNext = () => {
     setPpDialogStep('confirm');
   };
