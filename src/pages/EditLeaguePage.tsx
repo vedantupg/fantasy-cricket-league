@@ -237,6 +237,18 @@ const EditLeaguePage: React.FC = () => {
         ppActivationEnabled,
       };
 
+      // If admin manually re-enables any auto-managed toggle, clear the prior
+      // 'disabled' marker so the cron will re-evaluate on the next boundary
+      // instead of skipping the league as already-handled.
+      const adminTurnedSomethingOn =
+        flexibleChangesEnabled || benchChangesEnabled || ppActivationEnabled;
+      if (adminTurnedSomethingOn && league?.lastAutoToggleAction === 'disabled') {
+        // Use Firestore field deletion sentinel via undefined — leagueService.update
+        // forwards undefined as deleteField on supported clients.
+        (updates as any).lastAutoToggleAction = null;
+        (updates as any).lastAutoToggleUpdate = null;
+      }
+
       await leagueService.update(leagueId, updates);
 
       setSuccess('League updated successfully!');
