@@ -92,6 +92,8 @@ const SquadSelectionPage: React.FC = () => {
   const [squadSummaryOpen, setSquadSummaryOpen] = useState(true);
   const [ppMatchConfirmOpen, setPpMatchConfirmOpen] = useState(false);
   const [ppMatchPending, setPpMatchPending] = useState('');
+  const [ppDialogOpen, setPpDialogOpen] = useState(false);
+  const [ppDialogStep, setPpDialogStep] = useState<'select' | 'confirm' | 'success'>('select');
   const [hiddenPlayerId, setHiddenPlayerId] = useState<string | null>(null);
   const [hiddenPlayerSearch, setHiddenPlayerSearch] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
@@ -115,6 +117,7 @@ const SquadSelectionPage: React.FC = () => {
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [isLeagueStarted, setIsLeagueStarted] = useState(false);
   const [canMakeTransfer, setCanMakeTransfer] = useState(false);
+  const [noticeDismissed, setNoticeDismissed] = useState(false);
 
   // Predictions state
   const [topRunScorer, setTopRunScorer] = useState('');
@@ -249,6 +252,30 @@ const SquadSelectionPage: React.FC = () => {
 
     loadLeagueAndPlayers();
   }, [leagueId, user]);
+
+  // Check if the deadline/transfer notice was dismissed in the last 24h
+  useEffect(() => {
+    if (!user?.uid || !leagueId) return;
+    const raw = localStorage.getItem(`fcl_notice_${user.uid}_${leagueId}`);
+    if (raw) {
+      try {
+        const { dismissedAt } = JSON.parse(raw);
+        if (Date.now() - dismissedAt < 24 * 60 * 60 * 1000) setNoticeDismissed(true);
+      } catch { /* ignore malformed entry */ }
+    }
+  }, [user?.uid, leagueId]);
+
+  const handleDismissNotice = () => {
+    if (!user?.uid || !leagueId) return;
+    localStorage.setItem(`fcl_notice_${user.uid}_${leagueId}`, JSON.stringify({ dismissedAt: Date.now() }));
+    setNoticeDismissed(true);
+  };
+
+  const handleOpenPpDialog = () => {
+    setPpDialogStep('select');
+    setPpMatchPending('');
+    setPpDialogOpen(true);
+  };
 
   // Populate selectedPlayers from existing squad after players are loaded
   useEffect(() => {
@@ -1935,7 +1962,7 @@ const SquadSelectionPage: React.FC = () => {
     return 'Submit Squad';
   };
 
-  const StatusBanner = ({ severity, children }: { severity: 'warning' | 'info' | 'success' | 'error'; children: React.ReactNode }) => {
+  const StatusBanner = ({ severity, children, onDismiss }: { severity: 'warning' | 'info' | 'success' | 'error'; children: React.ReactNode; onDismiss?: () => void }) => {
     const cfg = {
       warning: { color: '#FF9800', icon: <WarningAmberRounded /> },
       info:    { color: '#2196F3', icon: <InfoOutlined /> },
@@ -1953,9 +1980,14 @@ const SquadSelectionPage: React.FC = () => {
         mb: { xs: 1.5, sm: 2 },
       }}>
         {React.cloneElement(cfg.icon, { sx: { color: cfg.color, fontSize: 18, mt: 0.2, flexShrink: 0 } })}
-        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: { xs: '0.75rem', sm: '0.8125rem' }, lineHeight: 1.5 }}>
+        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: { xs: '0.75rem', sm: '0.8125rem' }, lineHeight: 1.5, flex: 1 }}>
           {children}
         </Typography>
+        {onDismiss && (
+          <IconButton size="small" onClick={onDismiss} sx={{ color: alpha(cfg.color, 0.5), p: 0.25, flexShrink: 0, '&:hover': { color: cfg.color } }}>
+            <Close sx={{ fontSize: 16 }} />
+          </IconButton>
+        )}
       </Box>
     );
   };
@@ -2031,28 +2063,35 @@ const SquadSelectionPage: React.FC = () => {
               />
             );
           })()}
-          {league.transferTypes.wildcardTransfers?.enabled && (() => {
-            const n = (league.transferTypes!.wildcardTransfers!.maxAllowed) - (existingSquad?.wildcardTransfersUsed ?? 0);
-            const color = '#FFD700';
-            return (
-              <Chip
-                label={` ${n} Wildcard`}
-                size="small"
-                variant="outlined"
-                sx={{
-                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                  height: { xs: 24, sm: 26 },
-                  borderRadius: '12px',
-                  borderColor: color,
-                  color: color,
-                  bgcolor: alpha(color, 0.08),
-                  fontWeight: 600,
-                  letterSpacing: '0.02em',
-                }}
-              />
-            );
-          })()}
         </Box>
+      )}
+      {/* ⚡ PP quick-activate button — compact, beside Make Transfer */}
+      {isDeadlinePassed && league?.powerplayEnabled && (league.ppMatchMode ?? 'fixed') === 'activation' && !ppActivatedAt && !existingSquad?.ppActivatedAt && (
+        <Button
+          variant="contained"
+          size="small"
+          disabled={!(league?.ppActivationEnabled)}
+          onClick={handleOpenPpDialog}
+          sx={{
+            minWidth: 0,
+            px: 1.5,
+            py: { xs: 0.5, sm: 0.75 },
+            fontWeight: 700,
+            fontSize: '0.85rem',
+            color: '#000',
+            background: 'linear-gradient(135deg, #FFD700, #FF8C00)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+            borderRadius: 2,
+            '&:hover': { background: 'linear-gradient(135deg, #FFE44D, #FF9F00)', boxShadow: '0 4px 16px rgba(0,0,0,0.5)' },
+            '&.Mui-disabled': {
+              background: 'linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,140,0,0.3))',
+              color: 'rgba(0,0,0,0.4)',
+              boxShadow: 'none',
+            },
+          }}
+        >
+          <BoltIcon fontSize="small" sx={{ mr: 0.25, color: '#000' }} />PP
+        </Button>
       )}
       {isDeadlinePassed && existingSquad ? (
         <Button
@@ -2061,9 +2100,18 @@ const SquadSelectionPage: React.FC = () => {
           startIcon={<SwapHoriz />}
           onClick={() => setTransferModalOpen(true)}
           disabled={!canMakeTransfer}
-          sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, px: { xs: 1.5, sm: 2 }, py: { xs: 0.5, sm: 1 } }}
+          sx={{
+            minWidth: 0,
+            px: 1.5,
+            py: { xs: 0.5, sm: 0.75 },
+            fontWeight: 700,
+            fontSize: '0.85rem',
+            borderRadius: 2,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+            '&:hover': { boxShadow: '0 4px 16px rgba(0,0,0,0.5)' },
+          }}
         >
-          Make Transfer
+          Transfers
         </Button>
       ) : (
         <Box display="flex" gap={1}>
@@ -2146,7 +2194,7 @@ const SquadSelectionPage: React.FC = () => {
         />
       )}
 
-      <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 1.5, sm: 2 } }}>
+      <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 1.5, sm: 2 }, pb: { xs: '88px', md: 2 } }}>
         {/* Status Alerts */}
         {existingSquad?.isSubmitted && !isDeadlinePassed && (
           <StatusBanner severity="success">
@@ -2154,13 +2202,13 @@ const SquadSelectionPage: React.FC = () => {
           </StatusBanner>
         )}
 
-        {isDeadlinePassed && (
+        {isDeadlinePassed && !noticeDismissed && (
           canMakeTransfer ? (
-            <StatusBanner severity="info">
+            <StatusBanner severity="info" onDismiss={handleDismissNotice}>
               Squad Deadline Passed. Your squad is locked. You can only make changes using available transfers.
             </StatusBanner>
           ) : (
-            <StatusBanner severity="warning">
+            <StatusBanner severity="warning" onDismiss={handleDismissNotice}>
               Transfers are currently disabled.
               {!isLeagueStarted && ' The league has not started yet.'}
               {isLeagueStarted && !league?.flexibleChangesEnabled && !league?.benchChangesEnabled && ' No transfer types are enabled by the league admin.'}
@@ -2231,53 +2279,56 @@ const SquadSelectionPage: React.FC = () => {
                 {/* Header — always visible, clickable to expand/collapse */}
                 <Box
                   onClick={() => setSquadSummaryOpen((o: boolean) => !o)}
-                  sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: squadSummaryOpen ? 2 : 0, cursor: 'pointer', userSelect: 'none' }}
+                  sx={{ display: 'flex', flexDirection: 'column', mb: squadSummaryOpen ? 2 : 0, cursor: 'pointer', userSelect: 'none', gap: !squadSummaryOpen ? 0.75 : 0 }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Typography variant="h6" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 600, fontSize: { xs: '0.9375rem', sm: '1.0625rem' }, letterSpacing: '0.01em' }}>
-                      Squad Summary
-                    </Typography>
+                  {/* Row 1: compact status line + submitted chip + arrow */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     {!squadSummaryOpen && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                        {/* Quick-glance: player count */}
-                        <Box sx={{ px: 1, py: 0.25, borderRadius: 1, bgcolor: isPlayersValid ? alpha(elBlue, 0.12) : alpha('#F44336', 0.12), border: `1px solid ${isPlayersValid ? alpha(elBlue, 0.3) : alpha('#F44336', 0.3)}` }}>
-                          <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: isPlayersValid ? elBlue : 'error.main', letterSpacing: '0.05em', fontFamily: "'Satoshi', sans-serif", lineHeight: 1 }}>
-                            {regularCount}/{squadMax}{isPlayersValid ? ' ✓' : ''}
-                          </Typography>
-                        </Box>
-                        {/* Overseas count */}
-                        {league?.squadRules?.overseasPlayersEnabled && (
-                          <Box sx={{ px: 1, py: 0.25, borderRadius: 1, bgcolor: alpha('#2196F3', 0.08), border: `1px solid ${alpha('#2196F3', 0.2)}` }}>
-                            <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: '#2196F3', letterSpacing: '0.05em', fontFamily: "'Satoshi', sans-serif", lineHeight: 1 }}>
-                              {overseasCount} OS
+                      <Typography sx={{
+                        fontSize: '0.8rem', fontWeight: 600, lineHeight: 1,
+                        color: isPlayersValid ? alpha('#fff', 0.5) : 'error.main',
+                        letterSpacing: '0.01em',
+                      }}>
+                        {regularCount}/{squadMax}{isPlayersValid ? ' ✓' : ''}
+                        {league?.squadRules?.overseasPlayersEnabled ? ` • ${overseasCount} OS` : ''}
+                        {(() => {
+                          if (!league?.transferTypes?.wildcardTransfers?.enabled) return '';
+                          const n = (league.transferTypes!.wildcardTransfers!.maxAllowed) - (existingSquad?.wildcardTransfersUsed ?? 0);
+                          return n > 0 ? ` • ${n}W ⚡` : '';
+                        })()}
+                      </Typography>
+                    )}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto' }}>
+                      {existingSquad && (
+                        <StatusChip status={existingSquad.isSubmitted ? 'submitted' : 'draft'} />
+                      )}
+                      {squadSummaryOpen ? <ExpandLessIcon fontSize="small" sx={{ color: 'text.secondary' }} /> : <ExpandMoreIcon fontSize="small" sx={{ color: 'text.secondary' }} />}
+                    </Box>
+                  </Box>
+                  {/* Row 2: C / VC / XF — colored text, no pill */}
+                  {!squadSummaryOpen && (captainId || viceCaptainId || xFactorId) && (
+                    <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+                      {[
+                        { label: 'C', id: captainId, color: '#FFB300' },
+                        { label: 'VC', id: viceCaptainId, color: '#9C27B0' },
+                        { label: 'XF', id: xFactorId, color: themeColors.blue.light },
+                      ].map(({ label, id, color }) => {
+                        const p = id ? availablePlayers.find(pl => pl.id === id) : null;
+                        if (!p) return null;
+                        const lastName = p.name.split(' ').slice(-1)[0];
+                        return (
+                          <Box key={label} sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
+                            <Typography sx={{ fontSize: '0.65rem', fontWeight: 500, color: alpha(color, 0.65), lineHeight: 1 }}>
+                              {label}
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color, lineHeight: 1 }}>
+                              {lastName}
                             </Typography>
                           </Box>
-                        )}
-                        {/* C / VC / XF last names */}
-                        {[
-                          { label: 'C', id: captainId, color: '#FFB300' },
-                          { label: 'VC', id: viceCaptainId, color: '#9C27B0' },
-                          { label: 'XF', id: xFactorId, color: themeColors.blue.light },
-                        ].map(({ label, id, color }) => {
-                          const p = id ? availablePlayers.find(pl => pl.id === id) : null;
-                          if (!p) return null;
-                          return (
-                            <Box key={label} sx={{ px: 1, py: 0.25, borderRadius: 1, bgcolor: alpha(color, 0.1), border: `1px solid ${alpha(color, 0.3)}` }}>
-                              <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color, letterSpacing: '0.05em', fontFamily: "'Satoshi', sans-serif", lineHeight: 1 }}>
-                                {label}: {p.name.split(' ').slice(-1)[0]}
-                              </Typography>
-                            </Box>
-                          );
-                        })}
-                      </Box>
-                    )}
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {existingSquad && (
-                      <StatusChip status={existingSquad.isSubmitted ? 'submitted' : 'draft'} />
-                    )}
-                    {squadSummaryOpen ? <ExpandLessIcon fontSize="small" sx={{ color: 'text.secondary' }} /> : <ExpandMoreIcon fontSize="small" sx={{ color: 'text.secondary' }} />}
-                  </Box>
+                        );
+                      })}
+                    </Box>
+                  )}
                 </Box>
 
                 <Collapse in={squadSummaryOpen}>
@@ -2469,6 +2520,10 @@ const SquadSelectionPage: React.FC = () => {
               submitting={submitting}
               onSavePredictionsAndHiddenPlayer={handleSavePredictionsAndHiddenPlayer}
               onAddPlayer={addPlayerToSquad}
+              ppDialogOpen={ppDialogOpen}
+              setPpDialogOpen={setPpDialogOpen}
+              ppDialogStep={ppDialogStep}
+              setPpDialogStep={setPpDialogStep}
             />
           </Grid>
 
@@ -2670,9 +2725,12 @@ const CricketPitchFormation: React.FC<{
   submitting: boolean;
   onSavePredictionsAndHiddenPlayer: () => Promise<void>;
   onAddPlayer: (player: Player, position: 'regular' | 'bench') => void;
-}> = ({ league, selectedPlayers, onRemovePlayer, onUpdatePosition, powerplayMatch, setPowerplayMatch, maxPowerplayMatches, ppActivatedAt, onActivatePP, ppActivationEnabled, ppMatchConfirmOpen, setPpMatchConfirmOpen, ppMatchPending, setPpMatchPending, onConfirmPpMatch, captainId, viceCaptainId, xFactorId, onSetSpecialRole, existingSquad, calculatePlayerContribution, readOnly, isDeadlinePassed, hiddenPlayerId, hiddenPlayerSearch, setHiddenPlayerSearch, onSelectHiddenPlayer, availablePlayers, submitting, onSavePredictionsAndHiddenPlayer, onAddPlayer }) => {
+  ppDialogOpen: boolean;
+  setPpDialogOpen: (v: boolean) => void;
+  ppDialogStep: 'select' | 'confirm' | 'success';
+  setPpDialogStep: (v: 'select' | 'confirm' | 'success') => void;
+}> = ({ league, selectedPlayers, onRemovePlayer, onUpdatePosition, powerplayMatch, setPowerplayMatch, maxPowerplayMatches, ppActivatedAt, onActivatePP, ppActivationEnabled, ppMatchConfirmOpen, setPpMatchConfirmOpen, ppMatchPending, setPpMatchPending, onConfirmPpMatch, captainId, viceCaptainId, xFactorId, onSetSpecialRole, existingSquad, calculatePlayerContribution, readOnly, isDeadlinePassed, hiddenPlayerId, hiddenPlayerSearch, setHiddenPlayerSearch, onSelectHiddenPlayer, availablePlayers, submitting, onSavePredictionsAndHiddenPlayer, onAddPlayer, ppDialogOpen, setPpDialogOpen, ppDialogStep, setPpDialogStep }) => {
 
-  const [ppDialogOpen, setPpDialogOpen] = useState(false);
   const [slotPickerOpen, setSlotPickerOpen] = useState(false);
   const [slotPickerRole, setSlotPickerRole] = useState<string | null>(null);
   const [slotPickerTarget, setSlotPickerTarget] = useState<'regular' | 'bench'>('regular');
@@ -2681,7 +2739,6 @@ const CricketPitchFormation: React.FC<{
   const [ppDescOpen, setPpDescOpen] = useState(false);
   const pitchTheme = useTheme();
   const isMobileSlot = useMediaQuery(pitchTheme.breakpoints.down('sm'));
-  const [ppDialogStep, setPpDialogStep] = useState<'select' | 'confirm' | 'success'>('select');
 
   const handleOpenPpDialog = () => {
     setPpDialogStep('select');
@@ -3209,53 +3266,25 @@ const CricketPitchFormation: React.FC<{
               <Box>
                 {!ppActivatedAt && !existingSquad?.ppActivatedAt ? (
                   /* Not yet activated */
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                    <Box sx={{ p: 1.5, bgcolor: 'rgba(255,193,7,0.06)', border: '1px solid rgba(255,193,7,0.2)', borderRadius: 1.5 }}>
-                      <Typography variant="body2" fontWeight="600" color="warning.main" sx={{ mb: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <BoltIcon fontSize="inherit" />On-Demand Powerplay
+                  <>
+                  <Box sx={{ p: 1.5, bgcolor: 'rgba(255,193,7,0.06)', border: '1px solid rgba(255,193,7,0.2)', borderRadius: 1.5 }}>
+                    <Typography variant="body2" color="warning.main" sx={{ fontWeight: 800, lineHeight: 1.3, mb: 0.5 }}>
+                      Score 2× points. Select the match where you double your score.
+                    </Typography>
+                    <Collapse in={ppDescOpen}>
+                      <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.6, display: 'block', mb: 0.5 }}>
+                        You can use this anytime during the league, just like transfers. After activation, pick any upcoming match as your Powerplay match. Only matches scheduled after your activation time will appear. This is a one-time action and cannot be undone once activated.
                       </Typography>
-                      <Typography variant="body2" color="warning.main" sx={{ fontWeight: 800, lineHeight: 1.3, mb: 0.5 }}>
-                        Score 2× points. Select the match where you double your score.
-                      </Typography>
-                      <Collapse in={ppDescOpen}>
-                        <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.6, display: 'block', mb: 0.5 }}>
-                          You can use this anytime during the league, just like transfers. After activation, pick any upcoming match as your Powerplay match. Only matches scheduled after your activation time will appear. This is a one-time action and cannot be undone once activated.
-                        </Typography>
-                      </Collapse>
-                      <Link component="button" variant="caption" onClick={() => setPpDescOpen((o: boolean) => !o)} sx={{ color: 'warning.main', opacity: 0.75, fontWeight: 600, cursor: 'pointer' }}>
-                        {ppDescOpen ? 'Show less' : 'Read more'}
-                      </Link>
                       {isDeadlinePassed && !ppActivationEnabled && (
-                        <Typography variant="caption" color="error.main" sx={{ display: 'block', mt: 0.5 }}>
+                        <Typography variant="caption" color="error.main" sx={{ mt: 0.5 }}>
                           The admin needs to enable PP activation before you can proceed.
                         </Typography>
                       )}
-                    </Box>
-                    <Button
-                      variant="contained"
-                      disabled={!ppActivationEnabled}
-                      onClick={handleOpenPpDialog}
-                      sx={{
-                        fontFamily: "'Satoshi', sans-serif",
-                        fontWeight: 700,
-                        letterSpacing: '0.04em',
-                        alignSelf: 'flex-start',
-                        background: 'linear-gradient(135deg, #FFD700, #FF8C00)',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-                        borderRadius: 3,
-                        px: 3,
-                        py: 1.2,
-                        color: '#000',
-                        '&:hover': { boxShadow: '0 4px 16px rgba(0,0,0,0.5)', background: 'linear-gradient(135deg, #FFE44D, #FF9F00)' },
-                        '&.Mui-disabled': {
-                          background: 'linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,140,0,0.3))',
-                          color: 'rgba(255,215,0,0.75)',
-                          boxShadow: 'none',
-                        },
-                      }}
-                    >
-                      <BoltIcon fontSize="small" sx={{ mr: 0.5 }} />Activate Powerplay
-                    </Button>
+                    </Collapse>
+                    <Link component="button" variant="caption" onClick={() => setPpDescOpen((o: boolean) => !o)} sx={{ color: 'warning.main', opacity: 0.75, fontWeight: 600, cursor: 'pointer' }}>
+                      {ppDescOpen ? 'Show less' : 'Read more'}
+                    </Link>
+                  </Box>
 
                     {/* 2-step PP Activation Dialog */}
                     <Dialog open={ppDialogOpen} onClose={() => ppDialogStep !== 'success' && setPpDialogOpen(false)} maxWidth="xs" fullWidth>
@@ -3356,7 +3385,7 @@ const CricketPitchFormation: React.FC<{
                         </>
                       )}
                     </Dialog>
-                  </Box>
+                  </>
                 ) : (
                   /* Activated — show dropdown filtered to future matches */
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>

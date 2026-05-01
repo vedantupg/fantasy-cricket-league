@@ -679,7 +679,7 @@ const ScoringSystemPage: React.FC = () => {
         />
       )}
 
-      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3, md: 4 } }}>
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3, md: 4 }, pb: { xs: '88px', md: 4 } }}>
         <Box sx={{
           position: 'relative', pl: 3, py: 2, mb: 4,
           '&::before': {
