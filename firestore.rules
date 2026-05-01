@@ -49,6 +49,11 @@ service cloud.firestore {
              get(/databases/$(database)/documents/leagues/$(leagueId)).data.benchChangesEnabled == true;
     }
 
+    function areWildcardChangesEnabled(leagueId) {
+      return exists(/databases/$(database)/documents/leagues/$(leagueId)) &&
+             get(/databases/$(database)/documents/leagues/$(leagueId)).data.wildcardChangesEnabled == true;
+    }
+
     function isBeforeSquadDeadline(leagueId) {
       return exists(/databases/$(database)/documents/leagues/$(leagueId)) &&
              request.time < get(/databases/$(database)/documents/leagues/$(leagueId)).data.squadDeadline;
@@ -105,7 +110,8 @@ service cloud.firestore {
                         canManageLeague(resource.data.leagueId) ||
                         isBeforeSquadDeadline(resource.data.leagueId) ||
                         areFlexibleChangesEnabled(resource.data.leagueId) ||
-                        areBenchChangesEnabled(resource.data.leagueId));
+                        areBenchChangesEnabled(resource.data.leagueId) ||
+                        areWildcardChangesEnabled(resource.data.leagueId));
 
       allow delete: if canManageLeague(resource.data.leagueId);
     }
