@@ -118,7 +118,23 @@ function getDisableBoundaries(schedule) {
   return getDisableBoundaryDetails(schedule).map((entry) => entry.boundary);
 }
 
-function evaluateDisableDecision(schedule, currentTime, lastAutoToggleUpdate, lastAutoToggleAction) {
+/**
+ * Evaluate whether the cron should disable toggles right now.
+ *
+ * Self-healing dedupe: a league is considered "already handled" only when:
+ *   1) the latest reached boundary has been processed (lastAutoToggleUpdate >= latest), AND
+ *   2) the toggles we manage are actually OFF in Firestore.
+ *
+ * If either condition fails (e.g. admin re-enabled toggles mid-day, or a previous cron run
+ * crashed before writing), we re-disable on the next cycle instead of silently skipping.
+ */
+function evaluateDisableDecision(
+  schedule,
+  currentTime,
+  lastAutoToggleUpdate,
+  lastAutoToggleAction,
+  togglesCurrentlyOn
+) {
   const boundaryDetails = getDisableBoundaryDetails(schedule);
   const reachedBoundaryDetails = boundaryDetails.filter((entry) => entry.boundary.getTime() <= currentTime.getTime());
   const nextBoundaryDetail = boundaryDetails.find((entry) => entry.boundary.getTime() > currentTime.getTime()) || null;
@@ -135,14 +151,28 @@ function evaluateDisableDecision(schedule, currentTime, lastAutoToggleUpdate, la
   }
 
   const latestReachedBoundary = reachedBoundaryDetails[reachedBoundaryDetails.length - 1];
-  if (
+  const alreadyProcessed =
     lastAutoToggleAction === 'disabled' &&
     lastAutoToggleUpdate instanceof Date &&
-    lastAutoToggleUpdate.getTime() >= latestReachedBoundary.boundary.getTime()
-  ) {
+    lastAutoToggleUpdate.getTime() >= latestReachedBoundary.boundary.getTime();
+
+  // Self-heal: only skip if processed AND toggles are actually off.
+  // togglesCurrentlyOn defaults to false for backward compatibility (legacy callers).
+  if (alreadyProcessed && togglesCurrentlyOn !== true) {
     return {
       shouldDisable: false,
       reason: 'already_disabled_for_latest_boundary',
+      latestReachedBoundary,
+      nextBoundary: nextBoundaryDetail,
+      reachedCount: reachedBoundaryDetails.length,
+      totalBoundaries: boundaryDetails.length
+    };
+  }
+
+  if (alreadyProcessed && togglesCurrentlyOn === true) {
+    return {
+      shouldDisable: true,
+      reason: 'reopened_after_boundary_self_heal',
       latestReachedBoundary,
       nextBoundary: nextBoundaryDetail,
       reachedCount: reachedBoundaryDetails.length,
@@ -160,8 +190,20 @@ function evaluateDisableDecision(schedule, currentTime, lastAutoToggleUpdate, la
   };
 }
 
-function shouldDisableNow(schedule, currentTime, lastAutoToggleUpdate, lastAutoToggleAction) {
-  return evaluateDisableDecision(schedule, currentTime, lastAutoToggleUpdate, lastAutoToggleAction).shouldDisable;
+function shouldDisableNow(
+  schedule,
+  currentTime,
+  lastAutoToggleUpdate,
+  lastAutoToggleAction,
+  togglesCurrentlyOn
+) {
+  return evaluateDisableDecision(
+    schedule,
+    currentTime,
+    lastAutoToggleUpdate,
+    lastAutoToggleAction,
+    togglesCurrentlyOn
+  ).shouldDisable;
 }
 
 function formatBoundaryLog(boundaryDetail, label) {
@@ -342,17 +384,24 @@ export default async function handler(req, res) {
           continue;
         }
 
-        const decision = evaluateDisableDecision(
-          league.matchSchedule,
-          currentTime,
-          league.lastAutoToggleUpdate,
-          league.lastAutoToggleAction
-        );
-        const shouldDisable = decision.shouldDisable;
         const currentFlexibleState = league.flexibleChangesEnabled || false;
         const currentBenchState = league.benchChangesEnabled || false;
         const managesPowerplayActivation = league.powerplayEnabled && (league.ppMatchMode ?? 'fixed') === 'activation';
         const currentPpActivationState = league.ppActivationEnabled || false;
+
+        const togglesCurrentlyOn =
+          currentFlexibleState ||
+          currentBenchState ||
+          (managesPowerplayActivation && currentPpActivationState);
+
+        const decision = evaluateDisableDecision(
+          league.matchSchedule,
+          currentTime,
+          league.lastAutoToggleUpdate,
+          league.lastAutoToggleAction,
+          togglesCurrentlyOn
+        );
+        const shouldDisable = decision.shouldDisable;
 
         const needsTransferUpdate =
           shouldDisable &&

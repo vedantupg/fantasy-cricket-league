@@ -2,8 +2,10 @@ name: Transfer Window Automation
 
 on:
   schedule:
-    # Runs every 10 minutes
-    - cron: '*/10 * * * *'
+    # Runs every 5 minutes for tighter disable windows.
+    # GitHub-hosted runners can be queued, so actual run time may drift
+    # by a few minutes; 5min cadence keeps drift bounded.
+    - cron: '*/5 * * * *'
   
   # Allows manual triggering from GitHub Actions tab
   workflow_dispatch:
