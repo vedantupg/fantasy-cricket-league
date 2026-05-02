@@ -39,7 +39,7 @@ import {
   SportsBaseball,
   GolfCourse,
 } from '@mui/icons-material';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { alpha } from '@mui/material/styles';
 import { useAuth } from '../contexts/AuthContext';
 import colors from '../theme/colors';
@@ -81,6 +81,7 @@ const cardSx = {
 const ViewTeamsPage: React.FC = () => {
   const { leagueId } = useParams<{ leagueId: string }>();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [league, setLeague] = useState<League | null>(null);
   const [squads, setSquads] = useState<SquadWithUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -368,11 +369,15 @@ const ViewTeamsPage: React.FC = () => {
                     <Box display="flex" alignItems="center" gap={{ xs: 1.5, sm: 2 }}>
                       <Avatar
                         src={squad.user?.profilePicUrl}
+                        onClick={() => squad.user?.uid && navigate(`/user/${squad.user.uid}`)}
                         sx={{
                           background: `linear-gradient(135deg, ${colors.blue.deep}, ${colors.blue.electric})`,
                           boxShadow: `0 0 0 2px ${alpha(colors.blue.electric, 0.2)}`,
                           width: { xs: 48, sm: 56 },
-                          height: { xs: 48, sm: 56 }
+                          height: { xs: 48, sm: 56 },
+                          cursor: squad.user?.uid ? 'pointer' : 'default',
+                          transition: 'box-shadow 0.2s',
+                          '&:hover': squad.user?.uid ? { boxShadow: `0 0 0 3px ${alpha(colors.blue.electric, 0.5)}` } : {},
                         }}
                       >
                         {squad.user?.displayName?.charAt(0) || squad.squadName.charAt(0)}
@@ -400,14 +405,24 @@ const ViewTeamsPage: React.FC = () => {
                           {squad.squadName}
                         </Typography>
                       </Box>
-                      {squad.isSubmitted && (
-                        <Chip
-                          label="Submitted"
-                          color="success"
-                          size="small"
-                          sx={{ flexShrink: 0, bgcolor: alpha(colors.green.primary, 0.15), color: colors.green.light, borderColor: alpha(colors.green.primary, 0.4), border: '1px solid' }}
-                        />
-                      )}
+                      <Box display="flex" flexDirection="column" alignItems="flex-end" gap={0.5} flexShrink={0}>
+                        {squad.isSubmitted && (
+                          <Chip
+                            label="Submitted"
+                            color="success"
+                            size="small"
+                            sx={{ bgcolor: alpha(colors.green.primary, 0.15), color: colors.green.light, borderColor: alpha(colors.green.primary, 0.4), border: '1px solid', fontSize: '0.65rem' }}
+                          />
+                        )}
+                        {squad.user?.uid && (
+                          <Chip
+                            label="View Profile"
+                            size="small"
+                            onClick={() => navigate(`/user/${squad.user!.uid}`)}
+                            sx={{ fontSize: '0.62rem', fontWeight: 600, cursor: 'pointer', bgcolor: alpha(colors.blue.electric, 0.1), color: colors.blue.light, border: `1px solid ${alpha(colors.blue.electric, 0.3)}`, '&:hover': { bgcolor: alpha(colors.blue.electric, 0.2) } }}
+                          />
+                        )}
+                      </Box>
                     </Box>
                   </CardContent>
                 </Card>
@@ -417,7 +432,7 @@ const ViewTeamsPage: React.FC = () => {
         ) : (
           // After league starts: Show full team details
           <Grid container spacing={{ xs: 2, sm: 3 }}>
-            {filteredSquads.map((squad, index) => {
+            {filteredSquads.map((squad) => {
               const squadSize = league?.squadSize || 11;
 
               // Sort function to order by role: batsman -> allrounder -> wicketkeeper -> bowler
@@ -445,26 +460,40 @@ const ViewTeamsPage: React.FC = () => {
                       <Box display="flex" alignItems="center" gap={{ xs: 1.5, sm: 2 }} mb={2}>
                         <Avatar
                           src={squad.user?.profilePicUrl}
+                          onClick={() => squad.user?.uid && navigate(`/user/${squad.user.uid}`)}
                           sx={{
                             background: `linear-gradient(135deg, ${colors.blue.deep}, ${colors.blue.electric})`,
                             boxShadow: `0 0 0 2px ${alpha(colors.blue.electric, 0.2)}`,
                             width: { xs: 40, sm: 48 },
-                            height: { xs: 40, sm: 48 }
+                            height: { xs: 40, sm: 48 },
+                            cursor: squad.user?.uid ? 'pointer' : 'default',
+                            transition: 'box-shadow 0.2s',
+                            '&:hover': squad.user?.uid ? { boxShadow: `0 0 0 3px ${alpha(colors.blue.electric, 0.5)}` } : {},
                           }}
                         >
                           {squad.user?.displayName?.charAt(0) || squad.squadName.charAt(0)}
                         </Avatar>
                         <Box flex={1} minWidth={0}>
-                          <Typography variant="h6" sx={{
-                            fontFamily: "'Satoshi', sans-serif",
-                            fontWeight: 700,
-                            fontSize: { xs: '1rem', sm: '1.125rem' },
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}>
-                            {squad.squadName}
-                          </Typography>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Typography variant="h6" sx={{
+                              fontFamily: "'Satoshi', sans-serif",
+                              fontWeight: 700,
+                              fontSize: { xs: '1rem', sm: '1.125rem' },
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {squad.squadName}
+                            </Typography>
+                            {squad.user?.uid && (
+                              <Chip
+                                label="Profile"
+                                size="small"
+                                onClick={() => navigate(`/user/${squad.user!.uid}`)}
+                                sx={{ fontSize: '0.58rem', fontWeight: 600, cursor: 'pointer', height: 18, bgcolor: alpha(colors.blue.electric, 0.1), color: colors.blue.light, border: `1px solid ${alpha(colors.blue.electric, 0.3)}`, '& .MuiChip-label': { px: 0.75 }, '&:hover': { bgcolor: alpha(colors.blue.electric, 0.2) }, flexShrink: 0 }}
+                              />
+                            )}
+                          </Box>
                           <Typography variant="body2" sx={{
                             fontFamily: "'Satoshi', sans-serif",
                             fontWeight: 400,
@@ -474,17 +503,9 @@ const ViewTeamsPage: React.FC = () => {
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
                           }}>
-                            {squad.user?.displayName} • Rank #{squad.rank || index + 1} • {((squad.totalPoints || 0) + (squad.predictionBonusPoints || 0)).toFixed(2)} points
+                            {squad.user?.displayName} • Rank #{squad.rank ?? '—'} • {((squad.totalPoints || 0) + (squad.predictionBonusPoints || 0)).toFixed(2)} pts
                           </Typography>
                         </Box>
-                        {squad.isSubmitted && (
-                          <Chip
-                            label="Submitted"
-                            color="success"
-                            size="small"
-                            sx={{ flexShrink: 0 }}
-                          />
-                        )}
                       </Box>
 
                       {/* Hidden Player Section */}

@@ -11,6 +11,8 @@ import {
   Fab,
   Alert,
   LinearProgress,
+  Snackbar,
+  IconButton,
 } from '@mui/material';
 import Skeleton from '@mui/material/Skeleton';
 import {
@@ -29,6 +31,8 @@ import {
   TrendingUp,
   TrendingDown,
   Remove,
+  PushPin,
+  PushPinOutlined,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useRef } from 'react';
@@ -53,7 +57,26 @@ const LeagueListPage: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const pullStartY = useRef(0);
 
-  const { user, userData } = useAuth();
+  const { user, userData, updateUserProfile } = useAuth();
+  const [pinSnackbar, setPinSnackbar] = useState('');
+
+  const pinnedIds: string[] = (userData as any)?.pinnedLeagueIds ?? [];
+
+  const handlePinToggle = async (leagueId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const already = pinnedIds.includes(leagueId);
+    let next: string[];
+    if (already) {
+      next = pinnedIds.filter(id => id !== leagueId);
+    } else {
+      if (pinnedIds.length >= 3) {
+        setPinSnackbar('Max 3 leagues pinned. Unpin one first.');
+        return;
+      }
+      next = [...pinnedIds, leagueId];
+    }
+    await updateUserProfile({ pinnedLeagueIds: next } as any);
+  };
   const navigate = useNavigate();
 
   const loadLeagues = async () => {
@@ -425,8 +448,13 @@ const LeagueListPage: React.FC = () => {
             </CardContent>
           </Card>
         ) : (
-          <Grid container spacing={3}>
-            {leaguesWithSquads.map(({ league, squad }) => {
+          <>
+          {(() => {
+            const pinned = leaguesWithSquads.filter(l => pinnedIds.includes(l.league.id))
+              .sort((a, b) => pinnedIds.indexOf(a.league.id) - pinnedIds.indexOf(b.league.id));
+            const rest = leaguesWithSquads.filter(l => !pinnedIds.includes(l.league.id));
+            const renderCard = ({ league, squad }: { league: League; squad: LeagueSquad | null }) => {
+              const isPinned = pinnedIds.includes(league.id);
               const status = getSmartStatus(league, squad);
               const dotColor = status.color === 'success' ? colors.success.primary
                 : status.color === 'warning' ? colors.warning.primary
@@ -439,6 +467,10 @@ const LeagueListPage: React.FC = () => {
                   <Card
                     sx={{
                       ...cardSx,
+                      ...(isPinned && {
+                        border: `1px solid ${alpha('#F59E0B', 0.4)}`,
+                        boxShadow: `0 0 0 1px ${alpha('#F59E0B', 0.1)}, 0 4px 16px rgba(0,0,0,0.3)`,
+                      }),
                       height: '100%',
                       display: 'flex',
                       flexDirection: 'column',
@@ -503,6 +535,24 @@ const LeagueListPage: React.FC = () => {
                             {status.label}
                           </Typography>
                         </Box>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => handlePinToggle(league.id, e)}
+                          sx={{
+                            p: 0.5,
+                            ml: -0.25,
+                            color: isPinned ? '#F59E0B' : alpha(colors.text.secondary, 0.25),
+                            '&:hover': {
+                              color: isPinned ? '#FBBF24' : alpha(colors.text.secondary, 0.55),
+                              bgcolor: 'transparent',
+                            },
+                            flexShrink: 0,
+                          }}
+                        >
+                          {isPinned
+                            ? <PushPin sx={{ fontSize: 14 }} />
+                            : <PushPinOutlined sx={{ fontSize: 14 }} />}
+                        </IconButton>
                       </Box>
 
                       {/* Tournament + Format — side by side chips */}
@@ -752,8 +802,27 @@ const LeagueListPage: React.FC = () => {
                   </Card>
                 </Grid>
               );
-            })}
-          </Grid>
+            };
+            return (
+              <Grid container spacing={2}>
+                {pinned.length > 0 && (
+                  <Grid size={{ xs: 12 }}>
+                    <Typography sx={{ fontSize: '0.63rem', fontWeight: 700, letterSpacing: '0.1em', color: alpha(colors.text.secondary, 0.35), textTransform: 'uppercase', mb: -0.5 }}>
+                      Pinned
+                    </Typography>
+                  </Grid>
+                )}
+                {pinned.map(item => renderCard(item))}
+                {pinned.length > 0 && rest.length > 0 && (
+                  <Grid size={{ xs: 12 }}>
+                    <Box sx={{ borderTop: `1px solid ${alpha(colors.border.subtle, 0.4)}`, my: 0.5 }} />
+                  </Grid>
+                )}
+                {rest.map(item => renderCard(item))}
+              </Grid>
+            );
+          })()}
+          </>
         )}
 
         {/* Floating Action Button for Mobile - Admin Only */}
@@ -771,6 +840,13 @@ const LeagueListPage: React.FC = () => {
             <Add />
           </Fab>
         )}
+        <Snackbar
+          open={!!pinSnackbar}
+          autoHideDuration={3000}
+          onClose={() => setPinSnackbar('')}
+          message={pinSnackbar}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        />
       </Container>
     </Box>
   );
