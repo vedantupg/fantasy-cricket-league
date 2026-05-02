@@ -31,6 +31,7 @@ import {
   Check,
   LockOutlined,
   NotificationsOutlined,
+  WorkspacePremium,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { requestNotificationPermission, disableNotifications } from '../services/notifications';
@@ -57,7 +58,19 @@ interface Achievement {
   description: string;
   earned: boolean;
   icon: string;
+  color?: string;
+  tier?: 'legendary' | 'epic' | 'rare';
 }
+
+const BADGE_META: Record<string, { color: string; tier: 'legendary' | 'epic' | 'rare' }> = {
+  first_blood:       { color: '#ef4444', tier: 'rare' },
+  squad_master:      { color: '#8b5cf6', tier: 'epic' },
+  league_dominator:  { color: '#f59e0b', tier: 'legendary' },
+  top_10:            { color: '#10b981', tier: 'epic' },
+  points_machine:    { color: '#00e5ff', tier: 'epic' },
+  league_veteran:    { color: '#f97316', tier: 'rare' },
+  captain_fantastic: { color: '#ffd700', tier: 'legendary' },
+};
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -225,7 +238,7 @@ const ProfilePage: React.FC = () => {
       }
     ];
 
-    return achievements;
+    return achievements.map(a => ({ ...a, ...BADGE_META[a.id] }));
   };
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1397,198 +1410,80 @@ const ProfilePage: React.FC = () => {
                   border: `1px solid ${colors.border.subtle}`,
                   boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
                   background: colors.background.paper,
-                  transition: 'all 0.2s ease',
                 }}
               >
                 <CardContent sx={{ p: 3 }}>
-                  {/* Section title */}
                   <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
                     <Box display="flex" alignItems="center" gap={1}>
-                      <Stars sx={{ color: colors.blue.electric, fontSize: '1.2rem' }} />
-                      <Typography
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: '0.78rem',
-                          letterSpacing: '0.1em',
-                          textTransform: 'uppercase',
-                          background: colors.gradients.title,
-                          backgroundClip: 'text',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                        }}
-                      >
+                      <Stars sx={{ color: '#f59e0b', fontSize: '1.2rem' }} />
+                      <Typography sx={{ fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.1em', textTransform: 'uppercase', background: colors.gradients.title, backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                         Achievements
                       </Typography>
                     </Box>
-                    <Typography
-                      sx={{
-                        fontSize: '0.75rem',
-                        color: alpha(colors.text.primary, 0.4),
-                        fontWeight: 600,
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
+                    <Typography sx={{ fontSize: '0.72rem', color: alpha(colors.text.primary, 0.4), fontWeight: 600 }}>
                       {earnedAchievements.length} / {achievements.length}
                     </Typography>
                   </Box>
 
                   {/* Progress bar */}
-                  <Box sx={{ mb: 3 }}>
-                    <Box
-                      sx={{
-                        height: 6,
-                        borderRadius: 3,
-                        background: alpha(colors.blue.electric, 0.12),
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          height: '100%',
-                          width: achievements.length > 0
-                            ? `${(earnedAchievements.length / achievements.length) * 100}%`
-                            : '0%',
-                          background: `linear-gradient(90deg, ${colors.blue.electric}, #00BCD4)`,
-                          borderRadius: 3,
-                          transition: 'width 0.6s ease',
-                        }}
-                      />
+                  <Box sx={{ mb: 2.5 }}>
+                    <Box sx={{ height: 5, borderRadius: 3, bgcolor: alpha(colors.blue.electric, 0.1), overflow: 'hidden' }}>
+                      <Box sx={{ height: '100%', width: achievements.length > 0 ? `${(earnedAchievements.length / achievements.length) * 100}%` : '0%', background: `linear-gradient(90deg, #f59e0b, ${colors.blue.electric})`, borderRadius: 3, transition: 'width 0.8s ease' }} />
                     </Box>
-                    <Typography
-                      sx={{
-                        mt: 0.75,
-                        fontSize: '0.68rem',
-                        color: alpha(colors.text.primary, 0.35),
-                        letterSpacing: '0.06em',
-                      }}
-                    >
-                      {achievements.length > 0
-                        ? `${Math.round((earnedAchievements.length / achievements.length) * 100)}% complete`
-                        : '0% complete'}
+                    <Typography sx={{ mt: 0.75, fontSize: '0.65rem', color: alpha(colors.text.primary, 0.3), letterSpacing: '0.06em' }}>
+                      {achievements.length > 0 ? `${Math.round((earnedAchievements.length / achievements.length) * 100)}% complete` : '0% complete'}
                     </Typography>
                   </Box>
 
-                  {/* Earned achievements */}
-                  {earnedAchievements.length > 0 && (
-                    <Box sx={{ mb: 2.5 }}>
-                      <Typography
-                        sx={{
-                          fontSize: '0.68rem',
-                          fontWeight: 700,
-                          letterSpacing: '0.1em',
-                          textTransform: 'uppercase',
-                          color: colors.success.primary,
-                          mb: 1.5,
-                        }}
-                      >
-                        Unlocked ({earnedAchievements.length})
-                      </Typography>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                        {earnedAchievements.map((achievement) => (
-                          <Box
-                            key={achievement.id}
-                            sx={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 0.75,
-                              bgcolor: alpha(colors.success.primary, 0.1),
-                              border: `1px solid ${alpha(colors.success.primary, 0.3)}`,
-                              borderRadius: '20px',
-                              px: 2,
-                              py: 1,
-                              transition: 'all 0.2s ease',
-                              '&:hover': {
-                                bgcolor: alpha(colors.success.primary, 0.16),
-                                borderColor: alpha(colors.success.primary, 0.5),
-                              },
-                            }}
-                          >
-                            <Typography sx={{ fontSize: '0.9rem', lineHeight: 1 }}>
-                              {achievement.icon}
-                            </Typography>
-                            <Typography
-                              sx={{
-                                fontSize: '0.8rem',
-                                fontWeight: 600,
-                                color: colors.text.primary,
-                                lineHeight: 1,
-                              }}
-                            >
-                              {achievement.name}
-                            </Typography>
-                            <Check
-                              sx={{
-                                fontSize: '0.85rem',
-                                color: colors.success.primary,
-                              }}
-                            />
-                          </Box>
-                        ))}
-                      </Box>
-                    </Box>
-                  )}
-
-                  {/* Locked achievements */}
-                  {unlockedAchievements.length > 0 && (
-                    <Box>
-                      <Typography
-                        sx={{
-                          fontSize: '0.68rem',
-                          fontWeight: 700,
-                          letterSpacing: '0.1em',
-                          textTransform: 'uppercase',
-                          color: alpha(colors.text.primary, 0.35),
-                          mb: 1.5,
-                        }}
-                      >
-                        Locked ({unlockedAchievements.length})
-                      </Typography>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                        {unlockedAchievements.map((achievement) => (
-                          <Box
-                            key={achievement.id}
-                            sx={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 0.75,
-                              bgcolor: alpha(colors.text.primary, 0.04),
-                              border: `1px solid ${alpha(colors.text.primary, 0.1)}`,
-                              borderRadius: '20px',
-                              px: 2,
-                              py: 1,
-                              opacity: 0.35,
-                            }}
-                          >
-                            <Typography
-                              sx={{
-                                fontSize: '0.9rem',
-                                lineHeight: 1,
-                                filter: 'grayscale(100%)',
-                              }}
-                            >
-                              {achievement.icon}
-                            </Typography>
-                            <Typography
-                              sx={{
-                                fontSize: '0.8rem',
-                                fontWeight: 600,
-                                color: colors.text.primary,
-                                lineHeight: 1,
-                              }}
-                            >
-                              {achievement.name}
-                            </Typography>
-                            <LockOutlined
-                              sx={{
-                                fontSize: '0.8rem',
-                                color: colors.text.primary,
-                              }}
-                            />
-                          </Box>
-                        ))}
-                      </Box>
-                    </Box>
-                  )}
+                  {/* Premium badge grid */}
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+                    {achievements.map((a) => {
+                      const color = a.color || colors.blue.electric;
+                      const tier = a.tier || 'rare';
+                      const tierGlow = tier === 'legendary' ? `0 0 18px ${alpha(color, 0.6)}` : tier === 'epic' ? `0 0 12px ${alpha(color, 0.45)}` : `0 0 8px ${alpha(color, 0.3)}`;
+                      return (
+                        <Box
+                          key={a.id}
+                          title={a.description}
+                          sx={{
+                            position: 'relative',
+                            width: 86,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 0.75,
+                            p: 1.25,
+                            borderRadius: 2.5,
+                            border: a.earned ? `1.5px solid ${alpha(color, 0.65)}` : `1px solid ${alpha('#fff', 0.08)}`,
+                            background: a.earned
+                              ? `linear-gradient(145deg, ${alpha(color, 0.12)} 0%, ${alpha(color, 0.04)} 100%)`
+                              : alpha('#fff', 0.03),
+                            boxShadow: a.earned ? tierGlow : 'none',
+                            filter: a.earned ? 'none' : 'grayscale(1) brightness(0.45)',
+                            opacity: a.earned ? 1 : 0.55,
+                            transition: 'all 0.2s ease',
+                            cursor: 'default',
+                            '&:hover': a.earned ? {
+                              border: `1.5px solid ${alpha(color, 0.9)}`,
+                              boxShadow: `0 0 24px ${alpha(color, 0.7)}`,
+                              transform: 'translateY(-2px)',
+                            } : {},
+                          }}
+                        >
+                          {!a.earned && (
+                            <LockOutlined sx={{ position: 'absolute', top: 6, right: 6, fontSize: 11, color: alpha('#fff', 0.3) }} />
+                          )}
+                          {a.earned && tier === 'legendary' && (
+                            <WorkspacePremium sx={{ position: 'absolute', top: 4, right: 4, fontSize: 12, color }} />
+                          )}
+                          <Typography sx={{ fontSize: '1.6rem', lineHeight: 1, mb: 0.25 }}>{a.icon}</Typography>
+                          <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: a.earned ? color : alpha('#fff', 0.4), textAlign: 'center', letterSpacing: '0.03em', lineHeight: 1.2 }}>
+                            {a.name}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                  </Box>
                 </CardContent>
               </Card>
             </Box>

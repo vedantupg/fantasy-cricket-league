@@ -20,6 +20,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import ViewTeamsPage from './pages/ViewTeamsPage';
 import ProfilePage from './pages/ProfilePage';
 import ProfileSetupPage from './pages/ProfileSetupPage';
+import UserProfilePage from './pages/UserProfilePage';
 import AdminPage from './pages/AdminPage';
 import PlayerPoolManagementPage from './pages/PlayerPoolManagementPage';
 import EditLeaguePage from './pages/EditLeaguePage';
@@ -227,6 +228,12 @@ function App() {
             <Route path="/profile" element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/user/:userId" element={
+              <ProtectedRoute>
+                <UserProfilePage />
               </ProtectedRoute>
             } />
             

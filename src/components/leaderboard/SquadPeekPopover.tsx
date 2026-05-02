@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 import { useMediaQuery, useTheme } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { squadService } from '../../services/firestore';
 import type { StandingEntry, LeagueSquad, SquadPlayer } from '../../types/database';
 
@@ -98,6 +99,7 @@ const SquadPeekContent: React.FC<{
   onClose: () => void;
   squadSize: number;
 }> = ({ standing, squad, loading, error, onClose, squadSize }) => {
+  const navigate = useNavigate();
   const rankColor = getRankColor(standing.rank);
   const playingXI = squad ? squad.players.slice(0, squadSize) : [];
   const bench = squad ? squad.players.slice(squadSize) : [];
@@ -183,19 +185,41 @@ const SquadPeekContent: React.FC<{
 
           {/* Name + squad + pts */}
           <Box sx={{ flex: 1, minWidth: 0, pt: 0.25 }}>
-            <Typography sx={{
-              fontFamily: "'Satoshi', sans-serif",
-              fontWeight: 800,
-              fontSize: '1rem',
-              lineHeight: 1.2,
-              letterSpacing: '-0.01em',
-              color: '#fff',
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
-              textOverflow: 'ellipsis',
-            }}>
-              {squad?.squadName || standing.displayName}
-            </Typography>
+            <Box display="flex" alignItems="center" gap={0.75} sx={{ overflow: 'hidden' }}>
+              <Typography sx={{
+                fontFamily: "'Satoshi', sans-serif",
+                fontWeight: 800,
+                fontSize: '1rem',
+                lineHeight: 1.2,
+                letterSpacing: '-0.01em',
+                color: '#fff',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                textOverflow: 'ellipsis',
+                flex: 1,
+                minWidth: 0,
+              }}>
+                {squad?.squadName || standing.displayName}
+              </Typography>
+              <Chip
+                label="Profile"
+                size="small"
+                onClick={() => { onClose(); navigate(`/user/${standing.userId}`); }}
+                sx={{
+                  height: 18,
+                  fontSize: '0.6rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.03em',
+                  bgcolor: 'rgba(255,255,255,0.07)',
+                  color: 'rgba(255,255,255,0.5)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  flexShrink: 0,
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.12)', color: '#fff' },
+                  '& .MuiChip-label': { px: 0.75 },
+                }}
+              />
+            </Box>
             {squad?.squadName && squad.squadName !== standing.displayName && (
               <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.65)', mt: 0.15, lineHeight: 1 }}>
                 {standing.displayName}
@@ -563,6 +587,7 @@ const SquadPeekContent: React.FC<{
               </Box>
             ))}
           </Box>
+
         </Box>
       )}
     </Box>

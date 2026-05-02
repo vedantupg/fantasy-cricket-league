@@ -20,6 +20,9 @@ export interface User {
   favoriteFielder?: string; // Favorite fielder in the world
   favoriteIPLTeam?: string; // Favorite IPL team they support
 
+  // Pinned leagues (max 3, ordered)
+  pinnedLeagueIds?: string[];
+
   // User Stats (calculated)
   stats?: {
     totalLeaguesJoined: number;
