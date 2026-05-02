@@ -28,7 +28,6 @@ import {
   TrendingUp,
   Stars,
   SportsCricket,
-  Check,
   LockOutlined,
   NotificationsOutlined,
   WorkspacePremium,
@@ -360,7 +359,6 @@ const ProfilePage: React.FC = () => {
   };
 
   const earnedAchievements = achievements.filter(a => a.earned);
-  const unlockedAchievements = achievements.filter(a => !a.earned);
 
   const hasFavorites =
     editData.favoriteBatter ||
