@@ -61,7 +61,7 @@ import StatusChip from '../components/common/StatusChip';
 import LeagueAssistant from '../components/LeagueAssistant';
 import TransferModal, { TransferData } from '../components/squad/TransferModal';
 import { playerPoolService, leagueService, squadService, squadPlayerUtils, leaderboardSnapshotService } from '../services/firestore';
-import type { League, Player, SquadPlayer, LeagueSquad } from '../types/database';
+import type { League, Player, PlayerWithPerformance, SquadPlayer, LeagueSquad } from '../types/database';
 import { deleteField } from 'firebase/firestore';
 import { performAutoSlot, countOverseasInMainSquad } from '../utils/slotManagement';
 import { calculatePlayerContribution as calculatePlayerContributionUtil, calculateSquadPoints as calculateSquadPointsUtil } from '../utils/pointsCalculation';
@@ -71,7 +71,7 @@ import EnhancedAlert, { SquadStatusItem, EnhancedAlertAction } from '../componen
 import { TeamLogo } from '../utils/teamLogos';
 import { vibrate } from '../utils/haptics';
 
-interface SelectedPlayer extends Player {
+interface SelectedPlayer extends PlayerWithPerformance {
   position: 'regular' | 'bench';
   isOverseas: boolean;
 }
@@ -81,7 +81,7 @@ const SquadSelectionPage: React.FC = () => {
   const theme = useTheme();
   const [loading, setLoading] = useState(true);
   const [league, setLeague] = useState<League | null>(null);
-  const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]);
+  const [availablePlayers, setAvailablePlayers] = useState<PlayerWithPerformance[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<SelectedPlayer[]>([]);
   const [captainId, setCaptainId] = useState<string | null>(null);
   const [viceCaptainId, setViceCaptainId] = useState<string | null>(null);
@@ -210,8 +210,8 @@ const SquadSelectionPage: React.FC = () => {
             const playerPool = await playerPoolService.getById(league.playerPoolId);
 
             if (playerPool && playerPool.players.length > 0) {
-              // Convert PlayerPoolEntry to Player format with points included
-              const playersFromPool = playerPool.players.map(entry => ({
+              // Convert PlayerPoolEntry to PlayerWithPerformance format with points + performance arrays
+              const playersFromPool: PlayerWithPerformance[] = playerPool.players.map(entry => ({
                 id: entry.playerId,
                 name: entry.name,
                 team: entry.team,
@@ -219,7 +219,10 @@ const SquadSelectionPage: React.FC = () => {
                 role: entry.role,
                 isActive: true,
                 availability: 'available' as const,
-                isOverseas: entry.isOverseas,
+                isOverseas: entry.isOverseas ?? false,
+                battingInnings: entry.battingInnings,
+                bowlingSpells: entry.bowlingSpells,
+                fieldingPerformances: entry.fieldingPerformances,
                 stats: {
                   T20: { matches: 0, runs: 0, wickets: 0, economy: 0, strikeRate: 0, catches: 0, recentForm: entry.points },
                   ODI: { matches: 0, runs: 0, wickets: 0, economy: 0, strikeRate: 0, catches: 0, recentForm: entry.points },
@@ -2007,13 +2010,13 @@ const SquadSelectionPage: React.FC = () => {
             fontWeight: 700,
             fontSize: '0.85rem',
             color: '#000',
-            background: 'linear-gradient(135deg, #FFD700, #FF8C00)',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+            background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+            boxShadow: '0 2px 8px rgba(245,158,11,0.4)',
             borderRadius: 2,
-            '&:hover': { background: 'linear-gradient(135deg, #FFE44D, #FF9F00)', boxShadow: '0 4px 16px rgba(0,0,0,0.5)' },
+            '&:hover': { background: 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)', boxShadow: '0 4px 14px rgba(245,158,11,0.5)', transform: 'translateY(-1px)' },
             '&.Mui-disabled': {
-              background: 'linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,140,0,0.3))',
-              color: 'rgba(0,0,0,0.4)',
+              background: alpha('#F59E0B', 0.18),
+              color: alpha('#F59E0B', 0.4),
               boxShadow: 'none',
             },
           }}
@@ -2024,7 +2027,6 @@ const SquadSelectionPage: React.FC = () => {
       {isDeadlinePassed && existingSquad ? (
         <Button
           variant="contained"
-          color="primary"
           startIcon={<SwapHoriz />}
           onClick={() => setTransferModalOpen(true)}
           disabled={!canMakeTransfer}
@@ -2034,9 +2036,12 @@ const SquadSelectionPage: React.FC = () => {
             py: { xs: 0.5, sm: 0.75 },
             fontWeight: 700,
             fontSize: '0.85rem',
+            color: '#000',
+            background: `linear-gradient(135deg, ${themeColors.blue.light} 0%, ${themeColors.blue.electric} 100%)`,
+            boxShadow: `0 2px 8px ${alpha(themeColors.blue.electric, 0.4)}`,
             borderRadius: 2,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-            '&:hover': { boxShadow: '0 4px 16px rgba(0,0,0,0.5)' },
+            '&:hover': { background: `linear-gradient(135deg, #64B5F6 0%, ${themeColors.blue.light} 100%)`, boxShadow: `0 4px 14px ${alpha(themeColors.blue.electric, 0.5)}`, transform: 'translateY(-1px)' },
+            '&.Mui-disabled': { background: alpha(themeColors.blue.electric, 0.18), color: alpha('#000', 0.3), boxShadow: 'none' },
           }}
         >
           Transfers
@@ -2540,123 +2545,252 @@ const SquadSelectionPage: React.FC = () => {
         </Grid>
 
         {/* Predictions Section */}
-        <Card sx={{ mt: { xs: 2, sm: 3 }, background: 'rgba(255,255,255,0.045)', border: '1px solid rgba(255,255,255,0.12)' }}>
+        <Card sx={{
+          mt: { xs: 2, sm: 3 },
+          background: 'linear-gradient(145deg, rgba(26,58,92,0.6), rgba(6,13,23,0.8))',
+          border: `1px solid ${alpha(themeColors.blue.electric, 0.2)}`,
+          borderLeft: `3px solid ${isDeadlinePassed ? alpha(themeColors.blue.electric, 0.3) : themeColors.blue.electric}`,
+          backdropFilter: 'blur(12px)',
+          boxShadow: `0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)`,
+        }}>
           <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="h6" gutterBottom sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 600, fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' }, letterSpacing: '0.01em' }}>
-                Make Your Predictions *
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {isDeadlinePassed
-                  ? 'Predictions are locked — the squad deadline has passed.'
-                  : existingSquad?.isSubmitted
-                  ? 'Squad submitted. You can still update predictions until the deadline.'
-                  : 'Predict the top performers and series outcome. All predictions are required to submit your squad.'}
-              </Typography>
+
+            {/* Header */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2.5, flexWrap: 'wrap', gap: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                <Box sx={{
+                  width: 32, height: 32, borderRadius: 1.5,
+                  background: isDeadlinePassed
+                    ? alpha(themeColors.blue.electric, 0.12)
+                    : `linear-gradient(135deg, ${themeColors.blue.light} 0%, ${themeColors.blue.electric} 100%)`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: isDeadlinePassed ? 'none' : `0 2px 8px ${alpha(themeColors.blue.electric, 0.4)}`,
+                }}>
+                  <AutoAwesome sx={{ fontSize: '1rem', color: isDeadlinePassed ? alpha('#fff', 0.3) : '#000' }} />
+                </Box>
+                <Box>
+                  <Typography sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 700, fontSize: { xs: '0.95rem', sm: '1.05rem' }, letterSpacing: '0.01em', lineHeight: 1.2 }}>
+                    Make Your Predictions
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.7rem', color: alpha('#fff', 0.4), fontWeight: 500, letterSpacing: '0.02em' }}>
+                    {isDeadlinePassed ? 'Locked after deadline' : 'Required to submit squad'}
+                  </Typography>
+                </Box>
+              </Box>
+              <Chip
+                size="small"
+                icon={isDeadlinePassed ? <LockIcon sx={{ fontSize: '0.7rem !important' }} /> : <CheckCircleOutline sx={{ fontSize: '0.7rem !important' }} />}
+                label={isDeadlinePassed ? 'Locked' : topRunScorer && topWicketTaker && winningTeam ? 'Complete' : 'Incomplete'}
+                sx={{
+                  height: 22, fontSize: '0.65rem', fontWeight: 700,
+                  bgcolor: isDeadlinePassed
+                    ? alpha('#fff', 0.06)
+                    : topRunScorer && topWicketTaker && winningTeam
+                      ? alpha(themeColors.success?.primary || '#4CAF50', 0.15)
+                      : alpha('#F59E0B', 0.15),
+                  color: isDeadlinePassed
+                    ? alpha('#fff', 0.35)
+                    : topRunScorer && topWicketTaker && winningTeam
+                      ? themeColors.success?.primary || '#4CAF50'
+                      : '#F59E0B',
+                  border: `1px solid ${isDeadlinePassed ? alpha('#fff', 0.1) : topRunScorer && topWicketTaker && winningTeam ? alpha(themeColors.success?.primary || '#4CAF50', 0.3) : alpha('#F59E0B', 0.3)}`,
+                  '& .MuiChip-icon': { color: 'inherit' },
+                }}
+              />
             </Box>
 
-            <Grid container spacing={{ xs: 2, sm: 3 }}>
+            {/* Status message */}
+            {isDeadlinePassed && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2.5, px: 1.5, py: 1, borderRadius: 1.5, bgcolor: alpha(themeColors.blue.electric, 0.06), border: `1px solid ${alpha(themeColors.blue.electric, 0.12)}` }}>
+                <LockIcon sx={{ fontSize: '0.8rem', color: alpha('#fff', 0.35), flexShrink: 0 }} />
+                <Typography sx={{ fontSize: '0.75rem', color: alpha('#fff', 0.45) }}>
+                  Predictions are locked — the squad deadline has passed.
+                </Typography>
+              </Box>
+            )}
+
+            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+              {/* Top Run Scorer */}
               <Grid size={{ xs: 12, sm: 4 }}>
-                <Autocomplete
-                  freeSolo
-                  options={playerNameOptions}
-                  value={topRunScorer}
-                  onInputChange={(_e, value) => setTopRunScorer(value)}
-                  disabled={isDeadlinePassed}
-                  size="small"
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      fullWidth
-                      required
-                      label="Top Run Scorer"
-                      placeholder="e.g., Virat Kohli"
-                      variant="outlined"
-                      error={!isDeadlinePassed && topRunScorer.trim() === ''}
-                      helperText={!isDeadlinePassed && topRunScorer.trim() === '' ? 'Required' : ''}
-                      InputProps={{
-                        ...params.InputProps,
-                        startAdornment: <><Box sx={{ mr: 1, color: 'warning.main' }}>🏏</Box>{params.InputProps.startAdornment}</>
-                      }}
-                    />
-                  )}
-                />
+                <Box sx={{ position: 'relative' }}>
+                  <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: alpha('#F59E0B', isDeadlinePassed ? 0.4 : 0.8), letterSpacing: '0.08em', textTransform: 'uppercase', mb: 0.75, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Box component="span" sx={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', bgcolor: alpha('#F59E0B', isDeadlinePassed ? 0.3 : 0.8) }} />
+                    Top Run Scorer
+                  </Typography>
+                  <Autocomplete
+                    freeSolo
+                    options={playerNameOptions}
+                    value={topRunScorer}
+                    onInputChange={(_e, value) => setTopRunScorer(value)}
+                    disabled={isDeadlinePassed}
+                    size="small"
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        fullWidth
+                        required
+                        placeholder="e.g., Virat Kohli"
+                        variant="outlined"
+                        error={!isDeadlinePassed && topRunScorer.trim() === ''}
+                        InputProps={{
+                          ...params.InputProps,
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <BoltIcon sx={{ fontSize: '1rem', color: alpha('#F59E0B', isDeadlinePassed ? 0.3 : 0.85), transform: 'rotate(0deg)' }} />
+                            </InputAdornment>
+                          ),
+                        }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            background: alpha('#000', 0.25),
+                            borderRadius: 1.5,
+                            '& fieldset': { borderColor: alpha('#F59E0B', isDeadlinePassed ? 0.1 : 0.25) },
+                            '&:hover fieldset': { borderColor: alpha('#F59E0B', 0.45) },
+                            '&.Mui-focused fieldset': { borderColor: '#F59E0B' },
+                            '&.Mui-disabled fieldset': { borderColor: alpha('#fff', 0.07) },
+                          },
+                          '& .MuiInputBase-input': { fontSize: '0.875rem', fontWeight: 500 },
+                          '& .MuiInputBase-input::placeholder': { color: alpha('#fff', 0.25) },
+                        }}
+                      />
+                    )}
+                  />
+                </Box>
               </Grid>
 
+              {/* Top Wicket Taker */}
               <Grid size={{ xs: 12, sm: 4 }}>
-                <Autocomplete
-                  freeSolo
-                  options={playerNameOptions}
-                  value={topWicketTaker}
-                  onInputChange={(_e, value) => setTopWicketTaker(value)}
-                  disabled={isDeadlinePassed}
-                  size="small"
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      fullWidth
-                      required
-                      label="Top Wicket Taker"
-                      placeholder="e.g., Jasprit Bumrah"
-                      variant="outlined"
-                      error={!isDeadlinePassed && topWicketTaker.trim() === ''}
-                      helperText={!isDeadlinePassed && topWicketTaker.trim() === '' ? 'Required' : ''}
-                      InputProps={{
-                        ...params.InputProps,
-                        startAdornment: <><Box sx={{ mr: 1, color: 'error.main' }}>⚡</Box>{params.InputProps.startAdornment}</>
-                      }}
-                    />
-                  )}
-                />
+                <Box sx={{ position: 'relative' }}>
+                  <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: alpha(themeColors.blue.light, isDeadlinePassed ? 0.4 : 0.8), letterSpacing: '0.08em', textTransform: 'uppercase', mb: 0.75, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Box component="span" sx={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', bgcolor: alpha(themeColors.blue.light, isDeadlinePassed ? 0.3 : 0.8) }} />
+                    Top Wicket Taker
+                  </Typography>
+                  <Autocomplete
+                    freeSolo
+                    options={playerNameOptions}
+                    value={topWicketTaker}
+                    onInputChange={(_e, value) => setTopWicketTaker(value)}
+                    disabled={isDeadlinePassed}
+                    size="small"
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        fullWidth
+                        required
+                        placeholder="e.g., Jasprit Bumrah"
+                        variant="outlined"
+                        error={!isDeadlinePassed && topWicketTaker.trim() === ''}
+                        InputProps={{
+                          ...params.InputProps,
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <BoltIcon sx={{ fontSize: '1rem', color: alpha(themeColors.blue.light, isDeadlinePassed ? 0.3 : 0.85) }} />
+                            </InputAdornment>
+                          ),
+                        }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            background: alpha('#000', 0.25),
+                            borderRadius: 1.5,
+                            '& fieldset': { borderColor: alpha(themeColors.blue.electric, isDeadlinePassed ? 0.1 : 0.25) },
+                            '&:hover fieldset': { borderColor: alpha(themeColors.blue.electric, 0.5) },
+                            '&.Mui-focused fieldset': { borderColor: themeColors.blue.electric },
+                            '&.Mui-disabled fieldset': { borderColor: alpha('#fff', 0.07) },
+                          },
+                          '& .MuiInputBase-input': { fontSize: '0.875rem', fontWeight: 500 },
+                          '& .MuiInputBase-input::placeholder': { color: alpha('#fff', 0.25) },
+                        }}
+                      />
+                    )}
+                  />
+                </Box>
               </Grid>
 
+              {/* Winning Team */}
               <Grid size={{ xs: 12, sm: 4 }}>
-                <Autocomplete
-                  freeSolo
-                  options={teamOptions}
-                  value={winningTeam}
-                  onInputChange={(_e, value) => setWinningTeam(value)}
-                  disabled={isDeadlinePassed}
-                  size="small"
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      fullWidth
-                      required
-                      label="Winning Team Prediction"
-                      placeholder="e.g., India or Australia"
-                      variant="outlined"
-                      error={!isDeadlinePassed && winningTeam.trim() === ''}
-                      helperText={!isDeadlinePassed && winningTeam.trim() === '' ? 'Required' : ''}
-                      InputProps={{
-                        ...params.InputProps,
-                        startAdornment: <><Box sx={{ mr: 1, color: 'success.main' }}>🏆</Box>{params.InputProps.startAdornment}</>
-                      }}
-                    />
-                  )}
-                />
+                <Box sx={{ position: 'relative' }}>
+                  <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: alpha('#4CAF50', isDeadlinePassed ? 0.4 : 0.8), letterSpacing: '0.08em', textTransform: 'uppercase', mb: 0.75, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Box component="span" sx={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', bgcolor: alpha('#4CAF50', isDeadlinePassed ? 0.3 : 0.8) }} />
+                    Winning Team
+                  </Typography>
+                  <Autocomplete
+                    freeSolo
+                    options={teamOptions}
+                    value={winningTeam}
+                    onInputChange={(_e, value) => setWinningTeam(value)}
+                    disabled={isDeadlinePassed}
+                    size="small"
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        fullWidth
+                        required
+                        placeholder="e.g., India or Australia"
+                        variant="outlined"
+                        error={!isDeadlinePassed && winningTeam.trim() === ''}
+                        InputProps={{
+                          ...params.InputProps,
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <CheckCircle sx={{ fontSize: '1rem', color: alpha('#4CAF50', isDeadlinePassed ? 0.3 : 0.85) }} />
+                            </InputAdornment>
+                          ),
+                        }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            background: alpha('#000', 0.25),
+                            borderRadius: 1.5,
+                            '& fieldset': { borderColor: alpha('#4CAF50', isDeadlinePassed ? 0.1 : 0.2) },
+                            '&:hover fieldset': { borderColor: alpha('#4CAF50', 0.45) },
+                            '&.Mui-focused fieldset': { borderColor: '#4CAF50' },
+                            '&.Mui-disabled fieldset': { borderColor: alpha('#fff', 0.07) },
+                          },
+                          '& .MuiInputBase-input': { fontSize: '0.875rem', fontWeight: 500 },
+                          '& .MuiInputBase-input::placeholder': { color: alpha('#fff', 0.25) },
+                        }}
+                      />
+                    )}
+                  />
+                </Box>
               </Grid>
             </Grid>
 
-            <Box sx={{ mt: 2 }}>
-              <Alert severity="warning" sx={{ fontSize: '0.875rem' }}>
-                <Typography variant="caption" display="block">
-                  All predictions are mandatory. Your predictions will be saved with your squad and can be updated anytime before the deadline.
-                </Typography>
-              </Alert>
-            </Box>
-            {existingSquad?.isSubmitted && !isDeadlinePassed && (
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+            {/* Footer row: tip + save button */}
+            <Box sx={{ mt: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+              {!isDeadlinePassed && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  <InfoOutlined sx={{ fontSize: '0.8rem', color: alpha('#fff', 0.25), flexShrink: 0 }} />
+                  <Typography sx={{ fontSize: '0.7rem', color: alpha('#fff', 0.35) }}>
+                    All three predictions are required. Saved with your squad.
+                  </Typography>
+                </Box>
+              )}
+              {existingSquad?.isSubmitted && !isDeadlinePassed && (
                 <Button
                   variant="contained"
                   size="small"
                   disabled={submitting || topRunScorer.trim() === '' || topWicketTaker.trim() === '' || winningTeam.trim() === ''}
                   onClick={handleSavePredictionsAndHiddenPlayer}
+                  sx={{
+                    ml: 'auto',
+                    fontWeight: 700,
+                    fontSize: '0.8rem',
+                    px: 2,
+                    py: 0.75,
+                    borderRadius: 2,
+                    color: '#000',
+                    background: `linear-gradient(135deg, ${themeColors.blue.light} 0%, ${themeColors.blue.electric} 100%)`,
+                    boxShadow: `0 2px 8px ${alpha(themeColors.blue.electric, 0.4)}`,
+                    '&:hover': { background: `linear-gradient(135deg, #64B5F6 0%, ${themeColors.blue.light} 100%)`, transform: 'translateY(-1px)', boxShadow: `0 4px 14px ${alpha(themeColors.blue.electric, 0.5)}` },
+                    '&.Mui-disabled': { background: alpha(themeColors.blue.electric, 0.15), color: alpha('#000', 0.3) },
+                    transition: 'all 0.2s ease',
+                  }}
                 >
                   Save Predictions
                 </Button>
-              </Box>
-            )}
+              )}
+            </Box>
+
           </CardContent>
         </Card>
       </Container>
@@ -2677,6 +2811,68 @@ const SquadSelectionPage: React.FC = () => {
       <LeagueAssistant leagueId={leagueId} />
     </Box>
   );
+};
+
+const getRoleBadge = (role?: string): { label: string; color: string } => {
+  switch (role) {
+    case 'batsman':      return { label: 'BAT', color: '#F59E0B' };
+    case 'bowler':       return { label: 'BWL', color: '#42A5F5' };
+    case 'allrounder':   return { label: 'AR',  color: '#4CAF50' };
+    case 'wicketkeeper': return { label: 'WK',  color: '#CE93D8' };
+    default:             return { label: (role ?? '???').slice(0, 3).toUpperCase(), color: '#fff' };
+  }
+};
+
+const getLastMatchLabel = (p: PlayerWithPerformance): string | null => {
+  const all = [
+    ...(p.battingInnings ?? []).map(e => ({ label: e.matchLabel, date: e.date })),
+    ...(p.bowlingSpells ?? []).map(e => ({ label: e.matchLabel, date: e.date })),
+    ...(p.fieldingPerformances ?? []).map(e => ({ label: e.matchLabel, date: e.date })),
+  ].filter(e => !!e.label);
+  if (!all.length) return null;
+  all.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  return all[0].label ?? null;
+};
+
+const getLastMatchPoints = (p: PlayerWithPerformance): number => {
+  const label = getLastMatchLabel(p);
+  if (!label) return 0;
+  const bat   = (p.battingInnings ?? []).filter(e => e.matchLabel === label).reduce((s, e) => s + e.pointsEarned, 0);
+  const bowl  = (p.bowlingSpells ?? []).filter(e => e.matchLabel === label).reduce((s, e) => s + e.pointsEarned, 0);
+  const field = (p.fieldingPerformances ?? []).filter(e => e.matchLabel === label).reduce((s, e) => s + e.pointsEarned, 0);
+  return bat + bowl + field;
+};
+
+const getCareerStats = (p: PlayerWithPerformance) => {
+  const allBat   = p.battingInnings ?? [];
+  const allBowl  = p.bowlingSpells ?? [];
+  const allField = p.fieldingPerformances ?? [];
+  const totalRuns  = allBat.reduce((s, e) => s + e.runs, 0);
+  const totalBalls = allBat.reduce((s, e) => s + e.ballsFaced, 0);
+  const totalWkts  = allBowl.reduce((s, e) => s + e.wickets, 0);
+  const totalRC    = allBowl.reduce((s, e) => s + e.runsConceded, 0);
+  const totalOvers = allBowl.reduce((s, e) => s + e.overs, 0);
+  const totalCat   = allField.reduce((s, e) => s + e.catches, 0);
+  const totalSt    = allField.reduce((s, e) => s + e.stumpings, 0);
+  const allLabels  = [
+    ...allBat.map(e => e.matchLabel), ...allBowl.map(e => e.matchLabel), ...allField.map(e => e.matchLabel),
+  ].filter(Boolean) as string[];
+  const matchCount = new Set(allLabels).size;
+  const sr = totalBalls > 0 ? (totalRuns / totalBalls) * 100 : 0;
+  const bowlBalls = Math.floor(totalOvers) * 6 + Math.round((totalOvers % 1) * 10);
+  const economy = bowlBalls > 0 ? (totalRC / bowlBalls) * 6 : 0;
+  return { totalRuns, totalWkts, sr, economy, totalCat, totalSt, matchCount };
+};
+
+const getRoleStats = (role: string, career: ReturnType<typeof getCareerStats>): Array<{ label: string; value: string | number }> => {
+  const mat = { label: 'MAT', value: career.matchCount };
+  switch (role) {
+    case 'batsman':      return [mat, { label: 'RUNS', value: career.totalRuns }, { label: 'SR', value: career.sr.toFixed(0) }];
+    case 'bowler':       return [mat, { label: 'WKTS', value: career.totalWkts }, { label: 'ECO', value: career.economy.toFixed(1) }];
+    case 'allrounder':   return [mat, { label: 'RUNS', value: career.totalRuns }, { label: 'WKTS', value: career.totalWkts }];
+    case 'wicketkeeper': return [mat, { label: 'RUNS', value: career.totalRuns }, { label: 'DIS', value: career.totalCat + career.totalSt }];
+    default:             return [mat];
+  }
 };
 
 // Cricket Pitch Formation Component
@@ -2736,35 +2932,6 @@ const CricketPitchFormation: React.FC<{
     onConfirmPpMatch();
     setPpDialogStep('success');
     setTimeout(() => setPpDialogOpen(false), 2500);
-  };
-
-  // Helper function to get player points for display
-  const getPlayerPointsDisplay = (player: SelectedPlayer, slotType: 'required' | 'flexible' | 'bench') => {
-    // Get raw points from player stats (points are stored in recentForm)
-    const rawPoints = player.stats?.[league.format]?.recentForm || 0;
-
-    if (!existingSquad || slotType === 'bench') {
-      // No existing squad or bench players - show raw points
-      return { points: rawPoints, label: 'pts' };
-    }
-
-    // Main squad player - check if they exist in the existing squad
-    const squadPlayer = existingSquad.players.find((p: SquadPlayer) => p.playerId === player.id);
-
-    if (!squadPlayer) {
-      // New player being added - show raw points
-      return { points: rawPoints, label: 'pts' };
-    }
-
-    // Existing squad player - calculate contribution based on their role
-    const isCaptain = captainId === player.id;
-    const isViceCaptain = viceCaptainId === player.id;
-    const isXFactor = xFactorId === player.id;
-
-    const role = isCaptain ? 'captain' : isViceCaptain ? 'viceCaptain' : isXFactor ? 'xFactor' : 'regular';
-    const contribution = calculatePlayerContribution(squadPlayer, role);
-
-    return { points: contribution, label: 'contrib' };
   };
 
   const getRequiredSlots = () => {
@@ -2908,8 +3075,10 @@ const CricketPitchFormation: React.FC<{
           }
         }}
         sx={{
-          p: { xs: 0.75, sm: 1, md: 1.25 },
-          minHeight: { xs: 86, sm: 97, md: 108 },
+          pt: { xs: '5px', sm: '6px', md: '8px' },
+          pb: { xs: '5px', sm: '6px', md: '8px' },
+          px: { xs: '6px', sm: '8px', md: '10px' },
+          minHeight: { xs: 82, sm: 90, md: 100 },
           width: '100%',
           maxWidth: { xs: 116, sm: 140, md: 162 },
           mx: 'auto',
@@ -2980,72 +3149,96 @@ const CricketPitchFormation: React.FC<{
               </IconButton>
             )}
 
-            {/* Card content container */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', px: 0.5, gap: 0.5 }}>
-              {/* ROW 1: logo + name — left aligned */}
-              <Box sx={{
-                display: 'flex',
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 0.75,
-                width: '100%',
-                justifyContent: 'flex-start',
-              }}>
-                <TeamLogo team={player.team} size={28} />
-                <Typography
-                  variant="caption"
-                  noWrap
-                  sx={{
-                    fontFamily: "'Satoshi', sans-serif",
-                    fontWeight: 700,
-                    fontSize: { xs: '0.625rem', sm: '0.6875rem' },
-                    lineHeight: 1.2,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    maxWidth: { xs: 66, sm: 82, md: 96 },
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {(() => {
-                    const parts = player.name.trim().split(' ');
-                    const last = parts[parts.length - 1];
-                    return parts.length > 1 ? `${parts[0].charAt(0)}. ${last}` : last;
-                  })()}
-                </Typography>
-              </Box>
+            {/* Card content — 3 sections with dividers */}
+            {(() => {
+              const lastMatchPts = getLastMatchPoints(player);
+              const hasLastMatch = getLastMatchLabel(player) !== null;
+              const career = getCareerStats(player);
+              const roleStats = getRoleStats(player.role, career);
+              const divider = <Box sx={{ width: '100%', height: '1px', bgcolor: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />;
+              const lastMatchColor = !hasLastMatch ? 'rgba(255,255,255,0.2)' : lastMatchPts >= 0 ? '#00FF87' : '#FF5252';
+              const lastMatchGlow = !hasLastMatch ? 'none' : lastMatchPts >= 0 ? '0 0 5px rgba(0,255,135,0.3)' : '0 0 5px rgba(255,82,82,0.3)';
+              return (
+                <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '3px' }}>
 
-              {/* ROW 2: Points — right aligned */}
-              {(() => {
-                const pointsData = getPlayerPointsDisplay(player, slotType);
-                return (
-                  <Box sx={{ display: 'flex', alignItems: 'baseline', gap: '2px', alignSelf: 'center' }}>
-                    <Typography sx={{
-                      fontFamily: "'Bebas Neue', monospace",
-                      fontSize: { xs: '0.8125rem', sm: '0.875rem', md: '0.9375rem' },
-                      lineHeight: 1,
-                      letterSpacing: '0.06em',
-                      color: '#00FF87',
-                      textShadow: '0 0 6px rgba(0, 255, 135, 0.35)',
+                  {/* SECTION 1: Identity — logo + last name + role */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, width: '100%' }}>
+                    <TeamLogo team={player.team} size={18} />
+                    <Typography noWrap sx={{
+                      fontFamily: "'Satoshi', sans-serif", fontWeight: 700,
+                      fontSize: { xs: '0.625rem', sm: '0.6875rem' },
+                      lineHeight: 1.2, letterSpacing: '0.07em', textTransform: 'uppercase',
+                      flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
-                      {pointsData.points.toFixed(2)}
+                      {player.name.trim().split(' ').at(-1)}
                     </Typography>
-                    <Typography sx={{
-                      fontSize: '0.5rem',
-                      opacity: 0.55,
-                      lineHeight: 1,
-                      color: '#42A5F5',
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase',
-                      mt: '1px',
-                    }}>
-                      pts
+                    <Typography sx={{ fontSize: '0.5rem', fontWeight: 600, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.3)', flexShrink: 0, lineHeight: 1 }}>
+                      {getRoleBadge(player.role).label}
                     </Typography>
                   </Box>
-                );
-              })()}
-            </Box>
+
+                  {divider}
+
+                  {/* SECTION 2: Total pts (left) + last match delta (right) */}
+                  <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', width: '100%' }}>
+                    {/* Left — total points */}
+                    <Box sx={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
+                      <Typography sx={{
+                        fontFamily: "'Bebas Neue', monospace",
+                        fontSize: { xs: '1rem', sm: '1.0625rem' },
+                        lineHeight: 1, letterSpacing: '0.06em', color: '#fff',
+                      }}>
+                        {(player.stats?.[league?.format ?? 'T20']?.recentForm ?? 0).toFixed(1)}
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.48rem', opacity: 0.45, color: '#42A5F5', letterSpacing: '0.07em', textTransform: 'uppercase', lineHeight: 1 }}>
+                        pts
+                      </Typography>
+                    </Box>
+                    {/* Right — last match delta */}
+                    <Box sx={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
+                      <Typography sx={{
+                        fontFamily: "'Bebas Neue', monospace",
+                        fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                        lineHeight: 1, letterSpacing: '0.05em',
+                        color: lastMatchColor, textShadow: lastMatchGlow,
+                      }}>
+                        {hasLastMatch
+                          ? (lastMatchPts >= 0 ? `+${lastMatchPts.toFixed(2)}` : lastMatchPts.toFixed(2))
+                          : '—'}
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.42rem', opacity: 0.35, letterSpacing: '0.07em', textTransform: 'uppercase', lineHeight: 1 }}>
+                        {hasLastMatch ? 'last' : ''}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {divider}
+
+                  {/* SECTION 3: Role-adaptive stats — value over label, stacked */}
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-around', width: '100%' }}>
+                    {roleStats.map(stat => (
+                      <Box key={stat.label} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px' }}>
+                        <Typography sx={{
+                          fontFamily: "'Bebas Neue', monospace",
+                          fontSize: { xs: '0.625rem', sm: '0.6875rem' },
+                          letterSpacing: '0.04em', lineHeight: 1, color: 'rgba(255,255,255,0.82)',
+                        }}>
+                          {stat.value}
+                        </Typography>
+                        <Typography sx={{
+                          fontFamily: "'Satoshi', sans-serif",
+                          fontSize: '0.44rem', letterSpacing: '0.07em', textTransform: 'uppercase',
+                          lineHeight: 1, color: 'rgba(255,255,255,0.38)',
+                        }}>
+                          {stat.label}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+
+                </Box>
+              );
+            })()}
 
             {/* Captain/Vice Captain/X-Factor badges with special glows */}
             {isCaptain && (
@@ -3630,8 +3823,8 @@ const CricketPitchFormation: React.FC<{
             }} />
           </Box>
 
-          <Typography variant="h6" color="white" textAlign="center" pt={{ xs: 1, sm: 1.5, md: 2 }} pb={{ xs: 0.5, sm: 1 }} sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 600, letterSpacing: '0.01em', textShadow: '2px 2px 4px rgba(0,0,0,0.7)', position: 'relative', zIndex: 2, fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' } }}>
-            Squad Formation
+          <Typography textAlign="center" pt={{ xs: 1, sm: 1.5, md: 2 }} pb={{ xs: 0.5, sm: 0.75 }} sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.7)', fontSize: { xs: '0.6875rem', sm: '0.75rem', md: '0.8125rem' }, textTransform: 'uppercase', position: 'relative', zIndex: 2 }}>
+            Squad
           </Typography>
 
           {/* Cricket Field Formation Layout */}
@@ -4301,9 +4494,15 @@ const PlayerSelectionPanel: React.FC<{
             <Typography variant="subtitle2" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 500, fontSize: { xs: '0.8rem', sm: '0.9rem' }, letterSpacing: '0.01em' }} noWrap>
               {player.name}
             </Typography>
-            <Typography variant="caption" sx={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 400, fontSize: { xs: '0.625rem', sm: '0.6875rem' }, opacity: 0.65 }} noWrap>
-              {player.team} • {player.role}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.25 }}>
+              <Typography sx={{ fontFamily: "'Satoshi', sans-serif", fontSize: { xs: '0.6rem', sm: '0.65rem' }, opacity: 0.4 }} noWrap>
+                {player.team}
+              </Typography>
+              <Typography sx={{ fontFamily: "'Satoshi', sans-serif", fontSize: { xs: '0.6rem', sm: '0.65rem' }, opacity: 0.25 }}>·</Typography>
+              <Typography sx={{ fontFamily: "'Satoshi', sans-serif", fontSize: { xs: '0.6rem', sm: '0.65rem' }, opacity: 0.4, fontWeight: 600, letterSpacing: '0.04em' }}>
+                {getRoleBadge(player.role).label}
+              </Typography>
+            </Box>
           </Box>
           <Chip
             label={Number(player.stats[league.format].recentForm).toFixed(2)}

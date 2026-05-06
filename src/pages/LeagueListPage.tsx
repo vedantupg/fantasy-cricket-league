@@ -747,14 +747,15 @@ const LeagueListPage: React.FC = () => {
                         size="small"
                         onClick={(e) => { e.stopPropagation(); navigate(`/leagues/${league.id}/squad`); }}
                         sx={{
-                          bgcolor: colors.blue.electric,
+                          background: `linear-gradient(135deg, ${colors.blue.light} 0%, ${colors.blue.electric} 100%)`,
+                          color: '#000',
                           fontWeight: 600,
                           px: 1.75,
                           py: 0.5,
                           fontSize: '0.75rem',
                           whiteSpace: 'nowrap',
                           boxShadow: `0 2px 8px ${alpha(colors.blue.electric, 0.3)}`,
-                          '&:hover': { bgcolor: colors.blue.deep, boxShadow: `0 4px 12px ${alpha(colors.blue.electric, 0.45)}`, transform: 'translateY(-1px)' },
+                          '&:hover': { background: `linear-gradient(135deg, #64B5F6 0%, ${colors.blue.light} 100%)`, boxShadow: `0 4px 12px ${alpha(colors.blue.electric, 0.45)}`, transform: 'translateY(-1px)' },
                           transition: 'all 0.2s ease',
                         }}
                       >
