@@ -69,8 +69,8 @@ const LeagueListPage: React.FC = () => {
     if (already) {
       next = pinnedIds.filter(id => id !== leagueId);
     } else {
-      if (pinnedIds.length >= 3) {
-        setPinSnackbar('Max 3 leagues pinned. Unpin one first.');
+      if (pinnedIds.length >= 5) {
+        setPinSnackbar('Max 5 leagues pinned. Unpin one first.');
         return;
       }
       next = [...pinnedIds, leagueId];
@@ -665,7 +665,7 @@ const LeagueListPage: React.FC = () => {
                               {/* Points */}
                               <Box display="flex" alignItems="center" gap={0.5}>
                                 <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: colors.text.primary, fontVariantNumeric: 'tabular-nums' }}>
-                                  {sq.totalPoints ?? 0}
+                                  {(sq.totalPoints ?? 0).toFixed(2)}
                                 </Typography>
                                 <Typography sx={{ fontSize: '0.65rem', color: alpha(colors.text.secondary, 0.45) }}>pts</Typography>
                               </Box>
