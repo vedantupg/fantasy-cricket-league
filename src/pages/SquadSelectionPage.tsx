@@ -2934,35 +2934,6 @@ const CricketPitchFormation: React.FC<{
     setTimeout(() => setPpDialogOpen(false), 2500);
   };
 
-  // Helper function to get player points for display
-  const getPlayerPointsDisplay = (player: SelectedPlayer, slotType: 'required' | 'flexible' | 'bench') => {
-    // Get raw points from player stats (points are stored in recentForm)
-    const rawPoints = player.stats?.[league.format]?.recentForm || 0;
-
-    if (!existingSquad || slotType === 'bench') {
-      // No existing squad or bench players - show raw points
-      return { points: rawPoints, label: 'pts' };
-    }
-
-    // Main squad player - check if they exist in the existing squad
-    const squadPlayer = existingSquad.players.find((p: SquadPlayer) => p.playerId === player.id);
-
-    if (!squadPlayer) {
-      // New player being added - show raw points
-      return { points: rawPoints, label: 'pts' };
-    }
-
-    // Existing squad player - calculate contribution based on their role
-    const isCaptain = captainId === player.id;
-    const isViceCaptain = viceCaptainId === player.id;
-    const isXFactor = xFactorId === player.id;
-
-    const role = isCaptain ? 'captain' : isViceCaptain ? 'viceCaptain' : isXFactor ? 'xFactor' : 'regular';
-    const contribution = calculatePlayerContribution(squadPlayer, role);
-
-    return { points: contribution, label: 'contrib' };
-  };
-
   const getRequiredSlots = () => {
     const { squadRules } = league;
     return {
