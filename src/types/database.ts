@@ -475,6 +475,12 @@ export interface Player {
   updatedAt: Date;
 }
 
+export interface PlayerWithPerformance extends Player {
+  battingInnings?: BattingInnings[];
+  bowlingSpells?: BowlingSpell[];
+  fieldingPerformances?: FieldingPerformance[];
+}
+
 export interface PlayerStats {
   matches: number;
   runs?: number;

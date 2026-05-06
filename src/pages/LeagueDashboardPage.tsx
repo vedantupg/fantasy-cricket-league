@@ -29,6 +29,8 @@ import {
   AdminPanelSettings,
   SwapHoriz as SwapHorizIcon,
   Bolt as BoltIcon,
+  LockOutlined,
+  LockOpen,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -56,6 +58,7 @@ const LeagueDashboardPage: React.FC = () => {
   const [participants, setParticipants] = useState<ParticipantInfo[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [forcingSubmit, setForcingSubmit] = useState<Set<string>>(new Set());
+  const [toggling, setToggling] = useState(false);
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -235,47 +238,88 @@ const LeagueDashboardPage: React.FC = () => {
     now2 <= new Date(midSeasonCfg.windowEndDate);
   const transfersOpen = !!(league?.benchChangesEnabled || league?.flexibleChangesEnabled || league?.wildcardChangesEnabled || midSeasonOpen);
 
+  const hasFlexible    = !!league?.transferTypes?.flexibleTransfers?.enabled;
+  const hasBench       = !!league?.transferTypes?.benchTransfers?.enabled;
+  const hasWildcard    = !!league?.transferTypes?.wildcardTransfers?.enabled;
+  const hasPPActivation = !!(league?.powerplayEnabled && league?.ppMatchMode === 'activation');
+  const anyOpen = transfersOpen || !!league?.ppActivationEnabled;
+
+  const handleQuickToggle = async () => {
+    if (!league || !leagueId) return;
+    setToggling(true);
+    try {
+      const updates: Partial<League> = anyOpen
+        ? { flexibleChangesEnabled: false, benchChangesEnabled: false, wildcardChangesEnabled: false, ppActivationEnabled: false }
+        : { flexibleChangesEnabled: hasFlexible, benchChangesEnabled: hasBench, wildcardChangesEnabled: hasWildcard, ppActivationEnabled: hasPPActivation };
+      await leagueService.update(leagueId, updates);
+      setLeague(prev => prev ? { ...prev, ...updates } : prev);
+    } catch (e) {
+      console.error('Failed to toggle transfers:', e);
+    } finally {
+      setToggling(false);
+    }
+  };
+
   const navActions = (
     <>
-      {league?.powerplayEnabled && (
-        <Button
-          variant="contained"
-          size="small"
-          onClick={() => navigate(`/leagues/${leagueId}/squad`)}
-          sx={{
-            background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-            color: '#000',
-            fontWeight: 700,
-            fontSize: '0.85rem',
-            px: 1.5,
-            py: { xs: 0.5, sm: 0.75 },
-            borderRadius: 2,
-            minWidth: 'auto',
-            boxShadow: '0 4px 14px rgba(245,158,11,0.4)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)',
-              transform: 'translateY(-1px)',
-            },
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <BoltIcon sx={{ mr: 0.25, color: '#000', fontSize: '1rem' }} /> PP
-        </Button>
-      )}
+      {league?.powerplayEnabled && (() => {
+        const ppEnabled = league.ppMatchMode !== 'activation' || !!league.ppActivationEnabled;
+        return (
+          <Button
+            variant="contained"
+            size="small"
+            disabled={!ppEnabled}
+            onClick={() => navigate(`/leagues/${leagueId}/squad`)}
+            sx={{
+              background: ppEnabled ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' : undefined,
+              color: ppEnabled ? '#000' : undefined,
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              px: 1.5,
+              py: { xs: 0.5, sm: 0.75 },
+              borderRadius: 2,
+              minWidth: 'auto',
+              boxShadow: ppEnabled ? '0 4px 14px rgba(245,158,11,0.4)' : 'none',
+              '&:hover': ppEnabled ? {
+                background: 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)',
+                transform: 'translateY(-1px)',
+              } : {},
+              '&.Mui-disabled': {
+                bgcolor: alpha('#F59E0B', 0.18),
+                color: alpha('#F59E0B', 0.4),
+              },
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <BoltIcon sx={{ mr: 0.25, fontSize: '1rem' }} /> PP
+          </Button>
+        );
+      })()}
       <Button
-        variant="outlined"
+        variant="contained"
         size="small"
         disabled={!transfersOpen}
         startIcon={<SwapHorizIcon />}
         onClick={() => navigate(`/leagues/${leagueId}/squad?openTransfer=true`)}
         sx={{
-          fontWeight: 600,
+          fontWeight: 700,
           fontSize: '0.8rem',
           px: 1.5,
-          py: 0.5,
-          borderColor: transfersOpen ? 'rgba(0,229,255,0.5)' : undefined,
-          color: transfersOpen ? 'rgba(0,229,255,0.9)' : undefined,
-          '&:hover': { borderColor: 'rgba(0,229,255,0.8)', bgcolor: 'rgba(0,229,255,0.08)' },
+          py: { xs: 0.5, sm: 0.75 },
+          borderRadius: 2,
+          background: transfersOpen ? `linear-gradient(135deg, ${colors.blue.light} 0%, ${colors.blue.electric} 100%)` : undefined,
+          color: '#000',
+          boxShadow: transfersOpen ? `0 2px 8px ${alpha(colors.blue.electric, 0.4)}` : undefined,
+          '&:hover': {
+            background: `linear-gradient(135deg, #64B5F6 0%, ${colors.blue.light} 100%)`,
+            boxShadow: `0 4px 14px ${alpha(colors.blue.electric, 0.5)}`,
+            transform: 'translateY(-1px)',
+          },
+          '&.Mui-disabled': {
+            bgcolor: alpha(colors.blue.electric, 0.18),
+            color: alpha('#000', 0.3),
+          },
+          transition: 'all 0.2s ease',
         }}
       >
         Transfers
@@ -466,6 +510,36 @@ const LeagueDashboardPage: React.FC = () => {
                   onClick={handleEditLeague}
                 >
                   Edit League
+                </Button>
+
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  disabled={toggling}
+                  startIcon={toggling
+                    ? <CircularProgress size={14} sx={{ color: 'inherit' }} />
+                    : anyOpen
+                      ? <LockOutlined fontSize="small" />
+                      : <LockOpen fontSize="small" />}
+                  onClick={handleQuickToggle}
+                  sx={{
+                    mb: 1.5,
+                    fontWeight: 600,
+                    borderColor: anyOpen ? alpha(colors.warning.primary, 0.6) : alpha(colors.success.primary, 0.6),
+                    color: anyOpen ? colors.warning.primary : colors.success.primary,
+                    '&:hover': {
+                      borderColor: anyOpen ? colors.warning.primary : colors.success.primary,
+                      bgcolor: anyOpen ? alpha(colors.warning.primary, 0.08) : alpha(colors.success.primary, 0.08),
+                      transform: 'translateY(-1px)',
+                    },
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  {toggling
+                    ? (anyOpen ? 'Closing…' : 'Opening…')
+                    : anyOpen
+                      ? 'Close Transfer Window'
+                      : 'Open Transfer Window'}
                 </Button>
 
                 <Button
