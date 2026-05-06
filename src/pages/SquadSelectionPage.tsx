@@ -3184,7 +3184,6 @@ const CricketPitchFormation: React.FC<{
               const hasLastMatch = getLastMatchLabel(player) !== null;
               const career = getCareerStats(player);
               const roleStats = getRoleStats(player.role, career);
-              const pointsData = getPlayerPointsDisplay(player, slotType);
               const divider = <Box sx={{ width: '100%', height: '1px', bgcolor: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />;
               const lastMatchColor = !hasLastMatch ? 'rgba(255,255,255,0.2)' : lastMatchPts >= 0 ? '#00FF87' : '#FF5252';
               const lastMatchGlow = !hasLastMatch ? 'none' : lastMatchPts >= 0 ? '0 0 5px rgba(0,255,135,0.3)' : '0 0 5px rgba(255,82,82,0.3)';
