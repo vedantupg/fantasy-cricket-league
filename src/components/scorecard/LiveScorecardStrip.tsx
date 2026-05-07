@@ -14,6 +14,36 @@ interface LiveScorecardStripProps {
   maxMatches?: number;
 }
 
+const TOURNAMENT_ABBREVIATIONS: Record<string, string> = {
+  'indian premier league': 'IPL',
+  'icc cricket world cup': 'Cricket WC',
+  'icc mens t20 world cup': 'T20 WC',
+  'icc womens t20 world cup': "Women's T20 WC",
+  'champions trophy': 'Champions Trophy',
+  'pakistan super league': 'PSL',
+  'big bash league': 'BBL',
+  'caribbean premier league': 'CPL',
+  'sa20': 'SA20',
+};
+
+function parseMatchMeta(name: string): { matchNumber: string | null; tournament: string | null } {
+  const parts = name.split(',').map(s => s.trim());
+  if (parts.length < 3) return { matchNumber: null, tournament: null };
+
+  const matchNumber = parts[1] || null;
+  const rawTournament = parts.slice(2).join(', ').trim();
+
+  // Abbreviate known tournament names; keep the year suffix
+  const yearMatch = rawTournament.match(/\b(20\d{2})\b/);
+  const year = yearMatch ? ` ${yearMatch[1]}` : '';
+  const nameOnly = rawTournament.replace(/\b20\d{2}\b/, '').trim().replace(/,?\s*$/, '');
+  const key = nameOnly.toLowerCase();
+  const short = TOURNAMENT_ABBREVIATIONS[key];
+  const tournament = short ? `${short}${year}` : rawTournament;
+
+  return { matchNumber, tournament };
+}
+
 function formatScoreLine(score: LiveScorecardScore): string {
   const overs = Number.isInteger(score.o) ? `${score.o}` : `${score.o.toFixed(1)}`;
   return `${score.r}/${score.w} (${overs})`;
@@ -101,6 +131,7 @@ const MatchCard: React.FC<{ match: LiveScorecardMatch }> = ({ match }) => {
   const kind = getStatusKind(match);
   const team1 = match.teams[0];
   const team2 = match.teams[1];
+  const { matchNumber, tournament } = parseMatchMeta(match.name);
 
   const score1 = team1 ? findTeamScore(match.score, team1.name) : null;
   const score2 = team2 ? findTeamScore(match.score, team2.name) : null;
@@ -120,17 +151,26 @@ const MatchCard: React.FC<{ match: LiveScorecardMatch }> = ({ match }) => {
       }}
     >
       <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" mb={0.5}>
           <StatusChip kind={kind} />
-          {match.matchType && (
+          {tournament && (
             <Typography
               variant="caption"
-              sx={{ color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}
+              sx={{ color: 'rgba(255,255,255,0.5)', fontWeight: 700, letterSpacing: '0.06em', fontSize: '0.65rem' }}
             >
-              {match.matchType}
+              {tournament}
             </Typography>
           )}
         </Stack>
+        {matchNumber && (
+          <Typography
+            variant="caption"
+            sx={{ display: 'block', color: 'rgba(255,255,255,0.3)', fontSize: '0.62rem', mb: 0.75, letterSpacing: '0.04em' }}
+          >
+            {matchNumber}
+          </Typography>
+        )}
+
 
         {team1 && (
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 0.75 }}>
