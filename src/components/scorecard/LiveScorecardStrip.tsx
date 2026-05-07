@@ -259,7 +259,6 @@ const cardBaseSx = {
   background: `linear-gradient(145deg, ${alpha(colors.blue.navy, 0.9)} 0%, ${alpha('#0A1929', 0.98)} 100%)`,
   border: `1px solid ${colors.border.default}`,
   borderRadius: 3,
-  boxShadow: colors.shadows.navy.md,
 };
 
 const skeletonBg = alpha(colors.blue.electric, 0.08);
