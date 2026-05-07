@@ -22,6 +22,7 @@ import {
   ListItemText
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
+import LiveScorecardStrip from '../components/scorecard/LiveScorecardStrip';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
@@ -465,6 +466,11 @@ const LeagueDashboardPage: React.FC = () => {
               </Box>
             </CardContent>
           </Card>
+        </Grid>
+
+        {/* Live Scorecard */}
+        <Grid size={{ xs: 12 }}>
+          <LiveScorecardStrip title="Live Scores" maxMatches={4} sx={{ mb: 0 }} />
         </Grid>
 
         {/* Admin Actions - Only visible to league admins */}
