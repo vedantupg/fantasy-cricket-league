@@ -144,24 +144,19 @@ const MatchCard: React.FC<{ match: LiveScorecardMatch }> = ({ match }) => {
       <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={0.5}>
           <StatusChip kind={kind} />
-          {tournament && (
-            <Typography
-              variant="caption"
-              sx={{ color: alpha(colors.text.secondary, 0.6), fontWeight: 700, letterSpacing: '0.06em', fontSize: '0.65rem' }}
-            >
-              {tournament}
-            </Typography>
-          )}
-        </Stack>
-        {matchNumber && (
           <Typography
             variant="caption"
-            sx={{ display: 'block', color: alpha(colors.text.secondary, 0.4), fontSize: '0.62rem', mb: 0.75, letterSpacing: '0.04em' }}
+            sx={{ color: alpha(colors.text.secondary, 0.6), fontWeight: 700, letterSpacing: '0.06em', fontSize: '0.65rem', visibility: tournament ? 'visible' : 'hidden' }}
           >
-            {matchNumber}
+            {tournament ?? 'IPL'}
           </Typography>
-        )}
-
+        </Stack>
+        <Typography
+          variant="caption"
+          sx={{ display: 'block', color: alpha(colors.text.secondary, 0.4), fontSize: '0.62rem', mb: 0.75, letterSpacing: '0.04em', visibility: matchNumber ? 'visible' : 'hidden' }}
+        >
+          {matchNumber ?? 'Match'}
+        </Typography>
 
         {team1 && (
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 0.75 }}>
