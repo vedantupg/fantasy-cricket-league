@@ -4,6 +4,7 @@ import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import { subscribeLiveScorecard } from '../../services/liveScorecard';
 import { TeamLogo } from '../../utils/teamLogos';
 import type { LiveScorecardDoc, LiveScorecardMatch, LiveScorecardScore } from '../../types/database';
+import colors from '../../theme/colors';
 
 interface LiveScorecardStripProps {
   /** Optional title rendered above the cards. Hidden if no live matches. */
@@ -138,17 +139,7 @@ const MatchCard: React.FC<{ match: LiveScorecardMatch }> = ({ match }) => {
   const hasAnyScore = match.score.length > 0;
 
   return (
-    <Card
-      sx={{
-        minWidth: { xs: 280, sm: 320 },
-        maxWidth: { xs: 280, sm: 360 },
-        flexShrink: 0,
-        background: 'linear-gradient(135deg, rgba(30, 136, 229, 0.06) 0%, rgba(156, 39, 176, 0.04) 100%)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 2.5,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
-        backdropFilter: 'blur(8px)',
-      }}
+    <Card sx={cardBaseSx}
     >
       <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={0.5}>
@@ -156,7 +147,7 @@ const MatchCard: React.FC<{ match: LiveScorecardMatch }> = ({ match }) => {
           {tournament && (
             <Typography
               variant="caption"
-              sx={{ color: 'rgba(255,255,255,0.5)', fontWeight: 700, letterSpacing: '0.06em', fontSize: '0.65rem' }}
+              sx={{ color: alpha(colors.text.secondary, 0.6), fontWeight: 700, letterSpacing: '0.06em', fontSize: '0.65rem' }}
             >
               {tournament}
             </Typography>
@@ -165,7 +156,7 @@ const MatchCard: React.FC<{ match: LiveScorecardMatch }> = ({ match }) => {
         {matchNumber && (
           <Typography
             variant="caption"
-            sx={{ display: 'block', color: 'rgba(255,255,255,0.3)', fontSize: '0.62rem', mb: 0.75, letterSpacing: '0.04em' }}
+            sx={{ display: 'block', color: alpha(colors.text.secondary, 0.4), fontSize: '0.62rem', mb: 0.75, letterSpacing: '0.04em' }}
           >
             {matchNumber}
           </Typography>
@@ -180,7 +171,7 @@ const MatchCard: React.FC<{ match: LiveScorecardMatch }> = ({ match }) => {
                 variant="body2"
                 sx={{
                   fontWeight: 600,
-                  color: 'rgba(255,255,255,0.92)',
+                  color: colors.text.primary,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -193,7 +184,7 @@ const MatchCard: React.FC<{ match: LiveScorecardMatch }> = ({ match }) => {
               variant="body2"
               sx={{
                 fontWeight: 700,
-                color: 'rgba(255,255,255,0.95)',
+                color: colors.text.primary,
                 fontVariantNumeric: 'tabular-nums',
                 minWidth: 78,
                 textAlign: 'right',
@@ -212,7 +203,7 @@ const MatchCard: React.FC<{ match: LiveScorecardMatch }> = ({ match }) => {
                 variant="body2"
                 sx={{
                   fontWeight: 600,
-                  color: 'rgba(255,255,255,0.92)',
+                  color: colors.text.primary,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -225,7 +216,7 @@ const MatchCard: React.FC<{ match: LiveScorecardMatch }> = ({ match }) => {
               variant="body2"
               sx={{
                 fontWeight: 700,
-                color: 'rgba(255,255,255,0.95)',
+                color: colors.text.primary,
                 fontVariantNumeric: 'tabular-nums',
                 minWidth: 78,
                 textAlign: 'right',
@@ -242,14 +233,14 @@ const MatchCard: React.FC<{ match: LiveScorecardMatch }> = ({ match }) => {
               display: 'block',
               mt: 1,
               pt: 1,
-              borderTop: '1px solid rgba(255,255,255,0.06)',
+              borderTop: `1px solid ${colors.border.subtle}`,
               // Promote status to the result line when we have no detailed score (esp. for completed matches).
               fontSize: !hasAnyScore && kind === 'completed' ? '0.85rem' : '0.72rem',
               fontWeight: !hasAnyScore && kind === 'completed' ? 600 : 400,
               color:
                 !hasAnyScore && kind === 'completed'
-                  ? 'rgba(255,255,255,0.95)'
-                  : 'rgba(255,255,255,0.7)',
+                  ? colors.text.primary
+                  : alpha(colors.text.secondary, 0.75),
               lineHeight: 1.3,
             }}
           >
@@ -261,33 +252,35 @@ const MatchCard: React.FC<{ match: LiveScorecardMatch }> = ({ match }) => {
   );
 };
 
+const cardBaseSx = {
+  minWidth: { xs: 280, sm: 320 },
+  maxWidth: { xs: 280, sm: 360 },
+  flexShrink: 0,
+  background: `linear-gradient(145deg, ${alpha(colors.blue.navy, 0.9)} 0%, ${alpha('#0A1929', 0.98)} 100%)`,
+  border: `1px solid ${colors.border.default}`,
+  borderRadius: 3,
+  boxShadow: colors.shadows.navy.md,
+};
+
+const skeletonBg = alpha(colors.blue.electric, 0.08);
+
 const SkeletonCard: React.FC = () => (
-  <Card
-    sx={{
-      minWidth: { xs: 280, sm: 320 },
-      maxWidth: { xs: 280, sm: 360 },
-      flexShrink: 0,
-      background: 'linear-gradient(135deg, rgba(30, 136, 229, 0.06) 0%, rgba(156, 39, 176, 0.04) 100%)',
-      border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 2.5,
-      boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
-    }}
-  >
+  <Card sx={cardBaseSx}>
     <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
-        <Skeleton variant="rounded" width={64} height={22} sx={{ bgcolor: 'rgba(255,255,255,0.08)' }} />
-        <Skeleton variant="text" width={32} sx={{ bgcolor: 'rgba(255,255,255,0.06)' }} />
+        <Skeleton variant="rounded" width={64} height={22} sx={{ bgcolor: skeletonBg }} />
+        <Skeleton variant="text" width={52} sx={{ bgcolor: skeletonBg }} />
       </Stack>
       {[0, 1].map((i) => (
         <Stack key={i} direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 0.75 }}>
           <Stack direction="row" alignItems="center" spacing={1}>
-            <Skeleton variant="circular" width={26} height={26} sx={{ bgcolor: 'rgba(255,255,255,0.08)' }} />
-            <Skeleton variant="text" width={120} sx={{ bgcolor: 'rgba(255,255,255,0.08)' }} />
+            <Skeleton variant="circular" width={26} height={26} sx={{ bgcolor: skeletonBg }} />
+            <Skeleton variant="text" width={120} sx={{ bgcolor: skeletonBg }} />
           </Stack>
-          <Skeleton variant="text" width={60} sx={{ bgcolor: 'rgba(255,255,255,0.06)' }} />
+          <Skeleton variant="text" width={60} sx={{ bgcolor: skeletonBg }} />
         </Stack>
       ))}
-      <Skeleton variant="text" width="80%" sx={{ mt: 1, bgcolor: 'rgba(255,255,255,0.06)' }} />
+      <Skeleton variant="text" width="80%" sx={{ mt: 1, bgcolor: skeletonBg }} />
     </CardContent>
   </Card>
 );
@@ -336,7 +329,7 @@ const LiveScorecardStrip: React.FC<LiveScorecardStripProps> = ({ title = 'Live S
         <Typography
           variant="overline"
           sx={{
-            color: 'rgba(255,255,255,0.55)',
+            color: alpha(colors.text.secondary, 0.6),
             fontWeight: 700,
             letterSpacing: '0.12em',
             mb: 0.75,
@@ -354,7 +347,7 @@ const LiveScorecardStrip: React.FC<LiveScorecardStripProps> = ({ title = 'Live S
           pb: 1,
           scrollSnapType: 'x mandatory',
           '&::-webkit-scrollbar': { height: 6 },
-          '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 3 },
+          '&::-webkit-scrollbar-thumb': { backgroundColor: alpha(colors.blue.electric, 0.3), borderRadius: 3 },
           '& > *': { scrollSnapAlign: 'start' },
         }}
       >
