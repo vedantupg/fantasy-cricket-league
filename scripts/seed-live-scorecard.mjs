@@ -66,6 +66,12 @@ function utcDayKey(d) {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 }
 
+function ordinal(n) {
+  const v = n % 100;
+  const s = ['th', 'st', 'nd', 'rd'];
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
 function getMatchDays(schedule) {
   if (!schedule || !schedule.length) return [];
   const map = new Map();
@@ -178,7 +184,7 @@ function collectScheduledFixtures(allSchedules, now, lookbackDays = 1, lookahead
       const dedupeKey = `${normalizeTeamName(m.team1)}|${normalizeTeamName(m.team2)}|${key}`;
       if (seen.has(dedupeKey)) continue;
       seen.add(dedupeKey);
-      fixtures.push({ team1: m.team1, team2: m.team2, dateKey: key, date: d, timeGMT: m.timeGMT || '' });
+      fixtures.push({ team1: m.team1, team2: m.team2, dateKey: key, date: d, timeGMT: m.timeGMT || '', matchNumber: m.matchNumber || null, tournamentName: m.tournamentName || '' });
     }
   }
   return fixtures;
@@ -220,9 +226,12 @@ function buildUpcomingPlaceholders(allSchedules, now, existingShapedMatches) {
     let dt = null;
     const parsed = parseMatchTime(fx.timeGMT, fx.date);
     if (parsed) dt = parsed.toISOString().replace(/\.\d{3}Z$/, '');
+    const matchNumStr = fx.matchNumber ? `${ordinal(fx.matchNumber)} Match` : '';
+    const nameParts = [`${fx.team1} vs ${fx.team2}`, matchNumStr, fx.tournamentName].filter(Boolean);
+
     placeholders.push({
       id: `placeholder-${normalizeTeamName(fx.team1)}-${normalizeTeamName(fx.team2)}-${fx.dateKey}`,
-      name: `${fx.team1} vs ${fx.team2}`,
+      name: nameParts.join(', '),
       matchType: '',
       status: 'Match yet to begin',
       venue: '',
@@ -315,7 +324,11 @@ async function main() {
   snapshot.forEach((doc) => {
     const data = doc.data();
     if (Array.isArray(data.matchSchedule) && data.matchSchedule.length > 0) {
-      allSchedules.push(data.matchSchedule);
+      const enriched = data.matchSchedule.map((m) => ({
+        ...m,
+        tournamentName: data.tournamentName || '',
+      }));
+      allSchedules.push(enriched);
     }
   });
   console.log(`Schedules with fixtures: ${allSchedules.length}`);

@@ -68,6 +68,12 @@ function utcDayKey(d) {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 }
 
+function ordinal(n) {
+  const v = n % 100;
+  const s = ['th', 'st', 'nd', 'rd'];
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
 /**
  * Group matches by UTC day and compute earliest/latest start times.
  * Falls back to 10:00 UTC (multi-match days) or 14:00 UTC (single-match days)
@@ -231,6 +237,8 @@ function collectScheduledFixtures(allSchedules, now, lookbackDays = 1, lookahead
         dateKey: key,
         date: d,
         timeGMT: m.timeGMT || '',
+        matchNumber: m.matchNumber || null,
+        tournamentName: m.tournamentName || '',
       });
     }
   }
@@ -293,9 +301,12 @@ function buildUpcomingPlaceholders(allSchedules, now, existingShapedMatches) {
     const parsed = parseMatchTime(fx.timeGMT, fx.date);
     if (parsed) dt = parsed.toISOString().replace(/\.\d{3}Z$/, '');
 
+    const matchNumStr = fx.matchNumber ? `${ordinal(fx.matchNumber)} Match` : '';
+    const nameParts = [`${fx.team1} vs ${fx.team2}`, matchNumStr, fx.tournamentName].filter(Boolean);
+
     placeholders.push({
       id: `placeholder-${normalizeTeamName(fx.team1)}-${normalizeTeamName(fx.team2)}-${fx.dateKey}`,
-      name: `${fx.team1} vs ${fx.team2}`,
+      name: nameParts.join(', '),
       matchType: '',
       status: 'Match yet to begin',
       venue: '',
@@ -500,7 +511,11 @@ export default async function handler(req, res) {
     leaguesSnapshot.docs.forEach((doc) => {
       const data = convertTimestamps(doc.data());
       if (Array.isArray(data.matchSchedule) && data.matchSchedule.length > 0) {
-        allSchedules.push(data.matchSchedule);
+        const enriched = data.matchSchedule.map((m) => ({
+          ...m,
+          tournamentName: data.tournamentName || '',
+        }));
+        allSchedules.push(enriched);
       }
     });
 
