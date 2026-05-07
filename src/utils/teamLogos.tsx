@@ -37,17 +37,38 @@ export const IPL_TEAM_COLORS: Record<string, [string, string]> = {
   'Gujarat Titans':              ['#1C3C6B', '#C8A400'],
 };
 
+// Full team name → short code (used for logo lookup when callers pass full names).
+const IPL_FULL_NAME_TO_SHORT: Record<string, string> = {
+  'sunrisers hyderabad':         'SRH',
+  'rajasthan royals':            'RR',
+  'royal challengers bengaluru': 'RCB',
+  'royal challengers bangalore': 'RCB',
+  'lucknow super giants':        'LSG',
+  'mumbai indians':              'MI',
+  'punjab kings':                'PBKS',
+  'kings xi punjab':             'PBKS',
+  'kolkata knight riders':       'KKR',
+  'delhi capitals':              'DC',
+  'chennai super kings':         'CSK',
+  'gujarat titans':              'GT',
+};
+
 /** Returns [primary, secondary] for a full IPL team name, or null if unknown. */
 export function getTeamColors(team: string): [string, string] | null {
   return IPL_TEAM_COLORS[team] ?? null;
 }
 
 /**
- * Returns logo URL for a team abbreviation, or null if unknown.
- * Case-insensitive lookup.
+ * Returns logo URL for a team. Accepts either a short code (e.g. "MI") or a
+ * full team name (e.g. "Mumbai Indians"). Case-insensitive.
  */
 export function getTeamLogo(team: string): string | null {
-  return IPL_TEAM_LOGOS[team?.toUpperCase()] ?? null;
+  if (!team) return null;
+  const direct = IPL_TEAM_LOGOS[team.toUpperCase()];
+  if (direct) return direct;
+  const fromFullName = IPL_FULL_NAME_TO_SHORT[team.toLowerCase().trim()];
+  if (fromFullName) return IPL_TEAM_LOGOS[fromFullName] ?? null;
+  return null;
 }
 
 export interface TeamLogoProps {

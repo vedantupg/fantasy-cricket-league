@@ -33,6 +33,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { leagueService } from '../services/firestore';
 import AppHeader from '../components/common/AppHeader';
+import LiveScorecardStrip from '../components/scorecard/LiveScorecardStrip';
 import type { League } from '../types/database';
 import colors from '../theme/colors';
 import { vibrate } from '../utils/haptics';
@@ -170,8 +171,6 @@ const LandingPage: React.FC = () => {
       navigate('/register');
     }
   };
-
-  const parallaxOffset = scrollY * 0.5;
 
   return (
     <Box
@@ -685,14 +684,18 @@ const LandingPage: React.FC = () => {
         </Container>
       )}
 
+      {/* Live cricket scorecard */}
+      <Container maxWidth="lg" sx={{ pt: 3, pb: 1, position: 'relative', zIndex: 1 }}>
+        <LiveScorecardStrip />
+      </Container>
+
       {/* Stats Section - Compact glass cards */}
       <Container
         maxWidth="lg"
         sx={{
-          py: 6,
+          py: { xs: 4, md: 5 },
           position: 'relative',
           zIndex: 1,
-          transform: `translateY(${-parallaxOffset * 0.2}px)`
         }}
       >
         <Box
@@ -755,7 +758,7 @@ const LandingPage: React.FC = () => {
       </Container>
 
       {/* How It Works Section */}
-      <Container maxWidth="lg" sx={{ py: 8, position: 'relative', zIndex: 1 }}>
+      <Container maxWidth="lg" sx={{ pt: { xs: 3, md: 4 }, pb: { xs: 6, md: 8 }, position: 'relative', zIndex: 1 }}>
         <Typography
           variant="h2"
           sx={{
