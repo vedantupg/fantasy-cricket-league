@@ -227,7 +227,11 @@ function buildUpcomingPlaceholders(allSchedules, now, existingShapedMatches) {
     const parsed = parseMatchTime(fx.timeGMT, fx.date);
     if (parsed) dt = parsed.toISOString().replace(/\.\d{3}Z$/, '');
     const matchNumStr = fx.matchNumber ? `${ordinal(fx.matchNumber)} Match` : '';
-    const nameParts = [`${fx.team1} vs ${fx.team2}`, matchNumStr, fx.tournamentName].filter(Boolean);
+    const year = new Date(fx.date).getUTCFullYear();
+    const tournament = fx.tournamentName && !fx.tournamentName.includes(String(year))
+      ? `${fx.tournamentName} ${year}`
+      : fx.tournamentName || '';
+    const nameParts = [`${fx.team1} vs ${fx.team2}`, matchNumStr, tournament].filter(Boolean);
 
     placeholders.push({
       id: `placeholder-${normalizeTeamName(fx.team1)}-${normalizeTeamName(fx.team2)}-${fx.dateKey}`,
