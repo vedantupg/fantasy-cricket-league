@@ -47,6 +47,48 @@ export interface ScheduleMatch {
   stage?: string; // e.g., "Group A", "Super 8 Group 1", "Semi-Final", "Final"
 }
 
+// Live Scorecard (powered by cricketdata.org's free `currentMatches` API).
+// One shared doc lives at `liveScorecard/current`; clients subscribe via onSnapshot.
+// The doc is written by `api/cricket-live-scorecard.js` on a 10-min cron, and
+// only during active match windows (so quota stays well under 100 hits/day).
+
+export interface LiveScorecardTeam {
+  name: string;
+  shortName: string | null;
+  img: string | null;
+}
+
+export interface LiveScorecardScore {
+  inning: string;
+  r: number;
+  w: number;
+  o: number;
+}
+
+export interface LiveScorecardMatch {
+  id: string | null;
+  name: string;
+  matchType: string;
+  status: string;
+  venue: string;
+  dateTimeGMT: string | null;
+  matchStarted: boolean;
+  matchEnded: boolean;
+  teams: LiveScorecardTeam[];
+  score: LiveScorecardScore[];
+}
+
+export interface LiveScorecardDoc {
+  updatedAt: Date;
+  matches: LiveScorecardMatch[];
+  hitsToday?: number;
+  hitsDayKey?: string;
+  lastSkipReason?: string | null;
+  lastError?: string | null;
+  source?: string;
+  windowDay?: string;
+}
+
 export interface League {
   id: string;
   name: string;

@@ -177,6 +177,16 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Live Scorecard (server-managed, public-read)
+    // The doc at liveScorecard/current is written exclusively by the
+    // cricket-live-scorecard cron via Firebase Admin (bypasses these rules).
+    // Everyone (including unauthenticated visitors on the landing page)
+    // can read it; nobody can write from a client.
+    match /liveScorecard/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Leaderboard Snapshots collection
     match /leaderboardSnapshots/{snapshotId} {
       // All authenticated users can read leaderboard snapshots
