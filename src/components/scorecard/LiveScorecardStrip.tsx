@@ -3,77 +3,20 @@ import { Box, Card, CardContent, Chip, Skeleton, Stack, Typography, alpha } from
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import { subscribeLiveScorecard } from '../../services/liveScorecard';
 import { TeamLogo } from '../../utils/teamLogos';
-import type { LiveScorecardDoc, LiveScorecardMatch, LiveScorecardScore } from '../../types/database';
+import type { LiveScorecardDoc, LiveScorecardMatch } from '../../types/database';
 import colors from '../../theme/colors';
+import {
+  parseMatchMeta,
+  formatScoreLine,
+  getStatusKind,
+  findTeamScore,
+  selectForDisplay,
+} from '../../utils/liveScorecardDisplay';
+import type { StatusKind } from '../../utils/liveScorecardDisplay';
 
 interface LiveScorecardStripProps {
   title?: string;
   sx?: object;
-}
-
-const TOURNAMENT_ABBREVIATIONS: Record<string, string> = {
-  // IPL
-  'indian premier league': 'IPL',
-  // ICC men's
-  'icc cricket world cup': 'ODI WC',
-  'icc mens cricket world cup': 'ODI WC',
-  'icc mens t20 world cup': 'T20 WC',
-  'icc mens champions trophy': 'Champions Trophy',
-  'icc world test championship': 'WTC',
-  'icc mens cricket world cup super league': 'CWC Super League',
-  // ICC women's
-  'icc womens t20 world cup': "Women's T20 WC",
-  'icc womens cricket world cup': "Women's ODI WC",
-  'icc womens champions trophy': "Women's Champions Trophy",
-  // Domestic T20 leagues
-  'pakistan super league': 'PSL',
-  'big bash league': 'BBL',
-  'caribbean premier league': 'CPL',
-  'sa20': 'SA20',
-  'international league t20': 'ILT20',
-  'major league cricket': 'MLC',
-  'lanka premier league': 'LPL',
-  'bangladesh premier league': 'BPL',
-};
-
-function parseMatchMeta(name: string): { matchNumber: string | null; tournament: string | null } {
-  const parts = name.split(',').map(s => s.trim());
-  if (parts.length < 3) return { matchNumber: null, tournament: null };
-
-  const matchNumber = parts[1] || null;
-  const rawTournament = parts.slice(2).join(', ').trim();
-
-  // Abbreviate known tournament names; keep the year suffix
-  const yearMatch = rawTournament.match(/\b(20\d{2})\b/);
-  const year = yearMatch ? ` ${yearMatch[1]}` : '';
-  const nameOnly = rawTournament.replace(/\b20\d{2}\b/, '').trim().replace(/,?\s*$/, '');
-  const key = nameOnly.toLowerCase();
-  const short = TOURNAMENT_ABBREVIATIONS[key];
-  const tournament = short ? `${short}${year}` : rawTournament;
-
-  return { matchNumber, tournament };
-}
-
-function formatScoreLine(score: LiveScorecardScore): string {
-  const overs = Number.isInteger(score.o) ? `${score.o}` : `${score.o.toFixed(1)}`;
-  return `${score.r}/${score.w} (${overs})`;
-}
-
-type StatusKind = 'live' | 'completed' | 'upcoming' | 'cancelled';
-
-function getStatusKind(match: LiveScorecardMatch): StatusKind {
-  const status = (match.status || '').toLowerCase();
-  // Cricket-specific: a match can be abandoned, cancelled, or no-result.
-  if (
-    status.includes('cancel') ||
-    status.includes('abandon') ||
-    status.includes('no result')
-  ) {
-    return 'cancelled';
-  }
-  if (match.matchEnded) return 'completed';
-  if (match.matchStarted) return 'live';
-  return 'upcoming';
 }
 
 const STATUS_COLORS: Record<StatusKind, { fg: string; bg: string; border: string }> = {
@@ -124,18 +67,6 @@ const StatusChip: React.FC<{ kind: StatusKind }> = ({ kind }) => {
     />
   );
 };
-
-/**
- * Find the score line corresponding to a particular team.
- * Cricket API includes the team name as part of the inning string,
- * e.g. "Mumbai Indians Inning 1".
- */
-function findTeamScore(scores: LiveScorecardScore[], teamName: string): LiveScorecardScore | null {
-  const lower = (teamName || '').toLowerCase();
-  return (
-    scores.find((s) => (s.inning || '').toLowerCase().includes(lower)) || null
-  );
-}
 
 const MatchCard: React.FC<{ match: LiveScorecardMatch }> = ({ match }) => {
   const kind = getStatusKind(match);
@@ -287,58 +218,6 @@ const SkeletonCard: React.FC = () => (
     </CardContent>
   </Card>
 );
-
-/**
- * Per-tournament smart selection.
- *
- * The Firestore doc already contains only fixtures from active leagues
- * (filtered server-side by matchSchedule). Here we pick at most 2 cards
- * per tournament: the most relevant active/completed match + the next
- * upcoming match.
- *
- * - If a live match exists  → show live + upcoming
- * - If no live match        → show most recent completed + upcoming
- *
- * This runs per tournament so that a user playing both an IPL league and
- * a WC league simultaneously sees the right cards for each tournament
- * without any hardcoded tournament names.
- */
-function selectForDisplay(all: LiveScorecardMatch[]): LiveScorecardMatch[] {
-  if (all.length === 0) return [];
-
-  // Group by abbreviated tournament name (from parseMatchMeta).
-  // Matches already arrive sorted: live → upcoming → completed.
-  const groups = new Map<string, LiveScorecardMatch[]>();
-  for (const m of all) {
-    const { tournament } = parseMatchMeta(m.name);
-    const key = tournament ?? '__unknown__';
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(m);
-  }
-
-  const result: LiveScorecardMatch[] = [];
-
-  for (const group of Array.from(groups.values())) {
-    const live      = group.find(m => m.matchStarted && !m.matchEnded);
-    const upcoming  = group.find(m => !m.matchStarted && !m.matchEnded);
-    const completed = group.find(m => m.matchEnded);
-
-    if (live) {
-      result.push(live);
-    } else if (completed) {
-      result.push(completed);
-    }
-
-    if (upcoming) result.push(upcoming);
-  }
-
-  // Re-sort: live first, then completed, then upcoming
-  return result.sort((a, b) => {
-    const tier = (m: LiveScorecardMatch) =>
-      m.matchStarted && !m.matchEnded ? 0 : m.matchEnded ? 1 : 2;
-    return tier(a) - tier(b);
-  });
-}
 
 const LiveScorecardStrip: React.FC<LiveScorecardStripProps> = ({ title = 'Live Scores', sx }) => {
   const [scorecard, setScorecard] = useState<LiveScorecardDoc | null>(null);

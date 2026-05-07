@@ -309,7 +309,7 @@ describe('cricket-live-scorecard buildUpcomingPlaceholders', () => {
     const placeholders = buildUpcomingPlaceholders([schedule], todayMid, []);
     expect(placeholders).toHaveLength(1);
     expect(placeholders[0]).toMatchObject({
-      name: 'Rajasthan Royals vs Delhi Capitals',
+      name: 'Rajasthan Royals vs Delhi Capitals, 1st Match',
       matchStarted: false,
       matchEnded: false,
     });
