@@ -87,7 +87,6 @@ const LandingPage: React.FC = () => {
   const [statCounts, setStatCounts] = useState<number[]>(stats.map(() => 0));
   const statsAnimatedRef = useRef(false);
 
-
   useEffect(() => {
     observerRef.current = new IntersectionObserver(
       (entries) => {
