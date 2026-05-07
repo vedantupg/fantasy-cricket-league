@@ -133,6 +133,7 @@ function isWithinAnyMatchWindow(allSchedules, now) {
 }
 
 const TEAM_ALIASES = {
+  // IPL franchises
   csk: ['chennai super kings'],
   mi: ['mumbai indians'],
   rcb: ['royal challengers bengaluru', 'royal challengers bangalore'],
@@ -143,6 +144,21 @@ const TEAM_ALIASES = {
   gt: ['gujarat titans'],
   lsg: ['lucknow super giants'],
   srh: ['sunrisers hyderabad'],
+  // International sides
+  india: ['india cricket', 'team india', 'bcci'],
+  england: ['england cricket', 'england & wales cricket board'],
+  australia: ['australia cricket', 'cricket australia'],
+  'new zealand': ['blackcaps', 'black caps', 'new zealand cricket'],
+  'south africa': ['proteas', 'cricket south africa'],
+  pakistan: ['pakistan cricket', 'pcb'],
+  'west indies': ['windies', 'cricket west indies'],
+  'sri lanka': ['sri lanka cricket', 'slc'],
+  bangladesh: ['tigers', 'bangladesh cricket', 'bcb'],
+  afghanistan: ['afghanistan cricket'],
+  zimbabwe: ['zimbabwe cricket'],
+  ireland: ['ireland cricket'],
+  uae: ['united arab emirates', 'emirates cricket board'],
+  usa: ['united states', 'usa cricket', 'us cricket'],
 };
 
 function normalizeTeamName(name) {

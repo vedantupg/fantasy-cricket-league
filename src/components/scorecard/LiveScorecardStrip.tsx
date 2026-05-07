@@ -7,24 +7,33 @@ import type { LiveScorecardDoc, LiveScorecardMatch, LiveScorecardScore } from '.
 import colors from '../../theme/colors';
 
 interface LiveScorecardStripProps {
-  /** Optional title rendered above the cards. Hidden if no live matches. */
   title?: string;
-  /** sx applied to the outer Box. */
   sx?: object;
-  /** Max cards to render. Defaults to 4 to keep the strip compact. */
-  maxMatches?: number;
 }
 
 const TOURNAMENT_ABBREVIATIONS: Record<string, string> = {
+  // IPL
   'indian premier league': 'IPL',
-  'icc cricket world cup': 'Cricket WC',
+  // ICC men's
+  'icc cricket world cup': 'ODI WC',
+  'icc mens cricket world cup': 'ODI WC',
   'icc mens t20 world cup': 'T20 WC',
+  'icc mens champions trophy': 'Champions Trophy',
+  'icc world test championship': 'WTC',
+  'icc mens cricket world cup super league': 'CWC Super League',
+  // ICC women's
   'icc womens t20 world cup': "Women's T20 WC",
-  'champions trophy': 'Champions Trophy',
+  'icc womens cricket world cup': "Women's ODI WC",
+  'icc womens champions trophy': "Women's Champions Trophy",
+  // Domestic T20 leagues
   'pakistan super league': 'PSL',
   'big bash league': 'BBL',
   'caribbean premier league': 'CPL',
   'sa20': 'SA20',
+  'international league t20': 'ILT20',
+  'major league cricket': 'MLC',
+  'lanka premier league': 'LPL',
+  'bangladesh premier league': 'BPL',
 };
 
 function parseMatchMeta(name: string): { matchNumber: string | null; tournament: string | null } {
@@ -279,7 +288,59 @@ const SkeletonCard: React.FC = () => (
   </Card>
 );
 
-const LiveScorecardStrip: React.FC<LiveScorecardStripProps> = ({ title = 'Live Scores', sx, maxMatches = 4 }) => {
+/**
+ * Per-tournament smart selection.
+ *
+ * The Firestore doc already contains only fixtures from active leagues
+ * (filtered server-side by matchSchedule). Here we pick at most 2 cards
+ * per tournament: the most relevant active/completed match + the next
+ * upcoming match.
+ *
+ * - If a live match exists  → show live + upcoming
+ * - If no live match        → show most recent completed + upcoming
+ *
+ * This runs per tournament so that a user playing both an IPL league and
+ * a WC league simultaneously sees the right cards for each tournament
+ * without any hardcoded tournament names.
+ */
+function selectForDisplay(all: LiveScorecardMatch[]): LiveScorecardMatch[] {
+  if (all.length === 0) return [];
+
+  // Group by abbreviated tournament name (from parseMatchMeta).
+  // Matches already arrive sorted: live → upcoming → completed.
+  const groups = new Map<string, LiveScorecardMatch[]>();
+  for (const m of all) {
+    const { tournament } = parseMatchMeta(m.name);
+    const key = tournament ?? '__unknown__';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(m);
+  }
+
+  const result: LiveScorecardMatch[] = [];
+
+  for (const group of Array.from(groups.values())) {
+    const live      = group.find(m => m.matchStarted && !m.matchEnded);
+    const upcoming  = group.find(m => !m.matchStarted && !m.matchEnded);
+    const completed = group.find(m => m.matchEnded);
+
+    if (live) {
+      result.push(live);
+    } else if (completed) {
+      result.push(completed);
+    }
+
+    if (upcoming) result.push(upcoming);
+  }
+
+  // Re-sort: live first, then completed, then upcoming
+  return result.sort((a, b) => {
+    const tier = (m: LiveScorecardMatch) =>
+      m.matchStarted && !m.matchEnded ? 0 : m.matchEnded ? 1 : 2;
+    return tier(a) - tier(b);
+  });
+}
+
+const LiveScorecardStrip: React.FC<LiveScorecardStripProps> = ({ title = 'Live Scores', sx }) => {
   const [scorecard, setScorecard] = useState<LiveScorecardDoc | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -291,7 +352,7 @@ const LiveScorecardStrip: React.FC<LiveScorecardStripProps> = ({ title = 'Live S
     return () => unsubscribe();
   }, []);
 
-  const matches = (scorecard?.matches || []).slice(0, maxMatches);
+  const matches = selectForDisplay(scorecard?.matches || []);
 
   if (loading) {
     return (

@@ -159,9 +159,16 @@ function isWithinAnyMatchWindow(allSchedules, now) {
 // ----------------------- Team-name matching -----------------------
 
 /**
- * Common short-form / alias map for team-name normalization.
- * Both the schedule and the API response are normalized through this
- * before comparison, so either side can use either form.
+ * Short-form / alias map for team-name normalization.
+ * Both the schedule and the API response are normalized through this before
+ * comparison, so either side can use either form.
+ *
+ * This is supplementary — teams whose names match exactly (e.g. "India",
+ * "Australia", "England") will match without an alias entry. Add aliases
+ * here only when the schedule and the cricketdata.org API use visibly
+ * different strings for the same side.
+ *
+ * IPL franchises
  */
 const TEAM_ALIASES = {
   'csk': ['chennai super kings'],
@@ -174,6 +181,22 @@ const TEAM_ALIASES = {
   'gt': ['gujarat titans'],
   'lsg': ['lucknow super giants'],
   'srh': ['sunrisers hyderabad'],
+  // International sides — add here if the API uses a different string from
+  // what the league schedule stores (e.g. "India" vs "India Cricket").
+  'india': ['india cricket', 'team india', 'bcci'],
+  'england': ['england cricket', 'england & wales cricket board'],
+  'australia': ['australia cricket', 'cricket australia'],
+  'new zealand': ['blackcaps', 'black caps', 'new zealand cricket'],
+  'south africa': ['proteas', 'cricket south africa'],
+  'pakistan': ['pakistan cricket', 'pcb'],
+  'west indies': ['windies', 'cricket west indies'],
+  'sri lanka': ['sri lanka cricket', 'slc'],
+  'bangladesh': ['tigers', 'bangladesh cricket', 'bcb'],
+  'afghanistan': ['afghanistan cricket'],
+  'zimbabwe': ['zimbabwe cricket'],
+  'ireland': ['ireland cricket'],
+  'uae': ['united arab emirates', 'emirates cricket board'],
+  'usa': ['united states', 'usa cricket', 'us cricket'],
 };
 
 function normalizeTeamName(name) {

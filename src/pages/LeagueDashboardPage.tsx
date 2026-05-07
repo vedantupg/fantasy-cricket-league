@@ -470,7 +470,7 @@ const LeagueDashboardPage: React.FC = () => {
 
         {/* Live Scorecard */}
         <Grid size={{ xs: 12 }}>
-          <LiveScorecardStrip title="Live Scores" maxMatches={4} sx={{ mb: 0 }} />
+          <LiveScorecardStrip title="Live Scores" sx={{ mb: 0 }} />
         </Grid>
 
         {/* Admin Actions - Only visible to league admins */}
