@@ -44,7 +44,6 @@ const LandingPage: React.FC = () => {
   const { user, userData } = useAuth();
   const [userLeagues, setUserLeagues] = useState<League[]>([]);
   const [leaguesLoading, setLeaguesLoading] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
 
   // Intersection Observer for scroll animations
   const [visibleSections, setVisibleSections] = useState<Set<string>>(new Set());
@@ -88,14 +87,6 @@ const LandingPage: React.FC = () => {
   const [statCounts, setStatCounts] = useState<number[]>(stats.map(() => 0));
   const statsAnimatedRef = useRef(false);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   useEffect(() => {
     observerRef.current = new IntersectionObserver(
